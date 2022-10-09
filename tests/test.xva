@@ -1,0 +1,10 @@
+loop
+    call();
+end
+
+while true
+    call();
+    break;
+end
+
+let ternary = 1 if true else 2;

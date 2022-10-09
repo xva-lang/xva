@@ -11,6 +11,40 @@
         "isDefault": true
       },
       "label": "Build [release]"
+    },
+    {
+      "label": "Build grammar",
+      "type": "shell",
+      "command": "./scripts/build_grammar.sh",
+      "windows": {
+        "command": ".\\scripts\\build_grammar.cmd"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test grammar",
+      "type": "shell",
+      "command": "./scripts/test_grammar.sh",
+      "windows": {
+        "command": ".\\scripts\\test_grammar.cmd"
+      },
+      "group": {
+        "kind": "test"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "close": true
+      },
+      "problemMatcher": []
     }
   ]
 }
