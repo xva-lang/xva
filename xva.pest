@@ -3,7 +3,7 @@
     //"(" ~ Expression ~ ("," ~ Expression)* ~ ")")
 Module = { 
     SOI ~ 
-    ((Statement ~ StatementTerminator)+ | Statement)* ~
+    ((Statement ~ StatementTerminator)+ | Statement )* ~
     EOI
 }
 
@@ -16,7 +16,8 @@ Statement = {
     BreakKeyword | 
     ComplexFunction | 
     ArrowFunction | 
-    ControlBlock 
+    ControlBlock |
+    LineComment
 }
 
 Expression = {
@@ -78,6 +79,8 @@ LoopBlock = {LoopKeyword ~ StatementTerminator ~ BlockBody ~ EndKeyword}
 WhileBlock = {WhileKeyword ~ Expression ~ StatementTerminator ~ BlockBody ~ EndKeyword}
 LexicalBlock = {BlockKeyword ~ StatementTerminator ~ BlockBody ~ EndKeyword}
 
+// Comments
+LineComment = {LineCommentSymbol ~ ANY* }
 
 // Constant rules
 IntegerConstant = {IntegerConstantBinary | IntegerConstantHexadecimal | IntegerConstantOctal | IntegerConstantDecimal}
@@ -154,6 +157,7 @@ Colon = {":"}
 FatArrow = {"=>"}
 SingleQuote = {"\'"}
 DoubleQuote = {"\""}
+LineCommentSymbol = _{"//"}
 Character = {
     !("\"" | "\\") ~ ANY
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
