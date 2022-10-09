@@ -20,8 +20,7 @@
         "command": ".\\scripts\\build_grammar.cmd"
       },
       "group": {
-        "kind": "build",
-        "isDefault": true
+        "kind": "build"
       },
       "presentation": {
         "reveal": "always",
