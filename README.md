@@ -27,7 +27,7 @@ def sayHello(): void
     print("Hello, Xva!)
 end
 
-// Or, you could be a little fancier and bind an anonymous function to a name
+// Or, you could be a little fancier and bind an anonymous function to a name:
 let sayHelloThreeTimes = def (): void
     print("Hello, world!)
     print("Hello, world!)
@@ -37,11 +37,13 @@ end
 // You can get even fancier with a lambda expression:
 let oneLiner = def () => print("Hello, world!")
 
-// And just in case you thought you couldn't get any fancier, functions in Xva are first-class - you can lob them around any way you like!
+// And just in case you thought you couldn't get any fancier, functions in Xva are
+// first-class - you can lob them around any way you like!
 functionThatCallsAFunction(def () => print("I should get called!"))
 
 
-let xvaIsSuperCool = true // (Xva knows that it's very cool - it doesn't need a variable for that 😉)
+let xvaIsSuperCool = true 
+// (Xva knows that it's super cool - it doesn't need a variable for that 😉)
 
 if xvaIsSuperCool
     print("You're right! Xva IS super cool!")
