@@ -14,9 +14,15 @@ Xva is still extremely experimental. I am always open to new ideas and contribut
 
 See for yourself! Here's an example Xva program, demonstrating a few bits and pieces.
 
+```main.xva```
 ```xva
 // Xva is statically typed - all variables must have a type, and variables cannot change their types.
 let number: int = 1;
+
+// Xva automatically makes variables immutable, so you can't re-assign another value to them.
+// If you do want to re-assign something to a variable, you have to declare it as mutable:
+let changeableNumber: mutable float = 1.24
+changeableNumber = 2.48
 
 // You can also let Xva "figure out" the type of a variable, based on its initial assignment.
 let stringVariable = "Xva can do implicit typing!"
