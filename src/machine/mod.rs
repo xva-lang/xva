@@ -37,6 +37,9 @@ pub fn run_machine(stream: &mut istream::IStream, stack: &mut Box<stack::Evaluat
             }
         };
 
+        // Todo: when call frames are being built, convert local variable allocations to use the stack,
+        // local bindings should store a base offset.
+
         match instruction {
             constants::instruction::NOP => {}
             constants::instruction::PUSH_UINT8 => push_uint8(stream, stack.as_mut()),
@@ -52,6 +55,7 @@ pub fn run_machine(stream: &mut istream::IStream, stack: &mut Box<stack::Evaluat
                 let mut machine = Machine {
                     stack: stack.as_mut(),
                 };
+
                 store_local(stream, &mut frame, &mut machine);
             }
             _ => panic!("unhandled instruction 0x{:x}", instruction),
