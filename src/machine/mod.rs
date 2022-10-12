@@ -40,6 +40,8 @@ pub fn run_machine(stream: &mut istream::IStream, stack: &mut Box<stack::Evaluat
         // Todo: when call frames are being built, convert local variable allocations to use the stack,
         // local bindings should store a base offset.
 
+        // Todo: make the stack grow downwards to make endian-switching easier
+
         match instruction {
             constants::instruction::NOP => {}
             constants::instruction::PUSH_UINT8 => push_uint8(stream, stack.as_mut()),
