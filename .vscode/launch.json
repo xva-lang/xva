@@ -2,32 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch",
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'xva'",
-      "cargo": {
-        "args": ["build", "--bin=xva", "--package=xva"],
-        "filter": {
-          "name": "xva",
-          "kind": "bin"
-        }
-      },
-      "args": [],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "Debug unit tests in executable 'xva'",
-      "cargo": {
-        "args": ["test", "--no-run", "--bin=xva", "--package=xva"],
-        "filter": {
-          "name": "xva",
-          "kind": "bin"
-        }
-      },
-      "args": [],
-      "cwd": "${workspaceFolder}"
+      "preLaunchTask": "${defaultBuildTask}",
+      "program": "${workspaceFolder}/target/debug/xva"
     }
   ]
 }
