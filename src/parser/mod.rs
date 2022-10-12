@@ -5,7 +5,7 @@ use pest::{iterators::Pair, Parser};
 pub struct XvaParser;
 
 pub mod ast;
-
+#[allow(dead_code)]
 pub fn parse_file() {
     let unparsed_file = std::fs::read_to_string("/Users/dylan/Projects/xva/tests/test.xva")
         .expect("Failed to read the file");
@@ -32,13 +32,15 @@ pub fn parse_file() {
     }
 }
 
-fn create_node(rule: &Pair<Rule>, node_type: ast::NodeType, parent_node: &ast::Node) -> ast::Node {
+#[allow(dead_code)]
+fn create_node(rule: &Pair<Rule>, node_type: ast::NodeType, _parent_node: &ast::Node) -> ast::Node {
     ast::Node {
         node_type: node_type,
         raw: String::from(rule.as_str()),
     }
 }
 
+#[allow(dead_code)]
 fn parse_statement(parent_node: &ast::Node, statement: Pair<Rule>) {
     let base_node = create_node(&statement, ast::NodeType::Statement, parent_node);
 
@@ -62,7 +64,7 @@ fn parse_statement(parent_node: &ast::Node, statement: Pair<Rule>) {
     }
 }
 
-fn parse_declaration(parent_node: &mut ast::Node, declaration: Pair<Rule>) {
+fn parse_declaration(_parent_node: &mut ast::Node, declaration: Pair<Rule>) {
     println!("Parsing declaration: {}", declaration.as_str());
     for rule in declaration.into_inner() {
         match rule.as_rule() {

@@ -19,3 +19,4 @@ tests/*.interp
 tests/*.tokens
 tests/*.java
 tests/*.class
+tests/*.xvo
