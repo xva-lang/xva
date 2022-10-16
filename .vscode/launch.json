@@ -7,7 +7,7 @@
       "request": "launch",
       "preLaunchTask": "${defaultBuildTask}",
       "program": "${workspaceFolder}/target/debug/xva",
-      "args": ["/Users/dylan/Projects/xva/tests/test.xvo"]
+      "args": ["/Users/dylan/Projects/xva/tests/main.xva"]
     }
   ]
 }

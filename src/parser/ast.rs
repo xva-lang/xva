@@ -1,23 +1,21 @@
 #[allow(dead_code)]
-pub enum NodeType {
-    Module,
-    Declaration,
+pub enum NodeVariant {
+    Module {
+        name: String,
+    },
+    Declaration {
+        identifier: String,
+        type_annotation: Option<String>,
+        assignment: Option<String>,
+    },
     Statement,
 }
-#[allow(dead_code)]
+
 pub struct Node {
-    pub node_type: NodeType,
-    pub raw: String,
+    pub variant: NodeVariant,
+    pub children: Vec<Node>,
 }
 
-#[allow(dead_code)]
-pub struct Declaration<'a> {
-    node: &'a Node,
-    identifier: str,
-}
-
-#[allow(dead_code)]
-pub struct Statement<'a> {
-    pub base_node: Node,
-    pub parent_node: &'a Node,
+pub struct Tree {
+    pub nodes: Vec<Node>,
 }
