@@ -32,11 +32,11 @@ Expression = {
     | Identifier
 }
 
-TypeAnnotation = {":" ~ MutableKeyword? ~ (BuiltInType | Identifier)}
+TypeAnnotation = {":" ~ (BuiltInType | Identifier)}
 ParameterTypeAnnotation = {":" ~ (BuiltInType | Identifier)}
 BuiltInType = {IntegerType | FloatType | StringType | BooleanType}
-Declaration = {LetKeyword ~ Identifier ~ TypeAnnotation? ~ AssignmentOperator ~ Expression}
-Assignment = {Identifier ~ AssignmentOperator ~ Expression}
+Declaration = {LetKeyword~ MutableKeyword? ~ Identifier ~ TypeAnnotation? ~ Assignment?}
+Assignment = {AssignmentOperator ~ Expression}
 
 
 FunctionCall = {
@@ -146,8 +146,8 @@ StringConstant = ${ "\"" ~ (!("\"" | "\\") ~ ANY
 
 // Identifiers
 Identifier = @{ !(Keyword ~ !ASCII_ALPHANUMERIC) ~ ASCII_ALPHANUMERIC+ }
-IntegerType = {"byte" | "short" | "int" | "long" | "ubyte" | "ushort" | "uint" | "ulong" }
-FloatType = {"float" | "double" | "precise"}
+IntegerType = {"int" }
+FloatType = {"float" | "precise"}
 StringType = {"char" | "string"}
 BooleanType = {"boolean"}
 

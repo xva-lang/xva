@@ -1,36 +1,18 @@
-// use std::u64::MAX;
+use crate::machine::bytecode::Opcode;
+use crate::runtime::typing::byte_sizeable::{BOOLEAN_SIZE, CHAR_SIZE, FLOAT_SIZE, INT_SIZE};
 
-use crate::runtime::typing::byte_sizeable::{
-    BYTE_SIZE, CHAR_SIZE, INT_SIZE, LONG_SIZE, SHORT_SIZE,
-};
+use super::bytecode::Opcodeable;
 
 const STACK_WIDTH: usize = 8;
 // const CARRY_FLAG: u32 = 0x01;
 const PARITY_FLAG: u32 = 0x02;
 const ZERO_FLAG: u32 = 0x04;
-const OVERFLOW_FLAG: u32 = 0x08;
+// const OVERFLOW_FLAG: u32 = 0x08;
 const SIGN_FLAG: u32 = 0x10;
 pub struct VirtualMachine {
     stack: super::stack::Stack<u8>,
     stream: super::istream::IStream,
     flags: u32,
-}
-
-pub enum Opcode {
-    Nop,
-    PushConstUInt8,
-    PushConstUInt16,
-    PushConstUInt32,
-    PushConstUInt64,
-    PushConstInt8,
-    PushConstInt16,
-    PushConstInt32,
-    PushConstInt64,
-    PushChar,
-    Add,
-    Subtract,
-    IntegerMultiply,
-    IntegerDivide,
 }
 
 impl VirtualMachine {
@@ -47,57 +29,36 @@ impl VirtualMachine {
             let next_byte = (&mut self.stream).pop_next();
 
             match next_byte {
-                Ok(op) => {
-                    self.match_opcode(self.byte_to_opcode(op));
+                Ok(v) => {
+                    self.match_opcode(v.as_opcode());
                 }
                 Err(_) => {
                     break;
-                    // std::process::exit(0);
                 }
             }
         }
         println!("end");
     }
 
-    fn byte_to_opcode(&self, byte: u8) -> Opcode {
-        match byte {
-            0 => Opcode::Nop,
-            1 => Opcode::PushConstUInt8,
-            2 => Opcode::PushConstUInt16,
-            3 => Opcode::PushConstUInt32,
-            4 => Opcode::PushConstUInt64,
-            5 => Opcode::PushConstInt8,
-            6 => Opcode::PushConstInt16,
-            7 => Opcode::PushConstInt32,
-            8 => Opcode::PushConstInt64,
-            9 => Opcode::PushChar,
-            10 => Opcode::Add,
-            11 => Opcode::Subtract,
-            12 => Opcode::IntegerMultiply,
-            13 => Opcode::IntegerDivide,
-            _ => {
-                self.panic(format!("Unknown opcode {:#x}", byte).as_str(), -1);
-                Opcode::Nop
-            }
+    #[allow(dead_code)]
+    pub fn execute_instructions(&mut self, instructions: Vec<u8>) {
+        let inst_slice = instructions.as_slice();
+        for i in 0..inst_slice.len() {
+            self.match_opcode(inst_slice[i].as_opcode());
         }
     }
 
     fn match_opcode(&mut self, opcode: Opcode) {
         match opcode {
-            Opcode::Nop => println!("Nop!"),
-            Opcode::PushConstUInt8 => self.push_next_bytes(BYTE_SIZE, false),
-            Opcode::PushConstUInt16 => self.push_next_bytes(SHORT_SIZE, false),
-            Opcode::PushConstUInt32 => self.push_next_bytes(INT_SIZE, false),
-            Opcode::PushConstUInt64 => self.push_next_bytes(LONG_SIZE, false),
-            Opcode::PushConstInt8 => self.push_next_bytes(BYTE_SIZE, true),
-            Opcode::PushConstInt16 => self.push_next_bytes(SHORT_SIZE, true),
-            Opcode::PushConstInt32 => self.push_next_bytes(INT_SIZE, true),
-            Opcode::PushConstInt64 => self.push_next_bytes(LONG_SIZE, true),
-            Opcode::PushChar => self.push_next_bytes(CHAR_SIZE, true),
-            Opcode::Add => self.stack_add(),
-            Opcode::Subtract => self.stack_subtract(),
-            Opcode::IntegerMultiply => self.stack_multiply(),
-            Opcode::IntegerDivide => self.stack_divide(),
+            Opcode::Nop => {}
+            Opcode::PushConstInteger => self.push_next_bytes(INT_SIZE, false),
+            Opcode::PushConstFloat => self.push_next_bytes(FLOAT_SIZE, false),
+            Opcode::PushConstChar => self.push_next_bytes(CHAR_SIZE, false),
+            Opcode::PushConstBoolean => self.push_next_bytes(BOOLEAN_SIZE, false),
+            Opcode::Add => self.stack_integer_add(),
+            Opcode::Subtract => self.stack_integer_subtract(),
+            Opcode::IntegerMultiply => self.stack_integer_multiply(),
+            Opcode::IntegerDivide => self.stack_integer_divide(),
         };
     }
 
@@ -161,7 +122,7 @@ impl VirtualMachine {
         (self.pop_long(), self.pop_long())
     }
 
-    fn stack_add(&mut self) {
+    fn stack_integer_add(&mut self) {
         let right = self.pop_long();
         let left = self.pop_long();
         let result = left + right;
@@ -173,7 +134,7 @@ impl VirtualMachine {
         }
     }
 
-    fn stack_subtract(&mut self) {
+    fn stack_integer_subtract(&mut self) {
         let right = self.pop_long();
         let left = self.pop_long();
         let result = left - right;
@@ -181,14 +142,14 @@ impl VirtualMachine {
         self.push_long(result);
     }
 
-    fn stack_multiply(&mut self) {
+    fn stack_integer_multiply(&mut self) {
         let (right, left) = self.pop_binary_operands();
         let result = left * right;
         self.check_flags(result);
         self.push_long(result);
     }
 
-    fn stack_divide(&mut self) {
+    fn stack_integer_divide(&mut self) {
         let (right, left) = self.pop_binary_operands();
         let result = left / right;
         self.check_flags(result);

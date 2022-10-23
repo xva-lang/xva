@@ -1,7 +1,11 @@
+use std::os::macos::raw::stat;
+
 use colored::Colorize;
 use pest::{error::Error, iterators::Pair, Parser, RuleType};
 
-use self::ast::Tree;
+use crate::{repl, runtime::typing::builtins::Type};
+
+use self::ast::{Expression, Tree};
 
 pub struct CompilerError {
     message: String,
@@ -25,7 +29,9 @@ impl XvaParser {
 
         for rule in rule.into_inner() {
             match rule.as_rule() {
-                Rule::Statement => self.parse_statement(rule, &mut nodes),
+                Rule::Statement => {
+                    self.parse_statement(rule, &mut nodes);
+                }
                 _ => {}
             }
         }
@@ -41,46 +47,43 @@ impl XvaParser {
 
     pub fn parse_declaration(&mut self, rule: Pair<Rule>, parent_node_vec: &mut Vec<ast::Node>) {
         let mut identifier: Option<String> = None;
-        let mut type_annotation: Option<String> = None; // TODO: type inference
-                                                        // let mut declaration_node =   ast::Node::Declaration { identifier: None, type_annotation: None, assignment: None };
-        let mut _type_annotation_rule: Pair<Rule>;
-        let whole_line = Box::new(String::from(rule.as_str()));
-        let cloned_rule = rule.clone();
+        let mut type_annotation: Option<String> = None;
+        let mut expression_type: Expression = Expression::Void;
+        let mut assignment: Option<Expression> = None;
+        let mut type_annotation_rule: Option<Pair<Rule>> = None;
+        let mut is_mutable = false;
+        let cloned_rule = (&rule).clone();
         for sub_rule in rule.into_inner() {
             match sub_rule.as_rule() {
                 Rule::Identifier => identifier = Some(String::from(sub_rule.as_str())),
-                Rule::TypeAnnotation => {
-                    type_annotation = Some(String::from(sub_rule.as_str()));
-                    _type_annotation_rule = sub_rule;
-                    println!("");
+                Rule::MutableKeyword => is_mutable = true,
+                Rule::TypeAnnotation => type_annotation_rule = Some(sub_rule.clone()),
+                Rule::Assignment => {
+                    for assignment_rule in sub_rule.clone().into_inner() {
+                        match assignment_rule.as_rule() {
+                            Rule::Expression => {
+                                let whole_line = Some(Box::new(String::from(cloned_rule.as_str())));
+                                assignment = Some(
+                                    self.parse_assignment(assignment_rule.clone(), whole_line),
+                                );
+                            }
+                            _ => {}
+                        }
+                    }
                 }
-                Rule::Expression => self.parse_expression(sub_rule),
-
-                // Ignore these
-                Rule::LetKeyword => {}
-                Rule::AssignmentOperator => {}
-                _ => panic!("unhandled rule while parsing declaration: {}", sub_rule),
-            }
-        }
-
-        if type_annotation == None {
-            for sub_rule in cloned_rule.into_inner() {
-                if sub_rule.as_rule() == Rule::AssignmentOperator {
-                    self.raise_error(
-                        sub_rule,
-                        "Type inference is unimplemented".to_string(),
-                        Some(whole_line),
-                    );
-                    break;
-                }
+                _ => {}
             }
         }
 
         let node = ast::Node {
             variant: ast::NodeVariant::Declaration {
                 identifier: identifier.unwrap(),
-                type_annotation: type_annotation,
-                assignment: None,
+                type_annotation: match self.parse_type_annotation(type_annotation_rule) {
+                    Type::Void => None,
+                    x => Some(x),
+                },
+                assignment: assignment,
+                is_mutable: is_mutable,
             },
             children: vec![],
         };
@@ -88,12 +91,96 @@ impl XvaParser {
         parent_node_vec.push(node);
     }
 
-    pub fn parse_expression(&self, rule: Pair<Rule>) {
-        println!("{}", rule.as_str());
+    pub fn parse_assignment(
+        &mut self,
+        rule: Pair<Rule>,
+        whole_line: Option<Box<String>>,
+    ) -> Expression {
+        let mut result: Expression = Expression::Void;
+        for rule in rule.into_inner() {
+            println!("{}", rule);
+            match rule.as_rule() {
+                Rule::IntegerConstant => {
+                    result = self.parse_integer_constant(rule, whole_line);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        return result;
     }
 
-    pub fn parse_statement(&mut self, rule: Pair<Rule>, parent_node_vec: &mut Vec<ast::Node>) {
-        println!("Parsing statement");
+    pub fn parse_integer_constant(
+        &mut self,
+        rule: Pair<Rule>,
+        whole_line: Option<Box<String>>,
+    ) -> Expression {
+        let cloned_rule = (&rule).clone();
+        let mut result: Expression = Expression::Void;
+        for rule in rule.into_inner() {
+            match rule.as_rule() {
+                Rule::IntegerConstantDecimal => {
+                    let i64result: Option<i64> = match i64::from_str_radix(cloned_rule.as_str(), 10)
+                    {
+                        Ok(v) => Some(v),
+                        Err(error) => {
+                            self.raise_error(
+                                rule,
+                                format!("Invalid integer constant: {}", (&cloned_rule.as_str())),
+                                whole_line,
+                            );
+                            None
+                        }
+                    };
+
+                    if i64result != None {
+                        result = Expression::Constant(Type::Integer(i64result.unwrap()));
+                    }
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        return result;
+    }
+    // pub fn parse_expression(&self, rule: Pair<Rule>, expression_type: Type) -> Option<Expression> {
+    //     let result: Option<Expression> = None;
+    //     for rule in rule.into_inner() {
+    //         match rule.as_rule() {
+    //             Rule::IntegerConstant => {
+    //                 result = Some(self.parse_integer_constant(rule, expression_type))
+    //             }
+    //             _ => result = None,
+    //         }
+    //     }
+
+    //     result
+    // }
+
+    // pub fn parse_integer_constant(&self, rule: Pair<Rule>, expression_type: Type) -> Expression {
+    //     let result: Expression;
+    //     for rule in rule.into_inner() {
+    //         match rule.as_rule() {
+    //             Rule::IntegerConstantDecimal => match expression_type {
+    //                 Type::SignedInt(si) => {
+    //                     let value = rule.as_str();
+    //                     println!("break");
+    //                 }
+    //                 _ => {}
+    //             },
+    //             _ => todo!(),
+    //         }
+    //     }
+
+    //     result
+    // }
+
+    pub fn parse_statement(
+        &mut self,
+        rule: Pair<Rule>,
+        parent_node_vec: &mut Vec<ast::Node>,
+    ) -> ast::Node {
         let mut nodes: Vec<ast::Node> = vec![];
         for rule in rule.into_inner() {
             match rule.as_rule() {
@@ -102,10 +189,13 @@ impl XvaParser {
             }
         }
 
-        parent_node_vec.push(ast::Node {
+        let result = ast::Node {
             variant: ast::NodeVariant::Statement,
             children: nodes,
-        })
+        };
+
+        parent_node_vec.push(result.clone());
+        return result;
     }
 
     pub fn raise_error(
@@ -127,11 +217,32 @@ impl XvaParser {
             file: String::from(self.current_file.as_str()),
         });
     }
+
+    pub fn parse_type_annotation(&mut self, rule: Option<Pair<Rule>>) -> Type {
+        if (rule == None) {
+            return Type::Void;
+        }
+
+        let cloned_rule = rule.unwrap().clone();
+        let str_rule = (&cloned_rule).as_str();
+        let whole_line = Some(Box::new(String::from((&cloned_rule).as_str())));
+        match cloned_rule.as_str() {
+            "int" => Type::Integer(0),
+            _ => {
+                self.raise_error(
+                    cloned_rule,
+                    format!("Unknown type {}", str_rule),
+                    whole_line,
+                );
+                Type::Void
+            }
+        }
+    }
 }
 
 pub mod ast;
 #[allow(dead_code)]
-pub fn parse_file(file_name: String) {
+pub fn parse_file(file_name: String) -> ast::Tree {
     let mut parser = XvaParser {
         tree: Tree { nodes: vec![] },
         errors: vec![],
@@ -164,6 +275,54 @@ pub fn parse_file(file_name: String) {
             print_compiler_error(error);
         }
     }
+
+    return parser.tree;
+}
+
+pub fn parse_repl(
+    repl: &repl::Repl,
+    input: String,
+    module_node: &mut ast::Node,
+) -> Option<ast::Node> {
+    let pairs: Option<pest::iterators::Pairs<Rule>> =
+        match XvaParser::parse(Rule::Statement, &input) {
+            Ok(val) => Some(val),
+            Err(err) => {
+                print_parser_error(err);
+                None
+            }
+        };
+
+    let mut parser = XvaParser {
+        tree: Tree { nodes: vec![] },
+        errors: vec![],
+        current_file: String::from(".repl"),
+    };
+
+    let mut statement_result: Option<ast::Node> = None;
+
+    if pairs != None {
+        for rule in pairs.unwrap() {
+            let count_before = module_node.children.len();
+            match rule.as_rule() {
+                Rule::Statement => {
+                    statement_result =
+                        Some(parser.parse_statement(rule, &mut module_node.children));
+                    // println!();
+                    // if module_node.children.len() > count_before {
+                    //     statement_result = match module_node.children.last() {
+                    //         Some(v) => Some(v.to_owned()),
+                    //         None => None,
+                    //     }
+                    //     // statement_result = Some(module_node.children.last());
+                    // }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    return statement_result;
 }
 
 fn print_parser_error<R>(error: Error<R>)

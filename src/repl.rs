@@ -1,33 +1,68 @@
 use std::io::Write;
 
+use crate::{
+    compiler::Compiler,
+    parser::{ast, parse_repl},
+};
+
+pub struct Repl {}
+
 #[allow(dead_code)]
-pub fn repl_loop() {
-    repl_header();
-    loop {
-        let input = repl_prompt();
-        match input.as_str() {
-            "exit();" => exit_repl(0),
-            _ => {}
+impl Repl {
+    pub fn new() -> Self {
+        Repl {}
+    }
+
+    pub fn run(&self) {
+        Self::print_header();
+        let mut module_node = ast::Node {
+            variant: ast::NodeVariant::Module {
+                name: String::from(".repl"),
+            },
+            children: vec![],
+        };
+
+        let mut module = ast::Module {
+            name: String::from(".repl"),
+        };
+
+        let mut compiler = Compiler::new();
+
+        //<type name at 0xaddress>
+
+        loop {
+            let input = self.prompt();
+            match input.as_str() {
+                "exit()" => self.exit(0),
+                _ => {
+                    let statement = parse_repl(self, input, &mut module_node);
+                    match statement {
+                        Some(v) => {
+                            compiler.walk_statement(v.clone(), v.children);
+                        }
+                        None => {}
+                    }
+                }
+            }
         }
     }
-}
 
-fn repl_header() {
-    println!("Xva {}\n", env!("CARGO_PKG_VERSION"));
-}
+    fn print_header() {
+        println!("Xva {}\n", env!("CARGO_PKG_VERSION"));
+    }
 
-fn repl_prompt() -> String {
-    let mut line = String::new();
-    print!("> ");
-    std::io::stdout().flush().unwrap();
-    std::io::stdin()
-        .read_line(&mut line)
-        .expect("Error: Could not read a line");
+    fn prompt(&self) -> String {
+        let mut line = String::new();
+        print!("> ");
+        std::io::stdout().flush().unwrap();
+        std::io::stdin()
+            .read_line(&mut line)
+            .expect("Error: Could not read a line");
 
-    return line.trim().to_string();
-}
+        return line.trim().to_string();
+    }
 
-fn exit_repl(exit_code: i32) {
-    println!("Repl will exit with exit code {}", exit_code);
-    std::process::exit(exit_code);
+    fn exit(&self, exit_code: i32) {
+        std::process::exit(exit_code);
+    }
 }

@@ -24,7 +24,7 @@ fn main() {
 #[command(version)]
 #[command(name = "Xva")]
 struct Args {
-    input_file: String,
+    input_file: Option<String>,
 
     /// Indicates the input file is a pre-compiled binary
     #[arg(short, long)]
@@ -33,10 +33,16 @@ struct Args {
 
 fn cli() {
     let args = Args::parse();
-    if args.precompiled {
-        execute_precompiled(args.input_file);
+
+    if args.input_file != None {
+        if args.precompiled {
+            execute_precompiled(args.input_file.unwrap());
+        } else {
+            compile_and_execute(args.input_file.unwrap());
+        }
     } else {
-        compile_and_execute(args.input_file);
+        let repl = repl::Repl::new();
+        repl.run();
     }
 }
 
@@ -47,6 +53,6 @@ fn execute_precompiled(file_name: String) {
 }
 
 fn compile_and_execute(file_name: String) {
-    let compiler = compiler::Compiler::new();
+    let mut compiler = compiler::Compiler::new();
     compiler.compile_file(file_name);
 }
