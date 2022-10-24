@@ -1,8 +1,8 @@
 // use std::rc::Rc;
 
 // use crate::machine;
-use crate::parser::{
-    self,
+
+use crate::parser_peg::{
     ast::{Declaration, Tree},
     ast::{Module, Node, NodeVariant},
 };
@@ -12,6 +12,7 @@ pub struct Compiler {
     stream: Buffer<u8>,
 }
 
+#[allow(dead_code)]
 impl Compiler {
     pub fn new() -> Self {
         Self {
@@ -19,10 +20,13 @@ impl Compiler {
         }
     }
 
-    pub fn compile_file(&mut self, file_name: String) {
+    pub fn compile_file(&mut self, _file_name: String) {
         // let output_file_name = file_name.replace(".xva", ".xvo");
-        let mut tree = parser::parse_file(file_name);
-        self.walk_tree(&mut tree);
+
+        // let mut tree = parser_peg::parse_file(file_name);
+        // self.walk_tree(&mut tree);
+        // let unparsed_file = std::fs::read_to_string(&file_name).expect("Failed to read the file");
+        // let mut lexer = Lexer::new(&unparsed_file.as_str());
     }
 
     pub fn walk_tree(&mut self, tree: &mut Tree) {
@@ -66,13 +70,13 @@ impl Compiler {
 
     pub fn walk_statement(&mut self, statement: Node, children: Vec<Node>) -> Node {
         for node in children {
-            let cloned_node = (&node).clone();
+            // let cloned_node = (&node).clone();
             match node.variant {
                 NodeVariant::Declaration {
                     identifier,
                     type_annotation,
                     assignment,
-                    is_mutable,
+                    is_mutable: _is_mutable,
                 } => {
                     let dec = Declaration {
                         identifier: identifier,
@@ -88,11 +92,9 @@ impl Compiler {
         return statement;
     }
 
-    pub fn compile_declaration(&mut self, declaration: Declaration) {
-        
-    }
+    pub fn compile_declaration(&mut self, _declaration: Declaration) {}
 
-    pub fn add_stream(&mut self, val: u8) {
+    pub fn add_stream(&mut self, _val: u8) {
         match self.stream.add(0) {
             Ok(_) => {}
             Err(err) => println!("failed to add instruction to stream: {}", err),

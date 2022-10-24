@@ -2,7 +2,7 @@ use std::io::Write;
 
 use crate::{
     compiler::Compiler,
-    parser::{ast, parse_repl},
+    parser_peg::{ast, parse_repl},
 };
 
 pub struct Repl {}
@@ -22,7 +22,7 @@ impl Repl {
             children: vec![],
         };
 
-        let mut module = ast::Module {
+        let mut _module = ast::Module {
             name: String::from(".repl"),
         };
 

@@ -2,6 +2,7 @@ pub struct Stack<T> {
     data: Vec<T>,
 }
 
+#[allow(dead_code)]
 impl<T> Stack<T> {
     pub fn new(capacity: usize) -> Stack<T> {
         Stack {

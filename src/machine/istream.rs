@@ -2,14 +2,15 @@ use queues::{Buffer, IsQueue};
 use std::fs;
 pub struct IStream {
     data: Buffer<u8>,
-    buffer_pointer: usize,
+    _buffer_pointer: usize,
 }
 
+#[allow(dead_code)]
 impl IStream {
     pub fn new(data: Buffer<u8>) -> Self {
         Self {
             data: data,
-            buffer_pointer: 0,
+            _buffer_pointer: 0,
         }
     }
 
@@ -25,7 +26,7 @@ impl IStream {
                 }
                 Ok(Self {
                     data: buf,
-                    buffer_pointer: 0,
+                    _buffer_pointer: 0,
                 })
             }
             Err(err) => Err(err),
@@ -35,19 +36,19 @@ impl IStream {
     pub fn pop_next(&mut self) -> Result<u8, ()> {
         match self.data.remove() {
             Ok(value) => Ok(value),
-            Err(err) => Err(()),
+            Err(_) => Err(()),
         }
     }
 
     pub fn advance_by(&mut self, advance_by: usize) {
-        for i in 0..advance_by {
+        for _i in 0..advance_by {
             _ = self.pop_next();
         }
     }
 
     pub fn pop_bytes(&mut self, size: usize) -> Vec<u8> {
         let mut result = Vec::with_capacity(size);
-        for i in 0..size {
+        for _ in 0..size {
             match self.data.remove() {
                 Ok(byte) => {
                     result.push(byte);

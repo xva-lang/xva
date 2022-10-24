@@ -1,4 +1,5 @@
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum Type {
     Void,
     Integer(i64),

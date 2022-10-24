@@ -13,6 +13,7 @@ mod compiler;
 mod runtime;
 // use machine::stack;
 mod parser;
+mod parser_peg;
 
 mod repl;
 

@@ -1,5 +1,4 @@
 use crate::runtime::typing::builtins::Type;
-use queues::{Buffer, Queue};
 
 #[allow(dead_code)]
 #[derive(Clone)]
