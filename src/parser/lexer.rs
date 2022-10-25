@@ -19,12 +19,9 @@ use std::str::FromStr;
 #[allow(dead_code)]
 mod tests;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum TokenKind {
-    Integer(i64),
-    Add,
-    Subtract,
-}
+pub mod token;
+pub mod token_stream;
+use token::TokenKind;
 
 #[derive(Clone)]
 pub struct Lexer {
