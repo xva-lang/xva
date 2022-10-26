@@ -14,9 +14,9 @@ impl ByteSizeable for Type {
     fn size_of(&self) -> usize {
         match self {
             Type::Integer(_) => 8,
-            Type::Float(_) => 4,
-            Type::Boolean(_) => 1,
-            Type::Char(_) => 4,
+            // Type::Float(_) => 4,
+            // Type::Boolean(_) => 1,
+            // Type::Char(_) => 4,
             Type::Void => 0,
         }
     }

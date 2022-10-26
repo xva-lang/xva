@@ -1,27 +1,19 @@
+use clap::arg;
 use clap::command;
 use clap::Parser;
-
-extern crate pest;
-#[macro_use]
-extern crate pest_derive;
 
 mod constants;
 mod machine;
 use machine::istream;
 use machine::vm;
-mod compiler;
-mod runtime;
-// use machine::stack;
-mod parser;
-mod parser_peg;
-
 mod repl;
+mod runtime;
 
 fn main() {
     cli();
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[command(version)]
 #[command(name = "Xva")]
 struct Args {
@@ -42,8 +34,10 @@ fn cli() {
             compile_and_execute(args.input_file.unwrap());
         }
     } else {
-        let repl = repl::Repl::new();
-        repl.run();
+        match repl::repl_main() {
+            Ok(_) => {}
+            Err(_) => {}
+        }
     }
 }
 
@@ -53,7 +47,4 @@ fn execute_precompiled(file_name: String) {
     machine.run();
 }
 
-fn compile_and_execute(file_name: String) {
-    let mut compiler = compiler::Compiler::new();
-    compiler.compile_file(file_name);
-}
+fn compile_and_execute(_file_name: String) {}
