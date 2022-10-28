@@ -44,7 +44,7 @@ impl<'lexemes, 'input> LexemeSource<'lexemes, 'input> {
     }
 
     pub(super) fn next_lexeme(&mut self) -> Option<&'lexemes Lexeme<'input>> {
-        self.consume_whitespace();
+        self.consume_trivia();
         let lexeme = self.lexemes.get(self.cursor)?;
         self.cursor += 1;
         Some(lexeme)
@@ -55,14 +55,18 @@ impl<'lexemes, 'input> LexemeSource<'lexemes, 'input> {
     }
 
     pub(super) fn peek_kind(&mut self) -> Option<SyntaxKind> {
-        self.consume_whitespace();
+        self.consume_trivia();
         self.peek_kind_raw()
     }
 
-    fn consume_whitespace(&mut self) {
-        while self.peek_kind_raw() == Some(SyntaxKind::Whitespace) {
+    fn consume_trivia(&mut self) {
+        while self.current_token_is_trivia() {
             self.cursor += 1;
         }
+    }
+
+    fn current_token_is_trivia(&mut self) -> bool {
+        self.peek_kind_raw().map_or(false, |t| t.is_trivia())
     }
 
     fn peek_kind_raw(&mut self) -> Option<SyntaxKind> {
@@ -147,5 +151,10 @@ mod tests {
     #[test]
     fn lex_right_parenthesis() {
         check_lex(")", SyntaxKind::RightParenthesis);
+    }
+
+    #[test]
+    fn lex_comment() {
+        check_lex("// comment", SyntaxKind::Comment);
     }
 }

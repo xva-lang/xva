@@ -1,5 +1,6 @@
 use logos::Logos;
 use num_derive::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive};
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Logos, FromPrimitive, Ord, PartialOrd, Eq, ToPrimitive, Hash,
@@ -41,6 +42,9 @@ pub(crate) enum SyntaxKind {
     #[regex("[0-9]+")]
     IntegerLiteral,
 
+    #[regex("//.*")]
+    Comment,
+
     BinaryExpression,
     PrefixExpression,
     ParenthesisedExpression,
@@ -51,7 +55,14 @@ pub(crate) enum SyntaxKind {
     Root,
 }
 
-use num_traits::{FromPrimitive, ToPrimitive};
+impl SyntaxKind {
+    /// Detects if a `SyntaxKind` is a trivia item - that is, it is not compiled.
+    ///
+    /// Thanks Roslyn!
+    pub(crate) fn is_trivia(self) -> bool {
+        matches!(self, Self::Whitespace | Self::Comment)
+    }
+}
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum XvaLanguage {}

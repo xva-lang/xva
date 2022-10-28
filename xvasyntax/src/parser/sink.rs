@@ -51,7 +51,7 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
                 Event::FinishNode => self.builder.finish_node(),
             }
 
-            self.consume_whitespace();
+            self.consume_trivia();
         }
 
         self.builder.finish()
@@ -63,13 +63,13 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
         self.cursor += 1;
     }
 
-    fn consume_whitespace(&mut self) {
-        while let Some(Lexeme { kind, text }) = self.lexemes.get(self.cursor) {
-            if *kind != SyntaxKind::Whitespace {
+    fn consume_trivia(&mut self) {
+        while let Some(lexeme) = self.lexemes.get(self.cursor) {
+            if !lexeme.kind.is_trivia() {
                 break;
             }
 
-            self.token(*kind, text.into());
+            self.token(lexeme.kind, lexeme.text.into());
         }
     }
 }

@@ -180,4 +180,14 @@ Root@0..10
   Whitespace@7..10 "   ""#]],
         )
     }
+
+    #[test]
+    fn parse_comment() {
+        check_parse(
+            "// comment",
+            expect![[r#"
+Root@0..10
+  Comment@0..10 "// comment""#]],
+        );
+    }
 }
