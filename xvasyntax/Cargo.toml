@@ -1,5 +1,5 @@
 [package]
-name = "syntax"
+name = "xvasyntax"
 version = "0.0.1"
 edition = "2021"
 
@@ -12,3 +12,4 @@ rowan = "0.15.10"
 num-traits = "0.2"
 num-derive = "0.3"
 expect-test = "1.4.0"
+smol_str = "0.1.23"

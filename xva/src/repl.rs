@@ -13,7 +13,7 @@ pub(crate) fn repl_main() -> io::Result<()> {
 
         stdin.read_line(&mut input)?;
 
-        let _parse = syntax::parse(input.as_str());
+        let _parse = xvasyntax::parser::parse(input.as_str());
 
         input.clear();
         stdout.flush()?;
