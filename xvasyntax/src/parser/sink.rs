@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::{
     language::{SyntaxKind, XvaLanguage},
     lexer::Lexeme,
@@ -24,31 +26,56 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
     }
 
     pub(super) fn finish(mut self) -> GreenNode {
-        let mut reordered_events = self.events.clone();
-        for (index, event) in self.events.iter().enumerate() {
-            if let Event::StartNodeAt {
-                node_kind,
-                checkpoint,
-            } = event
-            {
-                reordered_events.remove(index);
-                reordered_events.insert(
-                    *checkpoint,
-                    Event::StartNode {
-                        node_kind: *node_kind,
-                    },
-                )
-            }
-        }
+        for index in 0..self.events.len() {
+            match mem::replace(&mut self.events[index], Event::MarkerPlaceholder) {
+                Event::StartNode {
+                    node_kind,
+                    parent_offset,
+                } => {
+                    let mut kinds = vec![node_kind];
 
-        for event in reordered_events {
-            match event {
-                Event::StartNode { node_kind } => {
-                    self.builder.start_node(XvaLanguage::kind_to_raw(node_kind));
+                    let mut index = index;
+                    let mut parent_offset = parent_offset;
+
+                    // Walk through the forward parent of the forward parent, and the forward parent
+                    // of that, and of that, etc. until we reach a StartNode event without a forward
+                    // parent.
+                    while let Some(offset) = parent_offset {
+                        index += offset;
+
+                        parent_offset = if let Event::StartNode {
+                            node_kind,
+                            parent_offset,
+                        } =
+                            mem::replace(&mut self.events[index], Event::MarkerPlaceholder)
+                        {
+                            kinds.push(node_kind);
+                            parent_offset
+                        } else {
+                            unreachable!()
+                        };
+                    }
+
+                    for kind in kinds.into_iter().rev() {
+                        self.builder.start_node(XvaLanguage::kind_to_raw(kind));
+                    }
+
+                    // if let Some(offset) = parent_offset {
+                    //     if let Event::StartNode { node_kind, .. } =
+                    //         mem::replace(&mut self.events[index + offset], Event::MarkerPlaceholder)
+                    //     {
+                    //         self.builder.start_node(XvaLanguage::kind_to_raw(node_kind));
+                    //     } else {
+                    //         unreachable!()
+                    //     }
+                    // }
+
+                    // self.builder.start_node(XvaLanguage::kind_to_raw(node_kind));
                 }
-                Event::StartNodeAt { .. } => unreachable!("StartNodeAt should have been replaced!"),
+                Event::StartNodeAt { .. } => unreachable!(),
                 Event::AddToken { token_kind, text } => self.token(token_kind, text),
                 Event::FinishNode => self.builder.finish_node(),
+                Event::MarkerPlaceholder => {}
             }
 
             self.consume_trivia();

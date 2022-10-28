@@ -39,12 +39,15 @@ pub(crate) enum SyntaxKind {
     #[token(")")]
     RightParenthesis,
 
+    Literal,
+
     #[regex("[0-9]+")]
     IntegerLiteral,
 
     #[regex("//.*")]
     Comment,
 
+    IdentifierExpression,
     BinaryExpression,
     PrefixExpression,
     ParenthesisedExpression,

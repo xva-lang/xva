@@ -1,8 +1,9 @@
 mod event;
 mod expression;
+mod marker;
+mod operator;
 mod sink;
-
-use expression::expression;
+mod statement;
 
 use crate::{
     language::SyntaxKind,
@@ -12,6 +13,8 @@ use crate::{
 use rowan::GreenNode;
 
 use event::Event;
+use expression::expression;
+use marker::Marker;
 
 struct Parser<'lexemes, 'input> {
     // Lifetime 'a is needed because Logos’ lexers store the input they were created with,
@@ -29,11 +32,20 @@ impl<'lexemes, 'input> Parser<'lexemes, 'input> {
     }
 
     pub(crate) fn parse(mut self) -> Vec<Event> {
-        self.start_node(SyntaxKind::Root);
+        // self.start_node(SyntaxKind::Root);
+        let marker = self.start();
         expression(&mut self);
-        self.finish_node();
+        marker.complete(&mut self, SyntaxKind::Root);
+        // self.finish_node();
 
         self.events
+    }
+
+    fn start(&mut self) -> Marker {
+        let position = self.events.len();
+        self.events.push(Event::MarkerPlaceholder);
+
+        Marker::new(position)
     }
 
     /// Starts a new node on the current branch of the parse tree.
@@ -41,7 +53,10 @@ impl<'lexemes, 'input> Parser<'lexemes, 'input> {
     /// * `kind` - A `SyntaxKind` describing the new node to start.
     fn start_node(&mut self, node_kind: SyntaxKind) {
         // self.builder.start_node(XvaLanguage::kind_to_raw(kind))
-        self.events.push(Event::StartNode { node_kind })
+        self.events.push(Event::StartNode {
+            node_kind,
+            parent_offset: None,
+        })
     }
 
     /// Completes the parse tree
@@ -154,7 +169,8 @@ Root@0..3
             expect![[r#"
 Root@0..7
   Whitespace@0..3 "   "
-  IntegerLiteral@3..7 "1234""#]],
+  Literal@3..7
+    IntegerLiteral@3..7 "1234""#]],
         )
     }
 
@@ -164,8 +180,9 @@ Root@0..7
             "1234   ",
             expect![[r#"
 Root@0..7
-  IntegerLiteral@0..4 "1234"
-  Whitespace@4..7 "   ""#]],
+  Literal@0..7
+    IntegerLiteral@0..4 "1234"
+    Whitespace@4..7 "   ""#]],
         )
     }
 
@@ -176,8 +193,9 @@ Root@0..7
             expect![[r#"
 Root@0..10
   Whitespace@0..3 "   "
-  IntegerLiteral@3..7 "1234"
-  Whitespace@7..10 "   ""#]],
+  Literal@3..10
+    IntegerLiteral@3..7 "1234"
+    Whitespace@7..10 "   ""#]],
         )
     }
 

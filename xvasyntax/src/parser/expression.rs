@@ -1,68 +1,11 @@
+use super::{
+    marker::CompletedMarker,
+    operator::{BindingPowered, InfixOperator, PrefixOperator},
+};
 use crate::{language::SyntaxKind, parser::Parser};
-
-enum InfixOperator {
-    Addition,
-    Subtraction,
-    Multiplication,
-    Division,
-}
-
-enum PrefixOperator {
-    Negation,
-}
-
-const ADDITION_BINDING_POWER: u8 = 1;
-const SUBTRACTION_BINDING_POWER: u8 = 2;
-const MULTUPLICATION_BINDING_POWER: u8 = 3;
-const DIVISION_BINDING_POWER: u8 = 4;
-const NEGATION_BINDING_POWER: u8 = 5;
-
-/// Trait for operators that describe their left and right binding powers for parsing expressions.
-pub trait HasBindingPower {
-    /// Determines the left and right binding powers for a given operator.
-    /// # Returns
-    /// A tuple containing a `Some(u8)` and a `u8` representing the left and right binding powers, respectively. If an
-    /// operator does not bind left (prefixes, for instance) then the return value is `(None, u8)`.
-    fn binding_power(&self) -> (Option<u8>, u8);
-}
-
-impl HasBindingPower for InfixOperator {
-    fn binding_power(&self) -> (Option<u8>, u8) {
-        // 1 + 2 + 3 + 4
-        // -> ((1 + 2) + 3) + 4
-        // 1   +   2   +   3   +   4    <- item
-        //   1   2   1   2   1   2      <- binding power
-        match self {
-            Self::Addition | Self::Subtraction => {
-                (Some(ADDITION_BINDING_POWER), SUBTRACTION_BINDING_POWER)
-            }
-            Self::Multiplication | Self::Division => {
-                (Some(MULTUPLICATION_BINDING_POWER), DIVISION_BINDING_POWER)
-            }
-        }
-    }
-}
-
-impl HasBindingPower for PrefixOperator {
-    fn binding_power(&self) -> (Option<u8>, u8) {
-        match self {
-            Self::Negation => (None, NEGATION_BINDING_POWER),
-        }
-    }
-}
 
 pub(super) fn expression(parser: &mut Parser) {
     expression_binding_power(parser, 0)
-}
-
-fn parse_prefix_expression(parser: &mut Parser, checkpoint: usize, operator: PrefixOperator) {
-    let (_, right_binding_power) = operator.binding_power();
-
-    parser.bump();
-
-    parser.start_node_at(checkpoint, SyntaxKind::PrefixExpression);
-    expression_binding_power(parser, right_binding_power);
-    parser.finish_node();
 }
 
 /// Consumes a single expression then starts a loop that:
@@ -77,27 +20,15 @@ fn parse_prefix_expression(parser: &mut Parser, checkpoint: usize, operator: Pre
 /// `minimum_binding_power` - Tracks the iteratively increased binding power for an operator before the function
 /// returns to complete the node.
 fn expression_binding_power(parser: &mut Parser, minimum_binding_power: u8) {
-    let checkpoint = parser.checkpoint();
+    // let checkpoint = parser.checkpoint();
 
-    match parser.peek() {
-        Some(SyntaxKind::IntegerLiteral) | Some(SyntaxKind::Identifier) => parser.bump(),
-        Some(SyntaxKind::Minus) => {
-            parse_prefix_expression(parser, checkpoint, PrefixOperator::Negation)
-        }
-        Some(SyntaxKind::LeftParenthesis) => {
-            parser.start_node_at(parser.checkpoint(), SyntaxKind::ParenthesisedExpression);
-            parser.bump();
-            expression_binding_power(parser, 0);
-            assert_eq!(
-                parser.peek(),
-                Some(SyntaxKind::RightParenthesis),
-                "No matching right parenthesis."
-            );
-            parser.bump();
-            parser.finish_node();
-        }
-        _ => {}
-    }
+    let mut left = match parser.peek() {
+        Some(SyntaxKind::Identifier) => identifier(parser),
+        Some(SyntaxKind::IntegerLiteral) => literal(parser),
+        Some(SyntaxKind::Minus) => prefix_expression(parser, PrefixOperator::Negation),
+        Some(SyntaxKind::LeftParenthesis) => parenthesised_expression(parser),
+        _ => return,
+    };
 
     loop {
         let operator = match parser.peek() {
@@ -117,11 +48,48 @@ fn expression_binding_power(parser: &mut Parser, minimum_binding_power: u8) {
         parser.bump();
 
         // And recurse
-        parser.start_node_at(checkpoint, SyntaxKind::BinaryExpression);
+        let marker = left.precede(parser);
+        // parser.start_node_at(checkpoint, SyntaxKind::BinaryExpression);
 
         expression_binding_power(parser, right_binding_power);
-        parser.finish_node();
+        // parser.finish_node();
+        left = marker.complete(parser, SyntaxKind::BinaryExpression);
     }
+}
+
+fn identifier(parser: &mut Parser) -> CompletedMarker {
+    let marker = parser.start();
+    parser.bump();
+    marker.complete(parser, SyntaxKind::IdentifierExpression)
+}
+
+fn literal(parser: &mut Parser) -> CompletedMarker {
+    let marker = parser.start();
+    parser.bump();
+    marker.complete(parser, SyntaxKind::Literal)
+}
+
+fn prefix_expression(parser: &mut Parser, operator: PrefixOperator) -> CompletedMarker {
+    let (_, right_binding_power) = operator.binding_power();
+
+    let marker = parser.start();
+    parser.bump();
+
+    expression_binding_power(parser, right_binding_power);
+    marker.complete(parser, SyntaxKind::PrefixExpression)
+}
+
+fn parenthesised_expression(parser: &mut Parser) -> CompletedMarker {
+    let marker = parser.start();
+    parser.bump();
+    expression_binding_power(parser, 0);
+    assert_eq!(
+        parser.peek(),
+        Some(SyntaxKind::RightParenthesis),
+        "No matching right parenthesis."
+    );
+    parser.bump();
+    marker.complete(parser, SyntaxKind::ParenthesisedExpression)
 }
 
 #[cfg(test)]
@@ -135,17 +103,19 @@ mod tests {
             "123",
             expect![[r#"
 Root@0..3
-  IntegerLiteral@0..3 "123""#]],
+  Literal@0..3
+    IntegerLiteral@0..3 "123""#]],
         );
     }
 
     #[test]
-    fn parse_identifier() {
+    fn parse_identifier_expression() {
         check_parse(
             "counter",
             expect![[r#"
 Root@0..7
-  Identifier@0..7 "counter""#]],
+  IdentifierExpression@0..7
+    Identifier@0..7 "counter""#]],
         )
     }
 
@@ -156,9 +126,11 @@ Root@0..7
             expect![[r#"
 Root@0..3
   BinaryExpression@0..3
-    IntegerLiteral@0..1 "1"
+    Literal@0..1
+      IntegerLiteral@0..1 "1"
     Plus@1..2 "+"
-    IntegerLiteral@2..3 "2""#]],
+    Literal@2..3
+      IntegerLiteral@2..3 "2""#]],
         );
     }
 
@@ -171,13 +143,17 @@ Root@0..7
   BinaryExpression@0..7
     BinaryExpression@0..5
       BinaryExpression@0..3
-        IntegerLiteral@0..1 "1"
+        Literal@0..1
+          IntegerLiteral@0..1 "1"
         Plus@1..2 "+"
-        IntegerLiteral@2..3 "2"
+        Literal@2..3
+          IntegerLiteral@2..3 "2"
       Plus@3..4 "+"
-      IntegerLiteral@4..5 "3"
+      Literal@4..5
+        IntegerLiteral@4..5 "3"
     Plus@5..6 "+"
-    IntegerLiteral@6..7 "4""#]],
+    Literal@6..7
+      IntegerLiteral@6..7 "4""#]],
         );
     }
 
@@ -189,14 +165,18 @@ Root@0..7
 Root@0..7
   BinaryExpression@0..7
     BinaryExpression@0..5
-      IntegerLiteral@0..1 "1"
+      Literal@0..1
+        IntegerLiteral@0..1 "1"
       Plus@1..2 "+"
       BinaryExpression@2..5
-        IntegerLiteral@2..3 "2"
+        Literal@2..3
+          IntegerLiteral@2..3 "2"
         Star@3..4 "*"
-        IntegerLiteral@4..5 "3"
+        Literal@4..5
+          IntegerLiteral@4..5 "3"
     Minus@5..6 "-"
-    IntegerLiteral@6..7 "4""#]],
+    Literal@6..7
+      IntegerLiteral@6..7 "4""#]],
         );
     }
 
@@ -208,7 +188,8 @@ Root@0..7
 Root@0..3
   PrefixExpression@0..3
     Minus@0..1 "-"
-    IntegerLiteral@1..3 "10""#]],
+    Literal@1..3
+      IntegerLiteral@1..3 "10""#]],
         )
     }
 
@@ -221,9 +202,11 @@ Root@0..6
   BinaryExpression@0..6
     PrefixExpression@0..3
       Minus@0..1 "-"
-      IntegerLiteral@1..3 "20"
+      Literal@1..3
+        IntegerLiteral@1..3 "20"
     Plus@3..4 "+"
-    IntegerLiteral@4..6 "20""#]],
+    Literal@4..6
+      IntegerLiteral@4..6 "20""#]],
         )
     }
 
@@ -241,7 +224,8 @@ Root@0..10
         LeftParenthesis@2..3 "("
         ParenthesisedExpression@3..7
           LeftParenthesis@3..4 "("
-          IntegerLiteral@4..6 "20"
+          Literal@4..6
+            IntegerLiteral@4..6 "20"
           RightParenthesis@6..7 ")"
         RightParenthesis@7..8 ")"
       RightParenthesis@8..9 ")"
@@ -256,14 +240,17 @@ Root@0..10
             expect![[r#"
 Root@0..7
   BinaryExpression@0..7
-    IntegerLiteral@0..1 "5"
+    Literal@0..1
+      IntegerLiteral@0..1 "5"
     Star@1..2 "*"
     ParenthesisedExpression@2..7
       LeftParenthesis@2..3 "("
       BinaryExpression@3..6
-        IntegerLiteral@3..4 "2"
+        Literal@3..4
+          IntegerLiteral@3..4 "2"
         Plus@4..5 "+"
-        IntegerLiteral@5..6 "1"
+        Literal@5..6
+          IntegerLiteral@5..6 "1"
       RightParenthesis@6..7 ")""#]],
         )
     }
@@ -276,16 +263,19 @@ Root@0..7
 Root@0..12
   Whitespace@0..1 " "
   BinaryExpression@1..12
-    IntegerLiteral@1..2 "1"
-    Whitespace@2..3 " "
+    Literal@1..3
+      IntegerLiteral@1..2 "1"
+      Whitespace@2..3 " "
     Plus@3..4 "+"
     Whitespace@4..7 "   "
     BinaryExpression@7..12
-      IntegerLiteral@7..8 "2"
+      Literal@7..8
+        IntegerLiteral@7..8 "2"
       Star@8..9 "*"
       Whitespace@9..10 " "
-      IntegerLiteral@10..11 "3"
-      Whitespace@11..12 " ""#]],
+      Literal@10..12
+        IntegerLiteral@10..11 "3"
+        Whitespace@11..12 " ""#]],
         )
     }
 }
