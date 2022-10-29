@@ -1,11 +1,15 @@
-use std::mem;
+use std::{mem, ops::Range};
 
 use crate::{
     language::{SyntaxKind, XvaLanguage},
     lexer::Lexeme,
 };
 
-use super::event::Event;
+use super::{
+    event::Event,
+    line_index::{LineIndex, LineIndexes},
+};
+use logos::Span;
 use rowan::{GreenNode, GreenNodeBuilder, Language};
 
 pub(super) struct ParserEventSink<'lexemes, 'input> {
@@ -13,6 +17,9 @@ pub(super) struct ParserEventSink<'lexemes, 'input> {
     lexemes: &'lexemes [Lexeme<'input>],
     cursor: usize,
     events: Vec<Event>,
+    current_span: Span,
+    current_line: usize,
+    line_indexes: LineIndexes,
 }
 
 impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
@@ -22,10 +29,13 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
             lexemes: lexemes,
             cursor: 0,
             events: events,
+            current_span: 0..0,
+            current_line: 1,
+            line_indexes: LineIndexes::new(),
         }
     }
 
-    pub(super) fn finish(mut self) -> GreenNode {
+    pub(super) fn finish(mut self) -> (GreenNode, LineIndexes) {
         for index in 0..self.events.len() {
             match mem::replace(&mut self.events[index], Event::MarkerPlaceholder) {
                 Event::StartNode {
@@ -59,21 +69,13 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
                     for kind in kinds.into_iter().rev() {
                         self.builder.start_node(XvaLanguage::kind_to_raw(kind));
                     }
-
-                    // if let Some(offset) = parent_offset {
-                    //     if let Event::StartNode { node_kind, .. } =
-                    //         mem::replace(&mut self.events[index + offset], Event::MarkerPlaceholder)
-                    //     {
-                    //         self.builder.start_node(XvaLanguage::kind_to_raw(node_kind));
-                    //     } else {
-                    //         unreachable!()
-                    //     }
-                    // }
-
-                    // self.builder.start_node(XvaLanguage::kind_to_raw(node_kind));
                 }
                 Event::StartNodeAt { .. } => unreachable!(),
-                Event::AddToken { token_kind, text } => self.token(token_kind, text),
+                Event::AddToken {
+                    token_kind,
+                    text,
+                    span,
+                } => self.token(token_kind, text, span),
                 Event::FinishNode => self.builder.finish_node(),
                 Event::MarkerPlaceholder => {}
             }
@@ -81,10 +83,21 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
             self.consume_trivia();
         }
 
-        self.builder.finish()
+        (self.builder.finish(), self.line_indexes)
     }
 
-    fn token(&mut self, token_kind: SyntaxKind, text: smol_str::SmolStr) {
+    fn token(&mut self, token_kind: SyntaxKind, text: smol_str::SmolStr, span: Range<usize>) {
+        if token_kind == SyntaxKind::Whitespace {
+            for (_, character) in text.as_str().char_indices() {
+                match character {
+                    '\n' => self.current_line += 1,
+                    _ => {}
+                }
+            }
+        }
+
+        self.line_indexes
+            .push(LineIndex::new(span, self.current_line));
         self.builder
             .token(XvaLanguage::kind_to_raw(token_kind), text.as_str());
         self.cursor += 1;
@@ -92,11 +105,19 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
 
     fn consume_trivia(&mut self) {
         while let Some(lexeme) = self.lexemes.get(self.cursor) {
+            let cloned_lexeme = lexeme.clone();
             if !lexeme.kind.is_trivia() {
                 break;
             }
 
-            self.token(lexeme.kind, lexeme.text.into());
+            self.token(
+                lexeme.kind,
+                lexeme.text.into(),
+                Range::<usize> {
+                    start: cloned_lexeme.span.start,
+                    end: cloned_lexeme.span.end,
+                },
+            );
         }
     }
 }

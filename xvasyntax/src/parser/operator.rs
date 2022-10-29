@@ -1,5 +1,5 @@
 /// An operator that can appear as the operator of a binary expression, e.g. `1 + 2`, where `+` is the operator.
-pub(super) enum InfixOperator {
+pub enum InfixOperator {
     Addition,
     Subtraction,
     Multiplication,
@@ -7,12 +7,12 @@ pub(super) enum InfixOperator {
 }
 
 /// An operator that can appear as the operator of a prefix expression, e.g. `-3`, where `-` is the operator.
-pub(super) enum PrefixOperator {
+pub enum PrefixOperator {
     Negation,
 }
 
 /// Represents an operator that has a right-side binding power and, optionally, a left-side binding power.
-pub(super) trait BindingPowered {
+pub(crate) trait BindingPowered {
     /// Determines the left and right binding powers for a given operator.
     /// # Returns
     /// A tuple containing a `Some(u8)` and a `u8` representing the left and right binding powers, respectively. If an

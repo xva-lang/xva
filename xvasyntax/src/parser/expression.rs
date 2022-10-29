@@ -278,4 +278,28 @@ Root@0..12
         Whitespace@11..12 " ""#]],
         )
     }
+
+    #[test]
+    fn multiple_expressions() {
+        check_parse(
+            "1 + 1\n2+2",
+            expect![[r#"
+Root@0..9
+  BinaryExpression@0..6
+    Literal@0..2
+      IntegerLiteral@0..1 "1"
+      Whitespace@1..2 " "
+    Plus@2..3 "+"
+    Whitespace@3..4 " "
+    Literal@4..6
+      IntegerLiteral@4..5 "1"
+      Whitespace@5..6 "\n"
+  BinaryExpression@6..9
+    Literal@6..7
+      IntegerLiteral@6..7 "2"
+    Plus@7..8 "+"
+    Literal@8..9
+      IntegerLiteral@8..9 "2""#]],
+        );
+    }
 }

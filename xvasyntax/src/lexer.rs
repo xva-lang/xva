@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::language::SyntaxKind;
 use logos::Logos;
 
@@ -18,11 +20,13 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let kind = self.inner.next()?;
+        let span = self.inner.span();
         let text = self.inner.slice();
 
         Some(Lexeme {
             kind: kind,
             text: text,
+            span: span,
         })
     }
 }
@@ -31,11 +35,23 @@ impl<'a> Iterator for Lexer<'a> {
 pub(crate) struct Lexeme<'a> {
     pub(crate) kind: SyntaxKind,
     pub(crate) text: &'a str,
+    pub(crate) span: Range<usize>,
 }
 
 pub(super) struct LexemeSource<'lexemes, 'input> {
     lexemes: &'lexemes [Lexeme<'input>],
     cursor: usize,
+}
+
+impl<'a> Lexeme<'a> {
+    #[allow(dead_code)]
+    pub(crate) fn new(kind: SyntaxKind, text: &'a str) -> Self {
+        Self {
+            kind,
+            text,
+            span: 0..0,
+        }
+    }
 }
 
 impl<'lexemes, 'input> LexemeSource<'lexemes, 'input> {
@@ -81,7 +97,14 @@ mod tests {
 
     fn check_lex(input: &str, kind: SyntaxKind) {
         let mut lexer = Lexer::new(input);
-        assert_eq!(lexer.next(), Some(Lexeme { kind, text: input }));
+        assert_eq!(
+            lexer.next(),
+            Some(Lexeme {
+                kind,
+                text: input,
+                span: 0..input.len()
+            })
+        );
     }
 
     #[test]

@@ -5,8 +5,8 @@ use num_traits::{FromPrimitive, ToPrimitive};
 #[derive(
     Debug, Copy, Clone, PartialEq, Logos, FromPrimitive, Ord, PartialOrd, Eq, ToPrimitive, Hash,
 )]
-pub(crate) enum SyntaxKind {
-    #[regex(" +")]
+pub enum SyntaxKind {
+    #[regex("[ \n\t]+")]
     Whitespace,
 
     #[token("def")]
@@ -68,7 +68,7 @@ impl SyntaxKind {
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum XvaLanguage {}
+pub enum XvaLanguage {}
 
 impl rowan::Language for XvaLanguage {
     type Kind = SyntaxKind;

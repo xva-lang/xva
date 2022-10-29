@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::language::SyntaxKind;
 use smol_str::SmolStr;
 
@@ -14,6 +16,7 @@ pub(super) enum Event {
     AddToken {
         token_kind: SyntaxKind,
         text: SmolStr,
+        span: Range<usize>,
     },
     FinishNode,
     MarkerPlaceholder,

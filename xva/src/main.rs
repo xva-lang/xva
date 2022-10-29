@@ -2,12 +2,14 @@ use clap::arg;
 use clap::command;
 use clap::Parser;
 
+mod compiler;
 mod constants;
 mod machine;
-use machine::istream;
-use machine::vm;
 mod repl;
 mod runtime;
+
+use machine::istream;
+use machine::vm;
 
 fn main() {
     cli();

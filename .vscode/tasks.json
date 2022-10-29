@@ -20,7 +20,8 @@
         "kind": "test",
         "isDefault": true
       },
-      "label": "rust: cargo test"
+      "label": "rust: cargo test",
+      "args": ["-q"]
     }
   ]
 }
