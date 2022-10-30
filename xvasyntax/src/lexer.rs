@@ -31,13 +31,14 @@ impl<'a> Iterator for Lexer<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Lexeme<'a> {
     pub(crate) kind: SyntaxKind,
     pub(crate) text: &'a str,
     pub(crate) span: Range<usize>,
 }
 
+#[derive(Debug)]
 pub(super) struct LexemeSource<'lexemes, 'input> {
     lexemes: &'lexemes [Lexeme<'input>],
     cursor: usize,
@@ -68,6 +69,30 @@ impl<'lexemes, 'input> LexemeSource<'lexemes, 'input> {
 
     pub(super) fn consume(&mut self) {
         self.cursor += 1;
+    }
+
+    pub(super) fn peek_current_as_deref(&self) -> Option<Lexeme> {
+        let result = match self.lexemes.get(self.cursor) {
+            Some(r) => {
+                let cloned = r.clone();
+                Some(cloned)
+            }
+            None => None,
+        };
+
+        result
+    }
+
+    pub(super) fn peek_previous_as_deref(&self) -> Option<Lexeme> {
+        let result = match self.lexemes.get(self.cursor - 1) {
+            Some(r) => {
+                let cloned = r.clone();
+                Some(cloned)
+            }
+            None => None,
+        };
+
+        result
     }
 
     pub(super) fn peek_kind(&mut self) -> Option<SyntaxKind> {

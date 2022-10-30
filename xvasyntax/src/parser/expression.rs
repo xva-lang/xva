@@ -4,8 +4,26 @@ use super::{
 };
 use crate::{language::SyntaxKind, parser::Parser};
 
-pub(super) fn expression(parser: &mut Parser) {
-    expression_binding_power(parser, 0)
+pub(super) fn expression(parser: &mut Parser) -> Option<CompletedMarker> {
+    match parser.peek() {
+        Some(kind) => match kind {
+            SyntaxKind::LetKeyword => declaration(parser),
+            _ => expression_binding_power(parser, 0),
+        },
+        None => None,
+    }
+}
+
+fn declaration(parser: &mut Parser) -> Option<CompletedMarker> {
+    let marker = parser.start();
+
+    parser.expect_kind(SyntaxKind::LetKeyword);
+    parser.expect_kind(SyntaxKind::Identifier);
+    parser.expect_kind(SyntaxKind::Equals);
+
+    expression(parser);
+
+    Some(marker.complete(parser, SyntaxKind::Declaration))
 }
 
 /// Consumes a single expression then starts a loop that:
@@ -19,16 +37,11 @@ pub(super) fn expression(parser: &mut Parser) {
 /// # Arguments
 /// `minimum_binding_power` - Tracks the iteratively increased binding power for an operator before the function
 /// returns to complete the node.
-fn expression_binding_power(parser: &mut Parser, minimum_binding_power: u8) {
-    // let checkpoint = parser.checkpoint();
-
-    let mut left = match parser.peek() {
-        Some(SyntaxKind::Identifier) => identifier(parser),
-        Some(SyntaxKind::IntegerLiteral) => literal(parser),
-        Some(SyntaxKind::Minus) => prefix_expression(parser, PrefixOperator::Negation),
-        Some(SyntaxKind::LeftParenthesis) => parenthesised_expression(parser),
-        _ => return,
-    };
+fn expression_binding_power(
+    parser: &mut Parser,
+    minimum_binding_power: u8,
+) -> Option<CompletedMarker> {
+    let mut left = left(parser)?;
 
     loop {
         let operator = match parser.peek() {
@@ -36,60 +49,106 @@ fn expression_binding_power(parser: &mut Parser, minimum_binding_power: u8) {
             Some(SyntaxKind::Minus) => InfixOperator::Subtraction,
             Some(SyntaxKind::Star) => InfixOperator::Multiplication,
             Some(SyntaxKind::Slash) => InfixOperator::Division,
-            _ => return, // Handle errors later
+            _ => {
+                break;
+            }
         };
 
         let (left_binding_power, right_binding_power) = operator.binding_power();
         if left_binding_power.unwrap() < minimum_binding_power {
-            return;
+            break;
         }
 
-        // Consume the token for the operator
         parser.bump();
 
         // And recurse
         let marker = left.precede(parser);
-        // parser.start_node_at(checkpoint, SyntaxKind::BinaryExpression);
-
-        expression_binding_power(parser, right_binding_power);
-        // parser.finish_node();
+        let parsed_right = expression_binding_power(parser, right_binding_power).is_some();
         left = marker.complete(parser, SyntaxKind::BinaryExpression);
+
+        if !parsed_right {
+            break;
+        }
     }
+
+    Some(left)
 }
 
-fn identifier(parser: &mut Parser) -> CompletedMarker {
+fn left(parser: &mut Parser) -> Option<CompletedMarker> {
+    let result = match parser.peek() {
+        Some(SyntaxKind::Identifier) => identifier_expression(parser),
+        Some(SyntaxKind::IntegerLiteral) => literal(parser),
+        Some(SyntaxKind::Minus) => prefix_expression(parser, PrefixOperator::Negation),
+        Some(SyntaxKind::LeftParenthesis) => parenthesised_expression(parser),
+        _ => return None,
+    };
+
+    result
+}
+fn identifier_expression(parser: &mut Parser) -> Option<CompletedMarker> {
     let marker = parser.start();
     parser.bump();
-    marker.complete(parser, SyntaxKind::IdentifierExpression)
+    Some(marker.complete(parser, SyntaxKind::IdentifierExpression))
 }
 
-fn literal(parser: &mut Parser) -> CompletedMarker {
+fn literal(parser: &mut Parser) -> Option<CompletedMarker> {
     let marker = parser.start();
     parser.bump();
-    marker.complete(parser, SyntaxKind::Literal)
+    Some(marker.complete(parser, SyntaxKind::Literal))
 }
 
-fn prefix_expression(parser: &mut Parser, operator: PrefixOperator) -> CompletedMarker {
+fn prefix_expression(parser: &mut Parser, operator: PrefixOperator) -> Option<CompletedMarker> {
     let (_, right_binding_power) = operator.binding_power();
 
     let marker = parser.start();
     parser.bump();
 
     expression_binding_power(parser, right_binding_power);
-    marker.complete(parser, SyntaxKind::PrefixExpression)
+    Some(marker.complete(parser, SyntaxKind::PrefixExpression))
 }
 
-fn parenthesised_expression(parser: &mut Parser) -> CompletedMarker {
+fn parenthesised_expression(parser: &mut Parser) -> Option<CompletedMarker> {
     let marker = parser.start();
     parser.bump();
+    match parser.peek() {
+        Some(t) => match t {
+            SyntaxKind::RightParenthesis => {
+                parser.bump_with_error("Expected an expression", None);
+                // return Some(marker.complete(parser, SyntaxKind::ParenthesisedExpression));
+            }
+            _ => {}
+        },
+        None => {
+            parser.error(
+                "Expected a closing parenthesis",
+                Some("Consider adding a closing parenthesis here."),
+            );
+            // return Some(marker.complete(parser, SyntaxKind::ParenthesisedExpression));
+        }
+    }
+
     expression_binding_power(parser, 0);
-    assert_eq!(
-        parser.peek(),
-        Some(SyntaxKind::RightParenthesis),
-        "No matching right parenthesis."
-    );
-    parser.bump();
-    marker.complete(parser, SyntaxKind::ParenthesisedExpression)
+    match parser.peek() {
+        Some(t) => match t {
+            SyntaxKind::RightParenthesis => parser.bump(),
+            _ => {
+                parser.error(
+                    "Expected a closing parenthesis",
+                    Some("Consider adding a closing parenthesis here."),
+                );
+                // return Some(marker.complete(parser, SyntaxKind::ParenthesisedExpression));
+            }
+        },
+        None => {
+            parser.error(
+                "Expected a closing parenthesis",
+                Some("Consider adding a closing parenthesis here."),
+            );
+            // return Some(marker.complete(parser, SyntaxKind::ParenthesisedExpression));
+        }
+    }
+
+    Some(marker.complete(parser, SyntaxKind::ParenthesisedExpression))
 }
 
 #[cfg(test)]

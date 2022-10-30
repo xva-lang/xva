@@ -3,7 +3,7 @@ use std::ops::Range;
 /// A mapping from an absolute character offset to its line number relative to the start of the original input.
 #[derive(Debug)]
 pub(crate) struct LineIndex {
-    range: Range<usize>,
+    pub(crate) range: Range<usize>,
     line: usize,
 }
 
@@ -29,6 +29,20 @@ impl LineIndexes {
     /// `index` - The new `LineIndex` to append to the container.
     pub(crate) fn push(&mut self, index: LineIndex) {
         self.indexes.push(index)
+    }
+
+    pub(crate) fn matched_lines_as_vec(&mut self, line: usize) -> Vec<LineIndex> {
+        let mut result_vec: Vec<LineIndex> = vec![];
+        for index in self.indexes.iter() {
+            if index.line == line {
+                result_vec.push(LineIndex {
+                    range: index.range.clone(),
+                    line: index.line,
+                })
+            }
+        }
+
+        result_vec
     }
 
     /// Retrives the range of lines that a specified character offset occupies.
@@ -68,6 +82,6 @@ impl LineIndexes {
     }
 
     fn token_in_range(entry: &LineIndex, requested_range: &Range<usize>) -> bool {
-        entry.range.start >= requested_range.start && entry.range.end <= requested_range.end
+        entry.range.start >= requested_range.start || entry.range.end <= requested_range.end
     }
 }

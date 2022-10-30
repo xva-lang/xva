@@ -11,6 +11,14 @@ use super::{
 };
 use logos::Span;
 use rowan::{GreenNode, GreenNodeBuilder, Language};
+use smol_str::SmolStr;
+
+pub(super) struct ParseError {
+    text: SmolStr,
+    error: SmolStr,
+    span: Range<usize>,
+    suggestion: Option<SmolStr>,
+}
 
 pub(super) struct ParserEventSink<'lexemes, 'input> {
     builder: GreenNodeBuilder<'static>,
@@ -20,6 +28,7 @@ pub(super) struct ParserEventSink<'lexemes, 'input> {
     current_span: Span,
     current_line: usize,
     line_indexes: LineIndexes,
+    errors: Vec<ParseError>,
 }
 
 impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
@@ -32,10 +41,13 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
             current_span: 0..0,
             current_line: 1,
             line_indexes: LineIndexes::new(),
+            errors: vec![],
         }
     }
 
-    pub(super) fn finish(mut self) -> (GreenNode, LineIndexes) {
+    pub(super) fn finish(mut self) -> (GreenNode, LineIndexes, Vec<String>) {
+        let mut str_errors: Vec<String> = vec![];
+
         for index in 0..self.events.len() {
             match mem::replace(&mut self.events[index], Event::MarkerPlaceholder) {
                 Event::StartNode {
@@ -78,12 +90,66 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
                 } => self.token(token_kind, text, span),
                 Event::FinishNode => self.builder.finish_node(),
                 Event::MarkerPlaceholder => {}
+                Event::Error {
+                    text,
+                    span,
+                    error,
+                    suggestion,
+                } => self.errors.push(ParseError {
+                    text,
+                    error,
+                    span,
+                    suggestion,
+                }),
             }
 
             self.consume_trivia();
         }
 
-        (self.builder.finish(), self.line_indexes)
+        for error in self.errors {
+            let position = error.span.clone();
+            let line_number = self.line_indexes.get_line(error.span.clone());
+
+            let mut constructed_line = String::new();
+            for index in self
+                .line_indexes
+                .matched_lines_as_vec(line_number.clone().unwrap().start)
+            {
+                for lexeme in self.lexemes {
+                    if lexeme.span.start == index.range.start && lexeme.span.end == index.range.end
+                    {
+                        constructed_line.push_str(lexeme.text);
+                    }
+                }
+            }
+
+            let suggestion = match error.suggestion {
+                Some(s) => {
+                    let mut val = String::new();
+                    val.push_str(" ");
+                    val.push_str(s.as_str());
+                    val
+                }
+                None => String::from(""),
+            };
+            let error_cursor_position = position.end;
+            let error_line = format!(
+                "      |\n    1 | {}\n      |{}^{}",
+                constructed_line.as_str(),
+                " ".repeat(error_cursor_position),
+                suggestion
+            );
+
+            str_errors.push(format!(
+                "error: {} (at line {}, position {}):\n\n{}",
+                error.error,
+                self.line_indexes.get_line(error.span).unwrap().start,
+                position.end,
+                error_line,
+            ));
+        }
+
+        (self.builder.finish(), self.line_indexes, str_errors)
     }
 
     fn token(&mut self, token_kind: SyntaxKind, text: smol_str::SmolStr, span: Range<usize>) {

@@ -6,6 +6,7 @@ struct Instruction {
 }
 
 impl Instruction {
+    #[allow(dead_code)]
     pub(crate) fn new(opcode: Opcode) -> Self {
         Self { opcode }
     }

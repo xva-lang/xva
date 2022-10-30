@@ -1,48 +1,55 @@
-use std::io::{self, Write};
-use xvasyntax::ast::node::*;
+use std::{
+    env::{args, consts::OS},
+    fs,
+    io::{self, Write},
+    time::SystemTime,
+};
 
-use crate::compiler;
+use chrono::offset::Local;
+
+use chrono::DateTime;
+
+use crate::{compiler, machine::vm::VirtualMachine};
 
 pub(crate) fn repl_main() -> io::Result<()> {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     let _stderr = io::stderr();
 
-    let mut input = String::new();
-    let compiler = compiler::Compiler::new();
+    let mut compiler = compiler::Compiler::new();
+    let mut vm = VirtualMachine::new();
 
-    let mut debug_tree = false;
+    let meta = fs::metadata(args().nth(0).unwrap())?;
+    let build_date: DateTime<Local> = match meta.modified() {
+        Ok(m) => m,
+        Err(_) => SystemTime::now(),
+    }
+    .into();
+
+    println!(
+        "Xva {}\n[nightly: {}]\n[rustc 1.64.0 (a55dd71d5 2022-09-19) on {}]",
+        env!("CARGO_PKG_VERSION").replace("\"", ""),
+        build_date.format("%A, %B %d %Y %I:%M:%S%P"),
+        OS
+    );
 
     loop {
         write!(stdout, "> ")?;
         stdout.flush()?;
 
+        let mut input = String::new();
         stdin.read_line(&mut input)?;
 
         let parse_tree = xvasyntax::parser::parse(input.as_str());
         let mut root = xvasyntax::ast::node::Root::cast(parse_tree.get_root_node()).unwrap();
 
-        dbg!(root
-            .statements()
-            .map(|s| {
-                match s {
-                    Statement::Expression(e) => println!("{:#?}", e),
-                }
-            })
-            .collect::<Vec<_>>());
+        compiler.compile(&mut root);
+        vm.program = compiler.get_output();
 
-        let root = parse_tree.get_root_node();
-
-        match input.as_str().trim() {
-            "debug_tree!()" => {
-                debug_tree = !debug_tree;
-                input.clear();
-                continue;
-            }
-            _ => {}
-        }
-
-        compiler.compile(root);
+        compiler.clear_output();
+        vm.run();
+        vm.reset_program_counter();
+        println!("{}", vm.pop_i64().unwrap());
         input.clear();
         stdout.flush()?;
     }

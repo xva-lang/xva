@@ -1,10 +1,13 @@
 use super::{flags::Flag, flags::FlagsRegister, opcode::Opcode};
 
-const MAX_REGISTERS: usize = 32;
+pub(crate) const MAX_REGISTERS: usize = 256;
+const MAX_STACK: usize = 1024; // FIXME
 pub(crate) struct VirtualMachine {
     registers: [i64; MAX_REGISTERS],
+    stack: [i64; MAX_STACK],
+    stack_pointer: usize,
     program_counter: usize,
-    program: Vec<u8>,
+    pub(crate) program: Vec<u8>,
     remainder: i64,
     flags: FlagsRegister,
 }
@@ -13,6 +16,8 @@ impl VirtualMachine {
     pub(crate) fn new() -> Self {
         Self {
             registers: [0; MAX_REGISTERS],
+            stack: [0; MAX_STACK],
+            stack_pointer: 0,
             program_counter: 0,
             program: vec![],
             remainder: 0,
@@ -26,56 +31,98 @@ impl VirtualMachine {
                 break;
             }
 
-            match self.decode() {
+            match self.next_instruction() {
                 Opcode::Halt => {
-                    println!("exit!");
                     break;
                 }
-                Opcode::LoadRegister => {
-                    let register_number = self.require_next_byte() as usize;
-                    let value = self.require_next_word() as i64;
-                    self.registers[register_number] = value;
-                }
+
                 Opcode::Add => {
-                    let (left, right) = (
-                        self.registers[self.require_next_byte() as usize],
-                        self.registers[self.require_next_byte() as usize],
+                    let (right, left) = (
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
                     );
-                    let dest = self.require_next_byte() as usize;
-                    self.registers[dest] = left + right;
-                    self.assess_flags(self.registers[dest]);
+                    let value = left + right;
+                    self.push_i64(value);
+                    self.assess_flags(value);
                 }
                 Opcode::Subtract => {
-                    let (left, right) = (
-                        self.registers[self.require_next_byte() as usize],
-                        self.registers[self.require_next_byte() as usize],
+                    let (right, left) = (
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
                     );
-                    let dest = self.require_next_byte() as usize;
-                    self.registers[dest] = left - right;
-                    self.assess_flags(self.registers[dest]);
+                    let value = left - right;
+                    self.push_i64(value);
+                    self.assess_flags(value);
                 }
                 Opcode::IntegerMultiply => {
-                    let (left, right) = (
-                        self.registers[self.require_next_byte() as usize],
-                        self.registers[self.require_next_byte() as usize],
+                    let (right, left) = (
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
                     );
-                    let dest = self.require_next_byte() as usize;
-                    self.registers[dest] = left * right;
-                    self.assess_flags(self.registers[dest]);
+                    let value = left * right;
+                    self.push_i64(value);
+                    self.assess_flags(value);
                 }
                 Opcode::IntegerDivide => {
-                    let (left, right) = (
-                        self.registers[self.require_next_byte() as usize],
-                        self.registers[self.require_next_byte() as usize],
+                    let (right, left) = (
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_i64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
                     );
-                    let dest = self.require_next_byte() as usize;
-                    self.registers[dest] = left / right;
+                    let value = left / right;
                     self.remainder = left % right;
-                    self.assess_flags(self.registers[dest]);
+                    self.push_i64(value);
+                    self.assess_flags(value);
                 }
                 Opcode::AbsoluteJump => {
-                    self.program_counter =
-                        self.registers[self.require_next_byte() as usize] as usize
+                    self.program_counter = self.require_next_double_word() as usize;
                 }
                 Opcode::BackwardsRelativeJump => {
                     self.program_counter -=
@@ -108,6 +155,11 @@ impl VirtualMachine {
                         self.program_counter = address;
                     };
                 }
+
+                Opcode::LoadInteger => {
+                    let value = self.require_next_quad_word();
+                    self.push_i64(value);
+                }
                 unknown => {
                     println!("Unrecognised opcode: {:?}", unknown)
                 }
@@ -115,7 +167,7 @@ impl VirtualMachine {
         }
     }
 
-    fn decode(&mut self) -> Opcode {
+    fn next_instruction(&mut self) -> Opcode {
         let result = Opcode::from(self.program[self.program_counter]);
         self.program_counter += 1;
         result
@@ -125,10 +177,6 @@ impl VirtualMachine {
         let result = self.program[self.program_counter];
         self.program_counter += 1;
         result
-    }
-
-    fn require_next_word(&mut self) -> u16 {
-        ((self.require_next_byte() as u16) << 8) | self.require_next_byte() as u16
     }
 
     fn consume(&mut self) {
@@ -144,13 +192,67 @@ impl VirtualMachine {
             self.flags.set_flag(Flag::Sign);
         }
     }
+
+    fn require_next_quad_word(&mut self) -> i64 {
+        self.program_counter += 8;
+
+        i64::from_le_bytes(
+            self.program[self.program_counter - 8..self.program_counter]
+                .try_into()
+                .expect("Bad array"),
+        )
+    }
+
+    fn require_next_double_word(&mut self) -> i32 {
+        self.program_counter += 4;
+
+        i32::from_le_bytes(
+            self.program[self.program_counter - 4..self.program_counter]
+                .try_into()
+                .expect("Bad array"),
+        )
+    }
+
+    fn push_i64(&mut self, value: i64) {
+        self.stack[self.stack_pointer] = value;
+        self.stack_pointer += 1;
+    }
+
+    pub(crate) fn pop_i64(&mut self) -> Option<i64> {
+        if self.stack_pointer == 0 {
+            return None;
+        }
+
+        self.stack_pointer -= 1;
+        Some(self.stack[self.stack_pointer])
+    }
+
+    pub(crate) fn reset_program_counter(&mut self) {
+        self.program_counter = 0;
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn print_stack(&self) {
+        for i in (0..MAX_STACK).step_by(8) {
+            println!(
+                "0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+                self.stack[i],
+                self.stack[i + 1],
+                self.stack[i + 2],
+                self.stack[i + 3],
+                self.stack[i + 4],
+                self.stack[i + 5],
+                self.stack[i + 6],
+                self.stack[i + 7]
+            )
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Flag;
-    use super::Opcode;
     use super::VirtualMachine;
+    use crate::compiler::Compiler;
 
     #[test]
     fn create_machine() {
@@ -174,132 +276,149 @@ mod tests {
         assert_eq!(vm.program_counter, 4);
     }
 
-    #[test]
-    fn decode_load_register() {
+    fn expect_program(input: &str, return_val: i64) {
+        let mut compiler = Compiler::new();
+        let parse_tree = xvasyntax::parser::parse(input);
+        let mut root = xvasyntax::ast::node::Root::cast(parse_tree.get_root_node()).unwrap();
+
+        compiler.compile(&mut root);
         let mut vm = VirtualMachine::new();
-        vm.program = vec![Opcode::LoadRegister.into(), 1, 0x34, 0x12];
+        vm.program = compiler.get_output();
         vm.run();
-        assert_eq!(vm.registers[1], 0x3412);
+        assert_eq!(vm.pop_i64().unwrap(), return_val);
     }
 
     #[test]
-    fn decode_add() {
-        let mut vm = VirtualMachine::new();
-        vm.program = vec![
-            Opcode::LoadRegister.into(),
-            1,
-            0,
-            0x4,
-            Opcode::LoadRegister.into(),
-            2,
-            0,
-            0x5,
-            Opcode::Add.into(),
-            1,
-            2,
-            3,
-        ];
-        vm.run();
-        assert_eq!(vm.registers[3], 0x9);
+    fn expression_program() {
+        expect_program("1 + 36 * 32 - 1477", -324);
     }
 
-    #[test]
-    fn decode_absolute_jump() {
-        let mut vm = VirtualMachine::new();
-        vm.registers[2] = 7;
-        vm.program = vec![
-            Opcode::AbsoluteJump.into(),
-            2,
-            0,
-            0,
-            0,
-            0,
-            0,
-            Opcode::LoadRegister.into(),
-            1,
-            0,
-            0x4,
-            Opcode::LoadRegister.into(),
-            2,
-            0,
-            0x5,
-            Opcode::Add.into(),
-            1,
-            2,
-            3,
-        ];
+    // #[test]
+    // fn decode_load_register() {
+    //     let mut vm = VirtualMachine::new();
+    //     vm.program = vec![Opcode::LoadRegister.into(), 1, 0x34, 0x12];
+    //     vm.run();
+    //     assert_eq!(vm.registers[1], 0x3412);
+    // }
 
-        vm.run();
-        assert_eq!(vm.registers[3], 0x9);
-    }
+    // #[test]
+    // fn decode_add() {
+    //     let mut vm = VirtualMachine::new();
+    //     vm.program = vec![
+    //         Opcode::LoadRegister.into(),
+    //         1,
+    //         0,
+    //         0x4,
+    //         Opcode::LoadRegister.into(),
+    //         2,
+    //         0,
+    //         0x5,
+    //         Opcode::Add.into(),
+    //         1,
+    //         2,
+    //         3,
+    //     ];
+    //     vm.run();
+    //     assert_eq!(vm.registers[3], 0x9);
+    // }
 
-    #[test]
-    fn forward_relative_jump() {
-        let mut vm = VirtualMachine::new();
-        vm.program = vec![
-            Opcode::LoadRegister.into(),
-            1,
-            0x12,
-            0x34,
-            Opcode::ForwardsRelativeJump.into(),
-            1,
-        ];
-        vm.run();
+    // #[test]
+    // fn decode_absolute_jump() {
+    //     let mut vm = VirtualMachine::new();
+    //     vm.registers[2] = 7;
+    //     vm.program = vec![
+    //         Opcode::AbsoluteJump.into(),
+    //         2,
+    //         0,
+    //         0,
+    //         0,
+    //         0,
+    //         0,
+    //         Opcode::LoadRegister.into(),
+    //         1,
+    //         0,
+    //         0x4,
+    //         Opcode::LoadRegister.into(),
+    //         2,
+    //         0,
+    //         0x5,
+    //         Opcode::Add.into(),
+    //         1,
+    //         2,
+    //         3,
+    //     ];
 
-        assert_eq!(vm.program_counter, 0x1234 + vm.program.len());
-    }
+    //     vm.run();
+    //     assert_eq!(vm.registers[3], 0x9);
+    // }
 
-    #[test]
-    fn compare() {
-        let mut vm = VirtualMachine::new();
-        vm.program = vec![
-            Opcode::LoadRegister.into(),
-            1,
-            0,
-            1,
-            Opcode::LoadRegister.into(),
-            2,
-            0,
-            1,
-            Opcode::Compare.into(),
-            1,
-            2,
-            0,
-        ];
+    // #[test]
+    // fn forward_relative_jump() {
+    //     let mut vm = VirtualMachine::new();
+    //     vm.program = vec![
+    //         Opcode::LoadRegister.into(),
+    //         1,
+    //         0x12,
+    //         0x34,
+    //         Opcode::ForwardsRelativeJump.into(),
+    //         1,
+    //     ];
+    //     vm.run();
 
-        vm.run();
-        assert!(vm.flags.is_flag_set(Flag::Zero));
-    }
+    //     assert_eq!(vm.program_counter, 0x1234 + vm.program.len());
+    // }
 
-    #[test]
-    fn branch_if_equal() {
-        let mut vm = VirtualMachine::new();
-        vm.registers[2] = 7;
-        vm.flags.set_flag(Flag::Zero);
+    // #[test]
+    // fn compare() {
+    //     let mut vm = VirtualMachine::new();
+    //     vm.program = vec![
+    //         Opcode::LoadRegister.into(),
+    //         1,
+    //         0,
+    //         1,
+    //         Opcode::LoadRegister.into(),
+    //         2,
+    //         0,
+    //         1,
+    //         Opcode::Compare.into(),
+    //         1,
+    //         2,
+    //         0,
+    //     ];
 
-        vm.program = vec![
-            Opcode::BranchIfEqual.into(),
-            2,
-            0,
-            0,
-            0,
-            0,
-            0,
-            Opcode::LoadRegister.into(),
-            1,
-            0,
-            0x4,
-            Opcode::LoadRegister.into(),
-            2,
-            0,
-            0x5,
-            Opcode::Add.into(),
-            1,
-            2,
-            3,
-        ];
+    //     vm.run();
+    //     assert!(vm.flags.is_flag_set(Flag::Zero));
+    // }
 
-        vm.run();
-        assert_eq!(vm.registers[3], 0x9);
-    }
+    // #[test]
+    // fn branch_if_equal() {
+    //     let mut vm = VirtualMachine::new();
+    //     vm.registers[2] = 7;
+    //     vm.flags.set_flag(Flag::Zero);
+
+    //     vm.program = vec![
+    //         Opcode::BranchIfEqual.into(),
+    //         2,
+    //         0,
+    //         0,
+    //         0,
+    //         0,
+    //         0,
+    //         Opcode::LoadRegister.into(),
+    //         1,
+    //         0,
+    //         0x4,
+    //         Opcode::LoadRegister.into(),
+    //         2,
+    //         0,
+    //         0x5,
+    //         Opcode::Add.into(),
+    //         1,
+    //         2,
+    //         3,
+    //     ];
+
+    //     vm.run();
+    //     assert_eq!(vm.registers[3], 0x9);
+    // }
 }

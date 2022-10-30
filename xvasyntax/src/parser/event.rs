@@ -18,6 +18,12 @@ pub(super) enum Event {
         text: SmolStr,
         span: Range<usize>,
     },
+    Error {
+        text: SmolStr,
+        span: Range<usize>,
+        error: SmolStr,
+        suggestion: Option<SmolStr>,
+    },
     FinishNode,
     MarkerPlaceholder,
 }

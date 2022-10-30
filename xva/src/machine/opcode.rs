@@ -4,16 +4,7 @@ pub(crate) enum Opcode {
     Halt,
     Illegal,
 
-    /// Size: 4 bytes
-    ///
-    /// n - `OPCODE_LOAD_REGISTER`
-    ///
-    /// n + 1 - Register number
-    ///
-    /// n + 2 - Constant high byte
-    ///
-    /// n + 3 - Constant low byte
-    LoadRegister,
+    LoadInteger,
 
     /// Size: 4 bytes
     /// n - `OPCODE_ADD`
@@ -100,7 +91,7 @@ pub(crate) enum Opcode {
 }
 
 const OPCODE_HALT: u8 = 0;
-const OPCODE_LOAD_REGISTER: u8 = 1;
+const OPCODE_LOAD_INTEGER: u8 = 1;
 const OPCODE_ADD: u8 = 2;
 const OPCODE_SUBTRACT: u8 = 3;
 const OPCODE_INT_MULTIPLY: u8 = 4;
@@ -116,7 +107,7 @@ impl From<u8> for Opcode {
     fn from(value: u8) -> Self {
         match value {
             OPCODE_HALT => Opcode::Halt,
-            OPCODE_LOAD_REGISTER => Opcode::LoadRegister,
+            OPCODE_LOAD_INTEGER => Opcode::LoadInteger,
             OPCODE_ADD => Opcode::Add,
             OPCODE_SUBTRACT => Opcode::Subtract,
             OPCODE_INT_MULTIPLY => Opcode::IntegerMultiply,
@@ -127,6 +118,7 @@ impl From<u8> for Opcode {
             OPCODE_COMPARE => Opcode::Compare,
             OPCODE_BRANCH_IF_EQUAL => Opcode::BranchIfEqual,
             OPCODE_BRANCH_IF_NOT_EQUAL => Opcode::BranchIfNotEqual,
+
             _ => Opcode::Illegal,
         }
     }
@@ -137,7 +129,7 @@ impl From<Opcode> for u8 {
         match value {
             Opcode::Halt => OPCODE_HALT,
             Opcode::Illegal => panic!("Can't convert illegal opcode"),
-            Opcode::LoadRegister => OPCODE_LOAD_REGISTER,
+            Opcode::LoadInteger => OPCODE_LOAD_INTEGER,
             Opcode::Add => OPCODE_ADD,
             Opcode::Subtract => OPCODE_SUBTRACT,
             Opcode::IntegerMultiply => OPCODE_INT_MULTIPLY,

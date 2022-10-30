@@ -1,9 +1,11 @@
 /// An operator that can appear as the operator of a binary expression, e.g. `1 + 2`, where `+` is the operator.
+#[derive(Debug)]
 pub enum InfixOperator {
     Addition,
     Subtraction,
     Multiplication,
     Division,
+    NotAnOperator,
 }
 
 /// An operator that can appear as the operator of a prefix expression, e.g. `-3`, where `-` is the operator.
@@ -33,6 +35,7 @@ impl BindingPowered for InfixOperator {
         // 1   +   2   +   3   +   4    <- item
         //   1   2   1   2   1   2      <- binding power
         match self {
+            Self::NotAnOperator => (Some(0), 1),
             Self::Addition | Self::Subtraction => {
                 (Some(ADDITION_BINDING_POWER), SUBTRACTION_BINDING_POWER)
             }

@@ -40,8 +40,13 @@ impl Marker {
             position: self.position,
         }
     }
+
+    pub(super) fn is_complete(&self) -> bool {
+        self.drop_check.is_defused()
+    }
 }
 
+#[derive(Debug)]
 pub(super) struct CompletedMarker {
     position: usize,
 }

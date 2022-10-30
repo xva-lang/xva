@@ -18,6 +18,8 @@ pub enum SyntaxKind {
     #[regex("[A-Za-z_][A-Za-z0-9_]*!?")]
     Identifier,
 
+    Operator,
+
     #[token("+")]
     Plus,
 
@@ -51,6 +53,7 @@ pub enum SyntaxKind {
     BinaryExpression,
     PrefixExpression,
     ParenthesisedExpression,
+    Declaration,
 
     #[error]
     Error,

@@ -8,8 +8,6 @@ mod machine;
 mod repl;
 mod runtime;
 
-use machine::vm;
-
 fn main() {
     cli();
 }
