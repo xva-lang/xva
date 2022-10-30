@@ -1,190 +1,305 @@
-use crate::machine::bytecode::Opcode;
-use crate::runtime::typing::byte_sizeable::{BOOLEAN_SIZE, CHAR_SIZE, FLOAT_SIZE, INT_SIZE};
+use super::{flags::Flag, flags::FlagsRegister, opcode::Opcode};
 
-use super::bytecode::Opcodeable;
-
-const STACK_WIDTH: usize = 8;
-// const CARRY_FLAG: u32 = 0x01;
-const PARITY_FLAG: u32 = 0x02;
-const ZERO_FLAG: u32 = 0x04;
-// const OVERFLOW_FLAG: u32 = 0x08;
-const SIGN_FLAG: u32 = 0x10;
-pub struct VirtualMachine {
-    stack: super::stack::Stack<u8>,
-    stream: super::istream::IStream,
-    flags: u32,
+const MAX_REGISTERS: usize = 32;
+pub(crate) struct VirtualMachine {
+    registers: [i64; MAX_REGISTERS],
+    program_counter: usize,
+    program: Vec<u8>,
+    remainder: i64,
+    flags: FlagsRegister,
 }
 
 impl VirtualMachine {
-    pub fn new(stream: super::istream::IStream) -> Self {
-        VirtualMachine {
-            stack: super::stack::Stack::new(1024),
-            stream: stream,
-            flags: 0,
+    pub(crate) fn new() -> Self {
+        Self {
+            registers: [0; MAX_REGISTERS],
+            program_counter: 0,
+            program: vec![],
+            remainder: 0,
+            flags: FlagsRegister::new(),
         }
     }
 
-    pub fn run(&mut self) {
+    pub(crate) fn run(&mut self) {
         loop {
-            let next_byte = (&mut self.stream).pop_next();
+            if self.program_counter >= self.program.len() {
+                break;
+            }
 
-            match next_byte {
-                Ok(v) => {
-                    self.match_opcode(v.as_opcode());
-                }
-                Err(_) => {
+            match self.decode() {
+                Opcode::Halt => {
+                    println!("exit!");
                     break;
                 }
-            }
-        }
-        println!("end");
-    }
+                Opcode::LoadRegister => {
+                    let register_number = self.require_next_byte() as usize;
+                    let value = self.require_next_word() as i64;
+                    self.registers[register_number] = value;
+                }
+                Opcode::Add => {
+                    let (left, right) = (
+                        self.registers[self.require_next_byte() as usize],
+                        self.registers[self.require_next_byte() as usize],
+                    );
+                    let dest = self.require_next_byte() as usize;
+                    self.registers[dest] = left + right;
+                    self.assess_flags(self.registers[dest]);
+                }
+                Opcode::Subtract => {
+                    let (left, right) = (
+                        self.registers[self.require_next_byte() as usize],
+                        self.registers[self.require_next_byte() as usize],
+                    );
+                    let dest = self.require_next_byte() as usize;
+                    self.registers[dest] = left - right;
+                    self.assess_flags(self.registers[dest]);
+                }
+                Opcode::IntegerMultiply => {
+                    let (left, right) = (
+                        self.registers[self.require_next_byte() as usize],
+                        self.registers[self.require_next_byte() as usize],
+                    );
+                    let dest = self.require_next_byte() as usize;
+                    self.registers[dest] = left * right;
+                    self.assess_flags(self.registers[dest]);
+                }
+                Opcode::IntegerDivide => {
+                    let (left, right) = (
+                        self.registers[self.require_next_byte() as usize],
+                        self.registers[self.require_next_byte() as usize],
+                    );
+                    let dest = self.require_next_byte() as usize;
+                    self.registers[dest] = left / right;
+                    self.remainder = left % right;
+                    self.assess_flags(self.registers[dest]);
+                }
+                Opcode::AbsoluteJump => {
+                    self.program_counter =
+                        self.registers[self.require_next_byte() as usize] as usize
+                }
+                Opcode::BackwardsRelativeJump => {
+                    self.program_counter -=
+                        self.registers[self.require_next_byte() as usize] as usize;
+                }
+                Opcode::ForwardsRelativeJump => {
+                    self.program_counter +=
+                        self.registers[self.require_next_byte() as usize] as usize
+                }
 
-    #[allow(dead_code)]
-    pub fn execute_instructions(&mut self, instructions: Vec<u8>) {
-        let inst_slice = instructions.as_slice();
-        for i in 0..inst_slice.len() {
-            self.match_opcode(inst_slice[i].as_opcode());
-        }
-    }
+                Opcode::Compare => {
+                    let (left, right) = (
+                        self.registers[self.require_next_byte() as usize],
+                        self.registers[self.require_next_byte() as usize],
+                    );
+                    self.assess_flags(left - right);
+                    self.consume();
+                }
 
-    fn match_opcode(&mut self, opcode: Opcode) {
-        match opcode {
-            Opcode::Nop => {}
-            Opcode::PushConstInteger => self.push_next_bytes(INT_SIZE, false),
-            Opcode::PushConstFloat => self.push_next_bytes(FLOAT_SIZE, false),
-            Opcode::PushConstChar => self.push_next_bytes(CHAR_SIZE, false),
-            Opcode::PushConstBoolean => self.push_next_bytes(BOOLEAN_SIZE, false),
-            Opcode::Add => self.stack_integer_add(),
-            Opcode::Subtract => self.stack_integer_subtract(),
-            Opcode::IntegerMultiply => self.stack_integer_multiply(),
-            Opcode::IntegerDivide => self.stack_integer_divide(),
-        };
-    }
-
-    fn push_next_byte(&mut self) {
-        let byte = match self.stream.pop_next() {
-            Ok(b) => b,
-            Err(_) => {
-                self.panic("Failed to read next byte", -2);
-                0
-            }
-        };
-
-        self.stack.push(byte);
-    }
-
-    fn push_next_bytes(&mut self, bytes: usize, sign_extend: bool) {
-        if bytes == STACK_WIDTH {
-            for _ in 0..bytes {
-                self.push_next_byte();
-            }
-        } else {
-            let popped_bytes = self.stream.pop_bytes(bytes);
-            let negative = (popped_bytes[popped_bytes.len() - 1] & 0b10000000) != 0;
-            for i in 0..STACK_WIDTH {
-                if i >= (STACK_WIDTH - bytes) {
-                    self.stack.push(popped_bytes[STACK_WIDTH - i - 1])
-                } else {
-                    if sign_extend {
-                        self.stack.push(if negative { 0xFF } else { 0 });
-                    } else {
-                        self.stack.push(0);
+                Opcode::BranchIfEqual => {
+                    let address = self.registers[self.require_next_byte() as usize] as usize;
+                    if self.flags.is_flag_set(Flag::Zero) {
+                        self.program_counter = address;
                     }
+                }
+
+                Opcode::BranchIfNotEqual => {
+                    let address = self.registers[self.require_next_byte() as usize] as usize;
+                    if !self.flags.is_flag_set(Flag::Zero) {
+                        self.program_counter = address;
+                    };
+                }
+                unknown => {
+                    println!("Unrecognised opcode: {:?}", unknown)
                 }
             }
         }
     }
 
-    fn panic(&self, msg: &str, exit_code: i32) {
-        println!("Xva panicked!\n{}", msg);
-        std::process::exit(exit_code);
-    }
-
-    fn pop_long(&mut self) -> i64 {
-        let bytes = self.stack.pop_bytes(8);
-        let mut result: i64 = 0;
-        for i in 0..8 {
-            result += bytes[i] as i64;
-        }
-
+    fn decode(&mut self) -> Opcode {
+        let result = Opcode::from(self.program[self.program_counter]);
+        self.program_counter += 1;
         result
     }
 
-    fn push_long(&mut self, value: i64) {
-        for i in 0..STACK_WIDTH {
-            let shift_length = (8 * 7) - (8 * i);
-            self.stack.push(((value >> shift_length) & 0xFF) as u8);
-        }
+    fn require_next_byte(&mut self) -> u8 {
+        let result = self.program[self.program_counter];
+        self.program_counter += 1;
+        result
     }
 
-    fn pop_binary_operands(&mut self) -> (i64, i64) {
-        (self.pop_long(), self.pop_long())
+    fn require_next_word(&mut self) -> u16 {
+        ((self.require_next_byte() as u16) << 8) | self.require_next_byte() as u16
     }
 
-    fn stack_integer_add(&mut self) {
-        let right = self.pop_long();
-        let left = self.pop_long();
-        let result = left + right;
-        self.check_flags(result);
-
-        for i in 0..STACK_WIDTH {
-            let shift_length = (8 * 7) - (8 * i);
-            self.stack.push(((result >> shift_length) & 0xFF) as u8);
-        }
+    fn consume(&mut self) {
+        self.program_counter += 1;
     }
 
-    fn stack_integer_subtract(&mut self) {
-        let right = self.pop_long();
-        let left = self.pop_long();
-        let result = left - right;
-        self.check_flags(result);
-        self.push_long(result);
-    }
-
-    fn stack_integer_multiply(&mut self) {
-        let (right, left) = self.pop_binary_operands();
-        let result = left * right;
-        self.check_flags(result);
-        self.push_long(result);
-    }
-
-    fn stack_integer_divide(&mut self) {
-        let (right, left) = self.pop_binary_operands();
-        let result = left / right;
-        self.check_flags(result);
-        self.push_long(result);
-    }
-
-    fn check_flags(&mut self, result: i64) {
-        let mut flag = 0;
-        if self.get_parity(result) {
-            flag |= PARITY_FLAG;
+    fn assess_flags(&mut self, value: i64) {
+        if value == 0 {
+            self.flags.set_flag(Flag::Zero);
         }
 
-        if result == 0 {
-            flag |= ZERO_FLAG;
+        if value < 0 {
+            self.flags.set_flag(Flag::Sign);
         }
+    }
+}
 
-        if result as u64 & 0x8000_0000_0000_0000 != 0 {
-            flag |= SIGN_FLAG;
-        }
+#[cfg(test)]
+mod tests {
+    use super::Flag;
+    use super::Opcode;
+    use super::VirtualMachine;
 
-        self.set_flags(flag);
+    #[test]
+    fn create_machine() {
+        let vm = VirtualMachine::new();
+        assert_eq!(vm.registers[0], 0);
     }
 
-    fn set_flags(&mut self, flag: u32) {
-        self.flags |= flag;
+    #[test]
+    fn decode_opcode_halt() {
+        let mut vm = VirtualMachine::new();
+        vm.program = vec![0, 0, 0, 0];
+        vm.run();
+        assert_eq!(vm.program_counter, 1);
     }
 
-    fn get_parity(&self, value: i64) -> bool {
-        let mut num_set = 0;
-        for i in 0..64 {
-            if value >> i != 0 {
-                num_set += 1
-            }
-        }
+    #[test]
+    fn decode_illegal_opcode() {
+        let mut vm = VirtualMachine::new();
+        vm.program = vec![69, 42, 0xff, 0xff];
+        vm.run();
+        assert_eq!(vm.program_counter, 4);
+    }
 
-        num_set % 2 == 0
+    #[test]
+    fn decode_load_register() {
+        let mut vm = VirtualMachine::new();
+        vm.program = vec![Opcode::LoadRegister.into(), 1, 0x34, 0x12];
+        vm.run();
+        assert_eq!(vm.registers[1], 0x3412);
+    }
+
+    #[test]
+    fn decode_add() {
+        let mut vm = VirtualMachine::new();
+        vm.program = vec![
+            Opcode::LoadRegister.into(),
+            1,
+            0,
+            0x4,
+            Opcode::LoadRegister.into(),
+            2,
+            0,
+            0x5,
+            Opcode::Add.into(),
+            1,
+            2,
+            3,
+        ];
+        vm.run();
+        assert_eq!(vm.registers[3], 0x9);
+    }
+
+    #[test]
+    fn decode_absolute_jump() {
+        let mut vm = VirtualMachine::new();
+        vm.registers[2] = 7;
+        vm.program = vec![
+            Opcode::AbsoluteJump.into(),
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            Opcode::LoadRegister.into(),
+            1,
+            0,
+            0x4,
+            Opcode::LoadRegister.into(),
+            2,
+            0,
+            0x5,
+            Opcode::Add.into(),
+            1,
+            2,
+            3,
+        ];
+
+        vm.run();
+        assert_eq!(vm.registers[3], 0x9);
+    }
+
+    #[test]
+    fn forward_relative_jump() {
+        let mut vm = VirtualMachine::new();
+        vm.program = vec![
+            Opcode::LoadRegister.into(),
+            1,
+            0x12,
+            0x34,
+            Opcode::ForwardsRelativeJump.into(),
+            1,
+        ];
+        vm.run();
+
+        assert_eq!(vm.program_counter, 0x1234 + vm.program.len());
+    }
+
+    #[test]
+    fn compare() {
+        let mut vm = VirtualMachine::new();
+        vm.program = vec![
+            Opcode::LoadRegister.into(),
+            1,
+            0,
+            1,
+            Opcode::LoadRegister.into(),
+            2,
+            0,
+            1,
+            Opcode::Compare.into(),
+            1,
+            2,
+            0,
+        ];
+
+        vm.run();
+        assert!(vm.flags.is_flag_set(Flag::Zero));
+    }
+
+    #[test]
+    fn branch_if_equal() {
+        let mut vm = VirtualMachine::new();
+        vm.registers[2] = 7;
+        vm.flags.set_flag(Flag::Zero);
+
+        vm.program = vec![
+            Opcode::BranchIfEqual.into(),
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            Opcode::LoadRegister.into(),
+            1,
+            0,
+            0x4,
+            Opcode::LoadRegister.into(),
+            2,
+            0,
+            0x5,
+            Opcode::Add.into(),
+            1,
+            2,
+            3,
+        ];
+
+        vm.run();
+        assert_eq!(vm.registers[3], 0x9);
     }
 }

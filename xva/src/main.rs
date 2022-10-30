@@ -8,7 +8,6 @@ mod machine;
 mod repl;
 mod runtime;
 
-use machine::istream;
 use machine::vm;
 
 fn main() {
@@ -30,11 +29,12 @@ fn cli() {
     let args = Args::parse();
 
     if args.input_file != None {
-        if args.precompiled {
-            execute_precompiled(args.input_file.unwrap());
-        } else {
-            compile_and_execute(args.input_file.unwrap());
-        }
+        todo!("Compiler")
+        // if args.precompiled {
+        //     execute_precompiled(args.input_file.unwrap());
+        // } else {
+        //     compile_and_execute(args.input_file.unwrap());
+        // }
     } else {
         match repl::repl_main() {
             Ok(_) => {}
@@ -42,11 +42,3 @@ fn cli() {
         }
     }
 }
-
-fn execute_precompiled(file_name: String) {
-    let mut machine =
-        vm::VirtualMachine::new(istream::IStream::from_file(&file_name.as_str()).unwrap());
-    machine.run();
-}
-
-fn compile_and_execute(_file_name: String) {}

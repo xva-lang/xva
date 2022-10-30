@@ -1,4 +1,4 @@
-pub mod istream;
-pub mod bytecode;
-pub mod stack;
-pub mod vm;
+pub(crate) mod flags;
+pub(crate) mod instruction;
+pub(crate) mod opcode;
+pub(crate) mod vm;
