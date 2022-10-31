@@ -41,6 +41,9 @@ pub enum SyntaxKind {
     #[token(")")]
     RightParenthesis,
 
+    #[token(":")]
+    Colon,
+
     Literal,
 
     #[regex("[0-9]+")]

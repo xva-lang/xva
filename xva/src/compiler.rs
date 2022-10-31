@@ -1,4 +1,6 @@
 use crate::machine::opcode::Opcode;
+use xvasyntax::ast::expression::ExpressionVariant;
+use xvasyntax::ast::literal::LiteralVariant;
 use xvasyntax::{ast::node::*, parser::operator::InfixOperator};
 
 pub(crate) struct Compiler {
@@ -9,9 +11,10 @@ impl Compiler {
     pub(crate) fn new() -> Self {
         Self { output: vec![] }
     }
+
     pub(crate) fn compile(&mut self, root_node: &mut Root) {
-        for expression_variant in root_node.expressions() {
-            self.compile_expression(expression_variant);
+        for expression in root_node.expressions() {
+            self.compile_expression(expression.variant);
         }
     }
 
@@ -19,12 +22,12 @@ impl Compiler {
         match variant {
             ExpressionVariant::BinaryExpression(e) => {
                 match e.left.into() {
-                    Some(x) => self.compile_expression(x.unwrap()),
+                    Some(x) => self.compile_expression(x.unwrap().variant),
                     None => todo!(),
                 }
 
                 match e.right.into() {
-                    Some(x) => self.compile_expression(x.unwrap()),
+                    Some(x) => self.compile_expression(x.unwrap().variant),
                     None => todo!(),
                 }
 

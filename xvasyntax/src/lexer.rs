@@ -205,4 +205,9 @@ mod tests {
     fn lex_comment() {
         check_lex("// comment", SyntaxKind::Comment);
     }
+
+    #[test]
+    fn lex_colon() {
+        check_lex(":", SyntaxKind::Colon);
+    }
 }

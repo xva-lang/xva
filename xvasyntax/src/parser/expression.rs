@@ -19,6 +19,20 @@ fn declaration(parser: &mut Parser) -> Option<CompletedMarker> {
 
     parser.expect_kind(SyntaxKind::LetKeyword);
     parser.expect_kind(SyntaxKind::Identifier);
+    match parser.peek() {
+        Some(t) => match t {
+            SyntaxKind::Colon => {
+                parser.bump();
+                parser.expect_kind_or_error(
+                    SyntaxKind::Identifier,
+                    "Expected a type annotation",
+                    Some("Consider adding a type annotation here."),
+                )
+            }
+            _ => {}
+        },
+        None => todo!(),
+    }
     parser.expect_kind(SyntaxKind::Equals);
 
     expression(parser);
@@ -360,5 +374,44 @@ Root@0..9
     Literal@8..9
       IntegerLiteral@8..9 "2""#]],
         );
+    }
+
+    #[test]
+    fn parse_declaration() {
+        check_parse(
+            "let variable = 1",
+            expect![[r#"
+Root@0..16
+  Declaration@0..16
+    LetKeyword@0..3 "let"
+    Whitespace@3..4 " "
+    Identifier@4..12 "variable"
+    Whitespace@12..13 " "
+    Equals@13..14 "="
+    Whitespace@14..15 " "
+    Literal@15..16
+      IntegerLiteral@15..16 "1""#]],
+        )
+    }
+
+    #[test]
+    fn parse_declaration_with_type() {
+        check_parse(
+            "let variable: int = 1",
+            expect![[r#"
+Root@0..21
+  Declaration@0..21
+    LetKeyword@0..3 "let"
+    Whitespace@3..4 " "
+    Identifier@4..12 "variable"
+    Colon@12..13 ":"
+    Whitespace@13..14 " "
+    Identifier@14..17 "int"
+    Whitespace@17..18 " "
+    Equals@18..19 "="
+    Whitespace@19..20 " "
+    Literal@20..21
+      IntegerLiteral@20..21 "1""#]],
+        )
     }
 }
