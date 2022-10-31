@@ -2,18 +2,34 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch [REPL]",
+      "name": "Launch [help]",
       "type": "lldb",
       "request": "launch",
       "preLaunchTask": "${defaultBuildTask}",
       "program": "${workspaceFolder}/target/debug/xva",
+      "args": ["--help"],
       "windows": {
         "name": "Launch [REPL]",
         "type": "lldb",
         "request": "launch",
         "preLaunchTask": "${defaultBuildTask}",
-        "program": "${workspaceFolder}\\target\\debug\\xva.exe"
+        "program": "${workspaceFolder}\\target\\debug\\xva.exe",
+        "args": ["init", "proj"]
       }
     }
+    // {
+    //   "name": "Launch [REPL]",
+    //   "type": "lldb",
+    //   "request": "launch",
+    //   "preLaunchTask": "${defaultBuildTask}",
+    //   "program": "${workspaceFolder}/target/debug/xva",
+    //   "windows": {
+    //     "name": "Launch [REPL]",
+    //     "type": "lldb",
+    //     "request": "launch",
+    //     "preLaunchTask": "${defaultBuildTask}",
+    //     "program": "${workspaceFolder}\\target\\debug\\xva.exe"
+    //   }
+    // }
   ]
 }
