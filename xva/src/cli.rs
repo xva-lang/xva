@@ -57,7 +57,7 @@ fn create_project(directory: &Option<String>) {
     if full_path.exists() {
         println!(
             "Can't create a Xva project in {}. The directory already exists.",
-            directory.clone().unwrap()
+            directory.as_ref().unwrap()
         )
     } else {
         match std::fs::create_dir(full_path.as_path()) {
@@ -65,7 +65,7 @@ fn create_project(directory: &Option<String>) {
                 full_path.join("xvaproj.toml"),
                 toml::to_string(&ProjectFile {
                     project: Project {
-                        name: directory.as_ref().unwrap().clone(),
+                        name: String::from(directory.as_ref().unwrap()),
                         version: String::from("0.0.1"),
                     },
                 })
