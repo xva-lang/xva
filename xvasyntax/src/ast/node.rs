@@ -57,7 +57,7 @@ impl StatementVariant {
 #[derive(Debug)]
 pub enum ExpressionVariant {
     BinaryExpression(BinaryExpression),
-    ParenthesisedExpression(Box<Option<ExpressionVariant>>),
+    ParenthesisedExpression(ParenthesisedExpression),
     Literal(Literal),
 }
 
@@ -65,14 +65,27 @@ impl ExpressionVariant {
     pub fn cast(node: SyntaxNode) -> Option<Self> {
         let result = match node.kind() {
             SyntaxKind::BinaryExpression => Self::BinaryExpression(BinaryExpression::new(node)),
-            SyntaxKind::ParenthesisedExpression => {
-                Self::ParenthesisedExpression(Box::new(Self::cast(node.first_child().unwrap())))
-            }
+            SyntaxKind::ParenthesisedExpression => Self::ParenthesisedExpression(
+                ParenthesisedExpression::new(node.first_child().unwrap()),
+            ),
             SyntaxKind::Literal => Self::Literal(Literal::new(node)),
             _ => return None,
         };
 
         Some(result)
+    }
+}
+
+#[derive(Debug)]
+pub struct ParenthesisedExpression {
+    pub variant: Box<Option<ExpressionVariant>>,
+}
+
+impl ParenthesisedExpression {
+    pub(super) fn new(syntax_node: SyntaxNode) -> Self {
+        Self {
+            variant: Box::from(ExpressionVariant::cast(syntax_node)),
+        }
     }
 }
 

@@ -33,7 +33,9 @@ impl Compiler {
                     None => todo!(),
                 }
             }
-            ExpressionVariant::ParenthesisedExpression(_) => todo!(),
+            ExpressionVariant::ParenthesisedExpression(pe) => {
+                println!("parenthesised: {:?}", pe);
+            }
             ExpressionVariant::Literal(e) => match e.get_variant() {
                 LiteralVariant::Integer(v) => {
                     self.emit(Opcode::LoadInteger);
