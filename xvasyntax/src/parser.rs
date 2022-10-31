@@ -249,6 +249,10 @@ impl ConcreteSyntaxTree {
     pub fn get_root_node(&self) -> rowan::SyntaxNode<XvaLanguage> {
         SyntaxNode::new_root(self.green_node.clone())
     }
+
+    pub fn get_errors(&self) -> Vec<String> {
+        self.errors.clone()
+    }
 }
 
 pub type SyntaxNode = rowan::SyntaxNode<XvaLanguage>;

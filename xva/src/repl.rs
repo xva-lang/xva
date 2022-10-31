@@ -46,6 +46,15 @@ pub(crate) fn repl_main() -> io::Result<()> {
         stdin.read_line(&mut input)?;
 
         let parse_tree = xvasyntax::parser::parse(input.as_str());
+        let parse_errors = parse_tree.get_errors();
+        if parse_errors.len() > 0 {
+            for error in parse_errors {
+                println!("{}\n", error)
+            }
+
+            continue;
+        }
+
         let mut root = xvasyntax::ast::node::Root::cast(parse_tree.get_root_node()).unwrap();
 
         compiler.compile(&mut root);
