@@ -1,4 +1,5 @@
 use std::{
+    env,
     env::{args, consts::OS},
     fs,
     io::{self, Write},
@@ -10,6 +11,12 @@ use chrono::offset::Local;
 use chrono::DateTime;
 
 use crate::{compiler, machine::vm::VirtualMachine};
+use built::util::strptime;
+
+pub mod built_info {
+    // The file has been placed there by the build script.
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
 
 pub(crate) fn repl_main() -> io::Result<()> {
     let stdin = io::stdin();
@@ -19,18 +26,16 @@ pub(crate) fn repl_main() -> io::Result<()> {
     let mut compiler = compiler::Compiler::new();
     let mut vm = VirtualMachine::new();
 
-    let meta = fs::metadata(args().nth(0).unwrap())?;
-    let build_date: DateTime<Local> = match meta.modified() {
-        Ok(m) => m,
-        Err(_) => SystemTime::now(),
-    }
-    .into();
-
+    let built_time = strptime(built_info::BUILT_TIME_UTC);
     println!(
-        "Xva {}\n[nightly: {}]\n[rustc 1.64.0 (a55dd71d5 2022-09-19) on {}]",
-        env!("CARGO_PKG_VERSION").replace("\"", ""),
-        build_date.format("%A, %B %d %Y %I:%M:%S%P"),
-        OS
+        "Xva {}\n[{}: {}]\n[{} on {}]",
+        built_info::PKG_VERSION,
+        built_info::GIT_HEAD_REF.unwrap().replace("refs/heads/", ""),
+        built_time
+            .with_timezone(&built::chrono::offset::Local)
+            .format("%A, %B %d %Y %I:%M:%S%P"),
+        built_info::RUSTC_VERSION,
+        built_info::TARGET,
     );
 
     loop {

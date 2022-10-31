@@ -2,7 +2,7 @@
 name = "xva"
 version = "0.0.1"
 edition = "2021"
-
+build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -10,3 +10,7 @@ clap = {version = "4.0.18", features = ["derive"]}
 queues = "1.1.0"
 xvasyntax = {path ="../xvasyntax"}
 chrono = "0.4.22"
+built = "0.5.1"
+
+[build-dependencies]
+built = {version = "0.5.1", features = ["git2", "chrono", "semver"]}

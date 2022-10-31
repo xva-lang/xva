@@ -2,20 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch [compile file]",
-      "type": "lldb",
-      "request": "launch",
-      "preLaunchTask": "${defaultBuildTask}",
-      "program": "${workspaceFolder}/target/debug/xva",
-      "args": ["/Users/dylan/Projects/xva/tests/main.xva"]
-    },
-    {
       "name": "Launch [REPL]",
       "type": "lldb",
       "request": "launch",
       "preLaunchTask": "${defaultBuildTask}",
-      "program": "${workspaceFolder}/target/debug/xva"
-      // "args": ["/Users/dylan/Projects/xva/tests/main.xva"]
+      "program": "${workspaceFolder}/target/debug/xva",
+      "windows": {
+        "name": "Launch [REPL]",
+        "type": "lldb",
+        "request": "launch",
+        "preLaunchTask": "${defaultBuildTask}",
+        "program": "${workspaceFolder}\\target\\debug\\xva.exe"
+      }
     }
   ]
 }
