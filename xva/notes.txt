@@ -1,0 +1,35 @@
+notes
+
+// It follows that the expression true has type bool
+⊢ true : bool
+
+// It follows that the expression true has type bool
+⊢ false : bool
+
+// It follows that the expression n has type int, where n ∈ ℤ (n is an integer)
+⊢ n : int for any n ∈ ℤ
+
+Γ - the typing environment
+
+// Given the typing environment Γ, it follows that variable x has type t
+Γ ⊢ x : t
+
+// We can consider Γ as a function that takes a variable x and outputs a type t, or a lookup function.
+Γ(x) = t
+
+// Therefore, given Γ(x) = t, Γ ⊢ x : t must also be true
+Γ(x) = t
+---------
+Γ ⊢ x : t
+
+
+// Inference rule two, binary expressions
+Γ ⊢ e1 : t        Γ ⊢ e2 : t
+-----------------------------
+      Γ ⊢ (e1 + e2) : t
+
+
+// Given Γ(x) = int, type-infer the expression x + 1
+Γ ⊢ x : int       Γ ⊢ 1 : int
+-----------------------------
+      Γ ⊢ (x + 1) : int

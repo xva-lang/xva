@@ -279,11 +279,11 @@ mod tests {
     fn expect_return_value(input: &str, return_val: i64) {
         let mut compiler = Compiler::new();
         let parse_tree = xvasyntax::parser::parse(input);
-        let mut root = xvasyntax::ast::node::Root::cast(parse_tree.get_root_node()).unwrap();
+        let mut root = xvasyntax::ast::root::Root::cast(parse_tree.get_root_node()).unwrap();
 
         compiler.compile(&mut root);
         let mut vm = VirtualMachine::new();
-        vm.program = compiler.get_output();
+        vm.program = compiler.get_output_as_slice().to_vec();
         vm.run();
         assert_eq!(vm.pop_i64().unwrap(), return_val);
     }

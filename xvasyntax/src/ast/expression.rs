@@ -1,17 +1,16 @@
+use super::ast_type::ASTType;
+use super::binary_expression::BinaryExpression;
+use super::literal::{Literal, LiteralVariant};
 use crate::language::SyntaxKind;
 use crate::parser::SyntaxNode;
 
-use super::ast_type::ASTType;
-use super::binary_expression::BinaryExpression;
-use super::literal::Literal;
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Expression {
     pub ast_type: ASTType,
     pub variant: ExpressionVariant,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExpressionVariant {
     BinaryExpression(BinaryExpression),
     ParenthesisedExpression(Box<Option<Expression>>),
@@ -31,10 +30,16 @@ impl Expression {
                 ))),
                 ast_type: ASTType::Void,
             },
-            SyntaxKind::Literal => Self {
-                variant: ExpressionVariant::Literal(Literal::new(node)),
-                ast_type: ASTType::Void,
-            },
+            SyntaxKind::Literal => {
+                let lit = Literal::new(node);
+                let cloned_variant = lit.get_variant_as_ref().clone();
+                Self {
+                    variant: ExpressionVariant::Literal(lit),
+                    ast_type: match cloned_variant {
+                        LiteralVariant::Integer(_) => ASTType::Integer,
+                    },
+                }
+            }
             _ => return None,
         };
 

@@ -4,6 +4,7 @@ mod constants;
 mod machine;
 mod repl;
 mod runtime;
+mod typecheck;
 
 use cli::cli;
 

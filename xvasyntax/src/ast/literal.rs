@@ -7,7 +7,7 @@ pub enum LiteralVariant {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Literal {
     syntax_node: SyntaxNode,
     variant: LiteralVariant,
@@ -34,7 +34,7 @@ impl Literal {
         }
     }
 
-    pub fn get_variant(&self) -> LiteralVariant {
-        self.variant.clone()
+    pub fn get_variant_as_ref(&self) -> &LiteralVariant {
+        &self.variant
     }
 }

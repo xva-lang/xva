@@ -1,5 +1,5 @@
 /// An operator that can appear as the operator of a binary expression, e.g. `1 + 2`, where `+` is the operator.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum InfixOperator {
     Addition,
     Subtraction,

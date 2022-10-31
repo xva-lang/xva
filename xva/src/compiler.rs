@@ -1,7 +1,9 @@
 use crate::machine::opcode::Opcode;
+use crate::runtime::typing::type_check;
 use xvasyntax::ast::expression::ExpressionVariant;
 use xvasyntax::ast::literal::LiteralVariant;
-use xvasyntax::{ast::node::*, parser::operator::InfixOperator};
+use xvasyntax::ast::root::Root;
+use xvasyntax::parser::operator::InfixOperator;
 
 pub(crate) struct Compiler {
     output: Vec<u8>,
@@ -13,21 +15,24 @@ impl Compiler {
     }
 
     pub(crate) fn compile(&mut self, root_node: &mut Root) {
+        super::typecheck::walk_untyped_tree(root_node);
         for expression in root_node.expressions() {
-            self.compile_expression(expression.variant);
+            self.compile_expression(&expression.variant);
         }
     }
 
-    fn compile_expression(&mut self, variant: ExpressionVariant) {
+    fn compile_expression(&mut self, variant: &ExpressionVariant) {
         match variant {
             ExpressionVariant::BinaryExpression(e) => {
-                match e.left.into() {
-                    Some(x) => self.compile_expression(x.unwrap().variant),
+                let left = e.left.as_ref();
+                match left {
+                    Some(x) => self.compile_expression(&x.variant),
                     None => todo!(),
                 }
 
-                match e.right.into() {
-                    Some(x) => self.compile_expression(x.unwrap().variant),
+                let right = e.right.as_ref();
+                match right {
+                    Some(x) => self.compile_expression(&x.variant),
                     None => todo!(),
                 }
 
@@ -37,10 +42,13 @@ impl Compiler {
                 }
             }
             ExpressionVariant::ParenthesisedExpression(pe) => match pe.into() {
-                Some(expression) => self.compile_expression(expression.unwrap().variant),
+                Some(x) => match x.as_ref() {
+                    Some(expr) => self.compile_expression(&expr.variant),
+                    None => panic!(),
+                },
                 None => todo!(),
             },
-            ExpressionVariant::Literal(e) => match e.get_variant() {
+            ExpressionVariant::Literal(e) => match e.get_variant_as_ref() {
                 LiteralVariant::Integer(v) => {
                     self.emit(Opcode::LoadInteger);
                     self.emit_vec(v.to_le_bytes().to_vec())
@@ -72,8 +80,8 @@ impl Compiler {
         self.output = vec![];
     }
 
-    pub(crate) fn get_output(&mut self) -> Vec<u8> {
-        self.output.clone()
+    pub(crate) fn get_output_as_slice(&mut self) -> &[u8] {
+        self.output.as_slice()
     }
 
     fn compile_operator(&mut self, operator: InfixOperator) {
@@ -91,14 +99,15 @@ impl Compiler {
 mod tests {
     use super::Compiler;
     use super::Opcode;
+    use xvasyntax::ast::root::Root;
 
     fn expect_program(input: &str, expected: Vec<u8>) {
         let mut compiler = Compiler::new();
         let parse_tree = xvasyntax::parser::parse(input);
-        let mut root = xvasyntax::ast::node::Root::cast(parse_tree.get_root_node()).unwrap();
+        let mut root = Root::cast(parse_tree.get_root_node()).unwrap();
 
         compiler.compile(&mut root);
-        let out = compiler.get_output();
+        let out = compiler.get_output_as_slice();
         assert_eq!(out, expected)
     }
 

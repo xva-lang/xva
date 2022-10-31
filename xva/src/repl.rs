@@ -1,7 +1,7 @@
-use std::io::{self, Write};
-
 use crate::{compiler, machine::vm::VirtualMachine};
 use built::util::strptime;
+use std::io::{self, Write};
+use xvasyntax::ast::root::Root;
 
 pub mod built_info {
     // The file has been placed there by the build script.
@@ -45,10 +45,10 @@ pub(crate) fn repl_main() -> io::Result<()> {
             continue;
         }
 
-        let mut root = xvasyntax::ast::node::Root::cast(parse_tree.get_root_node()).unwrap();
+        let mut root: Root = Root::cast(parse_tree.get_root_node()).unwrap();
 
         compiler.compile(&mut root);
-        vm.program = compiler.get_output();
+        vm.program = compiler.get_output_as_slice().to_vec();
 
         compiler.clear_output();
         vm.run();
