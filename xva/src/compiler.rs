@@ -127,4 +127,43 @@ mod tests {
             .to_vec(),
         )
     }
+
+    #[test]
+    fn compile_parenthesised_expression() {
+        expect_program(
+            "1 + (2 + 3)",
+            [
+                Opcode::LoadInteger.into(),
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Opcode::LoadInteger.into(),
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Opcode::LoadInteger.into(),
+                3,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Opcode::Add.into(),
+                Opcode::Add.into(),
+            ]
+            .to_vec(),
+        )
+    }
 }
