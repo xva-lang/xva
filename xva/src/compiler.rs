@@ -33,7 +33,10 @@ impl Compiler {
                     None => todo!(),
                 }
             }
-            ExpressionVariant::ParenthesisedExpression(_) => todo!(),
+            ExpressionVariant::ParenthesisedExpression(pe) => match pe.variant.into() {
+                Some(variant) => self.compile_expression(variant.unwrap()),
+                None => todo!(),
+            },
             ExpressionVariant::Literal(e) => match e.get_variant() {
                 LiteralVariant::Integer(v) => {
                     self.emit(Opcode::LoadInteger);
@@ -119,6 +122,45 @@ mod tests {
                 0,
                 0,
                 0,
+                Opcode::Add.into(),
+            ]
+            .to_vec(),
+        )
+    }
+
+    #[test]
+    fn compile_parenthesised_expression() {
+        expect_program(
+            "1 + (2 + 3)",
+            [
+                Opcode::LoadInteger.into(),
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Opcode::LoadInteger.into(),
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Opcode::LoadInteger.into(),
+                3,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Opcode::Add.into(),
                 Opcode::Add.into(),
             ]
             .to_vec(),

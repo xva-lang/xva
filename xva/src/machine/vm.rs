@@ -276,7 +276,7 @@ mod tests {
         assert_eq!(vm.program_counter, 4);
     }
 
-    fn expect_program(input: &str, return_val: i64) {
+    fn expect_return_value(input: &str, return_val: i64) {
         let mut compiler = Compiler::new();
         let parse_tree = xvasyntax::parser::parse(input);
         let mut root = xvasyntax::ast::node::Root::cast(parse_tree.get_root_node()).unwrap();
@@ -290,135 +290,11 @@ mod tests {
 
     #[test]
     fn expression_program() {
-        expect_program("1 + 36 * 32 - 1477", -324);
+        expect_return_value("1 + 36 * 32 - 1477", -324);
     }
 
-    // #[test]
-    // fn decode_load_register() {
-    //     let mut vm = VirtualMachine::new();
-    //     vm.program = vec![Opcode::LoadRegister.into(), 1, 0x34, 0x12];
-    //     vm.run();
-    //     assert_eq!(vm.registers[1], 0x3412);
-    // }
-
-    // #[test]
-    // fn decode_add() {
-    //     let mut vm = VirtualMachine::new();
-    //     vm.program = vec![
-    //         Opcode::LoadRegister.into(),
-    //         1,
-    //         0,
-    //         0x4,
-    //         Opcode::LoadRegister.into(),
-    //         2,
-    //         0,
-    //         0x5,
-    //         Opcode::Add.into(),
-    //         1,
-    //         2,
-    //         3,
-    //     ];
-    //     vm.run();
-    //     assert_eq!(vm.registers[3], 0x9);
-    // }
-
-    // #[test]
-    // fn decode_absolute_jump() {
-    //     let mut vm = VirtualMachine::new();
-    //     vm.registers[2] = 7;
-    //     vm.program = vec![
-    //         Opcode::AbsoluteJump.into(),
-    //         2,
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         Opcode::LoadRegister.into(),
-    //         1,
-    //         0,
-    //         0x4,
-    //         Opcode::LoadRegister.into(),
-    //         2,
-    //         0,
-    //         0x5,
-    //         Opcode::Add.into(),
-    //         1,
-    //         2,
-    //         3,
-    //     ];
-
-    //     vm.run();
-    //     assert_eq!(vm.registers[3], 0x9);
-    // }
-
-    // #[test]
-    // fn forward_relative_jump() {
-    //     let mut vm = VirtualMachine::new();
-    //     vm.program = vec![
-    //         Opcode::LoadRegister.into(),
-    //         1,
-    //         0x12,
-    //         0x34,
-    //         Opcode::ForwardsRelativeJump.into(),
-    //         1,
-    //     ];
-    //     vm.run();
-
-    //     assert_eq!(vm.program_counter, 0x1234 + vm.program.len());
-    // }
-
-    // #[test]
-    // fn compare() {
-    //     let mut vm = VirtualMachine::new();
-    //     vm.program = vec![
-    //         Opcode::LoadRegister.into(),
-    //         1,
-    //         0,
-    //         1,
-    //         Opcode::LoadRegister.into(),
-    //         2,
-    //         0,
-    //         1,
-    //         Opcode::Compare.into(),
-    //         1,
-    //         2,
-    //         0,
-    //     ];
-
-    //     vm.run();
-    //     assert!(vm.flags.is_flag_set(Flag::Zero));
-    // }
-
-    // #[test]
-    // fn branch_if_equal() {
-    //     let mut vm = VirtualMachine::new();
-    //     vm.registers[2] = 7;
-    //     vm.flags.set_flag(Flag::Zero);
-
-    //     vm.program = vec![
-    //         Opcode::BranchIfEqual.into(),
-    //         2,
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         Opcode::LoadRegister.into(),
-    //         1,
-    //         0,
-    //         0x4,
-    //         Opcode::LoadRegister.into(),
-    //         2,
-    //         0,
-    //         0x5,
-    //         Opcode::Add.into(),
-    //         1,
-    //         2,
-    //         3,
-    //     ];
-
-    //     vm.run();
-    //     assert_eq!(vm.registers[3], 0x9);
-    // }
+    #[test]
+    fn parenthesised_expression_program() {
+        expect_return_value("2 * (3 * 3)", 18)
+    }
 }
