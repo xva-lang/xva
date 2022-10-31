@@ -2,19 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch [help]",
+      "name": "Launch [REPL]",
       "type": "lldb",
       "request": "launch",
       "preLaunchTask": "${defaultBuildTask}",
       "program": "${workspaceFolder}/target/debug/xva",
-      "args": ["--help"],
+
       "windows": {
         "name": "Launch [REPL]",
         "type": "lldb",
         "request": "launch",
         "preLaunchTask": "${defaultBuildTask}",
-        "program": "${workspaceFolder}\\target\\debug\\xva.exe",
-        "args": ["init", "proj"]
+        "program": "${workspaceFolder}\\target\\debug\\xva.exe"
       }
     }
     // {

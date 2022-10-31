@@ -6,12 +6,14 @@ use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 
+use crate::repl::repl_main;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -30,7 +32,13 @@ pub(crate) fn cli() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Init(i) => create_project(&i.directory),
+        Some(c) => match c {
+            Commands::Init(i) => create_project(&i.directory),
+        },
+        None => match repl_main() {
+            Ok(_) => {}
+            Err(_) => {}
+        },
     }
 }
 
