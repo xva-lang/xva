@@ -2,7 +2,7 @@ use crate::machine::opcode::Opcode;
 use crate::runtime::typing::type_check;
 use xvasyntax::ast::expression::ExpressionVariant;
 use xvasyntax::ast::literal::LiteralVariant;
-use xvasyntax::ast::root::Root;
+use xvasyntax::ast::root::{self, Root};
 use xvasyntax::parser::operator::InfixOperator;
 
 pub(crate) struct Compiler {
@@ -15,8 +15,8 @@ impl Compiler {
     }
 
     pub(crate) fn compile(&mut self, root_node: &mut Root) {
-        super::typecheck::walk_untyped_tree(root_node);
-        for expression in root_node.expressions() {
+        println!("{}", root_node.print());
+        for expression in super::typecheck::walk_untyped_tree(root_node) {
             self.compile_expression(&expression.variant);
         }
     }

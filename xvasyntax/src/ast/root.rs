@@ -13,8 +13,8 @@ impl Root {
         }
     }
 
-    pub fn expressions(&mut self) -> impl Iterator<Item = Expression> {
-        self.0.children().filter_map(Expression::cast)
+    pub fn expressions(&mut self) -> Vec<Expression> {
+        self.0.children().filter_map(Expression::cast).collect()
     }
 
     pub fn print(&mut self) -> String {

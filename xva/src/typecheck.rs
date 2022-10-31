@@ -1,3 +1,4 @@
+use xvasyntax::ast::expression::Expression;
 use xvasyntax::ast::{ast_type::ASTType, expression, literal::Literal, root::Root};
 
 use xvasyntax::parser::operator::InfixOperator;
@@ -5,11 +6,16 @@ use xvasyntax::parser::operator::InfixOperator;
 // pub(crate) trait TypeCheck<T: HasASTType> {
 //     fn infer(&self) -> ASTType;
 // }
-pub fn walk_untyped_tree(root: &mut Root) {
-    for (_, mut expression) in root.expressions().enumerate() {
-        let ast_type = infer_expression(&expression);
-        expression.ast_type = ast_type;
+pub fn walk_untyped_tree(root: &mut Root) -> Vec<Expression> {
+    let mut expressions = root.expressions();
+    for i in 0..expressions.len() {
+        let ast_type = infer_expression(&expressions[i]);
+
+        // expressions[i].ast_type = ast_type;
+        let _ = std::mem::replace(&mut expressions[i].ast_type, ast_type);
     }
+
+    expressions
 }
 
 pub fn infer_expression(expression: &expression::Expression) -> ASTType {
@@ -36,15 +42,23 @@ pub fn infer_expression(expression: &expression::Expression) -> ASTType {
             };
 
             // TODO allow floats
-            if left_type != op_type {
-                panic!("Left type error");
+            match &op_type {
+                ASTType::Function(inputs, _) => {
+                    if left_type != *inputs.get(0).unwrap() {
+                        panic!("left type error");
+                    }
+
+                    if right_type != *inputs.get(1).unwrap() {
+                        panic!("right type error")
+                    }
+                }
+                _ => panic!("operator must be function type"),
             }
 
-            if right_type != op_type {
-                panic!("Right type error");
+            match op_type {
+                ASTType::Function(_, o) => *o,
+                _ => ASTType::Void,
             }
-
-            op_type
         }
         expression::ExpressionVariant::ParenthesisedExpression(pe) => {
             let opt_pe = pe.as_ref();

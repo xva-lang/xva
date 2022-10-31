@@ -45,4 +45,8 @@ impl Expression {
 
         Some(result)
     }
+
+    pub fn update_type(&mut self, ast_type: ASTType) {
+        self.ast_type = ast_type;
+    }
 }
