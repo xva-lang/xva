@@ -26,7 +26,8 @@ Xva is still extremely experimental. I am always open to new ideas and contribut
 
 See for yourself! Here's an example Xva program, demonstrating a few bits and pieces.
 
-```main.xva```
+`main.xva`
+
 ```xva
 // Xva is statically typed - all variables must have a type, and variables cannot change their types.
 let number: int = 1;
@@ -60,7 +61,7 @@ let oneLiner = def () => print("Hello, world!")
 functionThatCallsAFunction(def () => print("I should get called!"))
 
 
-let xvaIsSuperCool = true 
+let xvaIsSuperCool = true
 // (Xva knows that it's super cool - it doesn't need a variable for that 😉)
 
 if xvaIsSuperCool
