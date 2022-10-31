@@ -1,8 +1,20 @@
-# xva
+<h1 align="center">xva</h1>
 
-The Xva Programming Language
+<div align="center">
+  <i>ˈk(w)iːvə, QUEE-va, like the Irish name Caoimhe</i>
+</div>
+<br/>
+<div align="center">
+    <img src="https://img.shields.io/github/workflow/status/xva-lang/xva/Build" alt="Build status"/>
+    <img src="https://img.shields.io/github/checks-status/xva-lang/xva/main" alt="Checks status"/>
+    <img src="https://img.shields.io/badge/stability-experiemental-orange" alt="Stability"/>
+</div>
+<div align="center">
+  <h2>The Xva programming language</h2>
+</div>
 
-> ˈk(w)iːvə, QUEE-va, like the Irish name _Caoimhe_
+
+
 
 Xva is an interpreted, statically typed programming language, designed to be small, fast, and allow for rapid prototyping. Its syntax is beginner friendly, but also exposes many common and powerful features found in other languages.
 
