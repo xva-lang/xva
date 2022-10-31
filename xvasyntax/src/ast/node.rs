@@ -6,6 +6,8 @@ use crate::{
     parser::{operator::InfixOperator, SyntaxNode},
 };
 
+use super::expression::Expression;
+
 #[derive(Debug)]
 pub struct Root(SyntaxNode);
 
@@ -18,12 +20,8 @@ impl Root {
         }
     }
 
-    pub fn statements(&mut self) -> impl Iterator<Item = StatementVariant> {
-        self.0.children().filter_map(StatementVariant::cast)
-    }
-
-    pub fn expressions(&mut self) -> impl Iterator<Item = ExpressionVariant> {
-        self.0.children().filter_map(ExpressionVariant::cast)
+    pub fn expressions(&mut self) -> impl Iterator<Item = Expression> {
+        self.0.children().filter_map(Expression::cast)
     }
 
     pub fn print(&mut self) -> String {
@@ -205,16 +203,19 @@ mod tests {
         test_ast(
             "1",
             expect![[r#"
-Literal(
-    Literal {
-        syntax_node: Literal@0..1
-          IntegerLiteral@0..1 "1"
-        ,
-        variant: Integer(
-            1,
-        ),
-    },
-)"#]],
+Expression {
+    ast_type: Void,
+    variant: Literal(
+        Literal {
+            syntax_node: Literal@0..1
+              IntegerLiteral@0..1 "1"
+            ,
+            variant: Integer(
+                1,
+            ),
+        },
+    ),
+}"#]],
         )
     }
 
@@ -223,47 +224,56 @@ Literal(
         test_ast(
             "1 + 1",
             expect![[r#"
-BinaryExpression(
-    BinaryExpression {
-        syntax_node: BinaryExpression@0..5
-          Literal@0..2
-            IntegerLiteral@0..1 "1"
-            Whitespace@1..2 " "
-          Plus@2..3 "+"
-          Whitespace@3..4 " "
-          Literal@4..5
-            IntegerLiteral@4..5 "1"
-        ,
-        left: Some(
-            Literal(
-                Literal {
-                    syntax_node: Literal@0..2
-                      IntegerLiteral@0..1 "1"
-                      Whitespace@1..2 " "
-                    ,
-                    variant: Integer(
-                        1,
+Expression {
+    ast_type: Void,
+    variant: BinaryExpression(
+        BinaryExpression {
+            syntax_node: BinaryExpression@0..5
+              Literal@0..2
+                IntegerLiteral@0..1 "1"
+                Whitespace@1..2 " "
+              Plus@2..3 "+"
+              Whitespace@3..4 " "
+              Literal@4..5
+                IntegerLiteral@4..5 "1"
+            ,
+            left: Some(
+                Expression {
+                    ast_type: Void,
+                    variant: Literal(
+                        Literal {
+                            syntax_node: Literal@0..2
+                              IntegerLiteral@0..1 "1"
+                              Whitespace@1..2 " "
+                            ,
+                            variant: Integer(
+                                1,
+                            ),
+                        },
                     ),
                 },
             ),
-        ),
-        right: Some(
-            Literal(
-                Literal {
-                    syntax_node: Literal@4..5
-                      IntegerLiteral@4..5 "1"
-                    ,
-                    variant: Integer(
-                        1,
+            right: Some(
+                Expression {
+                    ast_type: Void,
+                    variant: Literal(
+                        Literal {
+                            syntax_node: Literal@4..5
+                              IntegerLiteral@4..5 "1"
+                            ,
+                            variant: Integer(
+                                1,
+                            ),
+                        },
                     ),
                 },
             ),
-        ),
-        operator: Some(
-            Addition,
-        ),
-    },
-)"#]],
+            operator: Some(
+                Addition,
+            ),
+        },
+    ),
+}"#]],
         )
     }
 }

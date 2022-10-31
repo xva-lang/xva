@@ -36,8 +36,8 @@ impl Compiler {
                     None => todo!(),
                 }
             }
-            ExpressionVariant::ParenthesisedExpression(pe) => match pe.variant.into() {
-                Some(variant) => self.compile_expression(variant.unwrap()),
+            ExpressionVariant::ParenthesisedExpression(pe) => match pe.into() {
+                Some(expression) => self.compile_expression(expression.unwrap().variant),
                 None => todo!(),
             },
             ExpressionVariant::Literal(e) => match e.get_variant() {
