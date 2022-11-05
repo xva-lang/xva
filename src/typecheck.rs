@@ -3,9 +3,9 @@ use crate::{
     syntax::ast::{
         ast_type::ASTType,
         expression::{Expression, ExpressionVariant},
+        literal::LiteralVariant,
         operator::{InfixOperator, PrefixOperator},
         root::Root,
-        LiteralVariant,
     },
 };
 

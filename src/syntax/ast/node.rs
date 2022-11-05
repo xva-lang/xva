@@ -1,6 +1,6 @@
 // use super::NodeVariant
 
-use super::{expression::Expression, LiteralVariant};
+use super::{expression::Expression, literal::LiteralVariant};
 use crate::syntax::lexer::span::Span;
 
 #[derive(Debug)]

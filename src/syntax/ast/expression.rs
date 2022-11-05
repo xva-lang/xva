@@ -1,5 +1,6 @@
 use super::{
-    ast_type::ASTType, BinaryExpression, LiteralVariant, ParenthesisedExpression, PrefixExpression,
+    ast_type::ASTType, literal::LiteralVariant, BinaryExpression, ParenthesisedExpression,
+    PrefixExpression,
 };
 use crate::syntax::lexer::span::Span;
 
