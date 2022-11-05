@@ -1,8 +1,9 @@
 use crate::{
     compiler::Compiler,
     syntax::ast::{
+        ast_type::ASTType,
         operator::{InfixOperator, PrefixOperator},
-        ASTType, Expression, ExpressionVariant, LiteralVariant, Root,
+        Expression, ExpressionVariant, LiteralVariant, Root,
     },
 };
 

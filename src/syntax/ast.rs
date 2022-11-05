@@ -1,10 +1,10 @@
+pub(crate) mod ast_type;
 mod node;
+pub(crate) mod operator;
 
 use self::operator::{InfixOperator, PrefixOperator};
 use super::lexer::span::Span;
-
-pub(crate) mod operator;
-
+use ast_type::ASTType;
 
 pub(crate) struct Root {
     pub(crate) expressions: Vec<Expression>,
@@ -26,8 +26,6 @@ impl std::fmt::Display for Root {
         write!(f, "{}", sb)
     }
 }
-
-
 
 #[derive(Debug)]
 pub(crate) struct Expression {
@@ -203,30 +201,5 @@ impl ParenthesisedExpression {
 impl std::fmt::Display for ParenthesisedExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Parenthesised({})", self.inner)
-    }
-}
-
-use std::ops::{Deref, DerefMut};
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum ASTType {
-    Void,
-    Integer,
-    Boolean,
-    Set(Box<Vec<ASTType>>),
-    Function(Box<Vec<ASTType>>, Box<ASTType>),
-}
-
-impl Deref for ASTType {
-    type Target = ASTType;
-
-    fn deref(&self) -> &Self::Target {
-        self
-    }
-}
-
-impl DerefMut for ASTType {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self
     }
 }
