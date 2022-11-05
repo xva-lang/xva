@@ -69,6 +69,14 @@ impl<'text> TokenStream<'text> {
             None => None,
         }
     }
+
+    pub(crate) fn current_as_ref(&self) -> Option<&Lexeme<'_>> {
+        self.lexemes.get(self.cursor)
+    }
+
+    pub(crate) fn previous_as_ref(&self) -> Option<&Lexeme<'_>> {
+        self.lexemes.get(self.cursor - 1)
+    }
 }
 
 impl<'text> std::fmt::Display for TokenStream<'text> {

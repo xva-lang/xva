@@ -289,9 +289,9 @@ mod tests {
         let original_lines = syntax::lexer::utils::input_lines_as_vec(input);
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream);
+        let mut parser = Parser::new(token_stream, original_lines.clone());
 
-        let mut compiler = Compiler::new(original_lines);
+        let mut compiler = Compiler::new(original_lines.clone());
 
         compiler.compile(&mut parser.parse());
         let mut vm = VirtualMachine::new();

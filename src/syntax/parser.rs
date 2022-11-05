@@ -8,17 +8,23 @@ use super::{
         operator::{BindingPowered, InfixOperator, PrefixOperator},
         root::Root,
     },
-    lexer::token_stream::TokenStream,
     lexer::{language::TokenKind, lexeme::Lexeme},
+    lexer::{span::Span, token_stream::TokenStream},
 };
 
-pub(crate) struct Parser<'stream> {
+pub(crate) struct Parser<'stream, 'input> {
     stream: TokenStream<'stream>,
+    errors: Vec<String>,
+    original_lines: Vec<&'input str>,
 }
 
-impl<'stream> Parser<'stream> {
-    pub fn new(stream: TokenStream<'stream>) -> Self {
-        Self { stream }
+impl<'stream, 'input> Parser<'stream, 'input> {
+    pub fn new(stream: TokenStream<'stream>, original_lines: Vec<&'input str>) -> Self {
+        Self {
+            stream,
+            errors: vec![],
+            original_lines,
+        }
     }
 
     pub fn parse(&mut self) -> Root {
@@ -38,8 +44,85 @@ impl<'stream> Parser<'stream> {
         self.stream.peek_next_variant()
     }
 
+    fn current_as_ref(&self) -> Option<&Lexeme<'_>> {
+        self.stream.current_as_ref()
+    }
+
+    fn previous_as_ref(&self) -> Option<&Lexeme<'_>> {
+        self.stream.previous_as_ref()
+    }
+
     fn bump(&mut self) -> Option<Lexeme<'_>> {
         self.stream.next()
+    }
+
+    fn raise_error_at_previous(&mut self, message: &str, suggestion: Option<&str>) {
+        let (line, span) = match self.previous_as_ref() {
+            Some(l) => {
+                let mut modified_span = l.get_line_span();
+                modified_span.start += l.get_text().len() + 1;
+                (l.get_line(), modified_span)
+            }
+            None => (0, (0..0).into()),
+        };
+
+        self.raise_error(message, line, span, suggestion);
+    }
+
+    fn raise_error_at_current(&mut self, message: &str, suggestion: Option<&str>) {
+        let (line, span) = match self.current_as_ref() {
+            Some(l) => {
+                let mut modified_span = l.get_line_span();
+                modified_span.start += 1;
+                (l.get_line(), modified_span)
+            }
+            None => (0, (0..0).into()),
+        };
+
+        self.raise_error(message, line, span, suggestion);
+    }
+
+    fn expect_kind_or_error(
+        &mut self,
+        kind: TokenKind,
+        message: &str,
+        suggestion: Option<&str>,
+    ) -> Option<Lexeme<'_>> {
+        match self.peek_next_variant() {
+            Some(v) => {
+                if v == kind {
+                    self.stream.next()
+                } else {
+                    self.raise_error_at_current(message, suggestion);
+                    None
+                }
+            }
+            None => {
+                self.raise_error_at_previous(message, suggestion);
+                None
+            }
+        }
+    }
+
+    fn raise_error(&mut self, message: &str, line: usize, span: Span, suggestion: Option<&str>) {
+        let error_line = match suggestion {
+            Some(s) => format!(
+                "      |\n    1 | {}\n      |{}^ {}",
+                self.original_lines[line - 1],
+                " ".repeat(span.start),
+                s
+            ),
+            None => format!(
+                "      |\n    1 | {}\n      |{}^",
+                self.original_lines[line],
+                " ".repeat(span.start)
+            ),
+        };
+
+        self.errors.push(format!(
+            "error: {message} (at line {line}, position {}):\n\n{}",
+            span.start, error_line
+        ))
     }
 
     pub fn expression(&mut self) -> Option<Expression> {
@@ -57,7 +140,17 @@ impl<'stream> Parser<'stream> {
                     None => panic!("missing expression after prefix"),
                 },
                 TokenKind::LeftParenthesis => self.parenthesised_expression(),
-                _ => panic!("unknown variant {:?}", variant),
+                _ => {
+                    self.raise_error_at_current(
+                        format!(
+                            "Unexpected token: '{}'",
+                            self.current_as_ref().unwrap().get_text()
+                        )
+                        .as_str(),
+                        Some("Consider removing this token."),
+                    );
+                    None
+                }
             },
             None => None,
         }
@@ -188,23 +281,32 @@ impl<'stream> Parser<'stream> {
         ));
 
         // Consume the right parenthesis
-        let _ = self.bump();
+        let _ = self.expect_kind_or_error(
+            TokenKind::RightParenthesis,
+            "Expected a closing parenthesis",
+            Some("Consider adding a closing parenthesis here."),
+        );
 
         result
+    }
+
+    pub(crate) fn get_errors(&self) -> &Vec<String> {
+        &self.errors
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Parser;
-    use crate::syntax::lexer::{language::TokenKind, token_stream::TokenStream};
+    use crate::syntax::lexer::{self, language::TokenKind, token_stream::TokenStream};
     use expect_test::{expect, Expect};
     use logos::Logos;
 
     fn check_expression(input: &str, expected: Expect) {
+        let original_lines = lexer::utils::input_lines_as_vec(input);
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream);
+        let mut parser = Parser::new(token_stream, original_lines);
 
         expected.assert_eq(format!("{}", parser.parse()).as_str())
     }

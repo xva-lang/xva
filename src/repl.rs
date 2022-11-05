@@ -51,18 +51,20 @@ pub(crate) fn repl_main() -> io::Result<()> {
         let lines = lexer::utils::input_lines_as_vec(input.as_str());
         let mut lexer = TokenKind::lexer(input.as_str());
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream);
+        let mut parser = Parser::new(token_stream, lines.clone());
+        let mut parse_result = parser.parse();
+        if parser.get_errors().len() > 0 {
+            println!("");
+            for error in parser.get_errors() {
+                println!("{error}")
+            }
 
-        // if parse_errors.len() > 0 {
-        //     for error in parse_errors {
-        //         println!("{}\n", error)
-        //     }
+            println!("");
+            continue;
+        }
 
-        //     continue;
-        // }
-
-        let mut compiler = compiler::Compiler::new(lines);
-        compiler.compile(&mut parser.parse());
+        let mut compiler = compiler::Compiler::new(lines.clone());
+        compiler.compile(&mut parse_result);
 
         if compiler.errors.len() > 0 {
             for error in compiler.errors {
