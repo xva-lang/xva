@@ -1,5 +1,4 @@
 use self::operator::{InfixOperator, PrefixOperator};
-
 use super::lexer::span::Span;
 
 pub(crate) mod operator;
@@ -21,7 +20,7 @@ impl Node {
 }
 
 pub(crate) struct Root {
-    expressions: Vec<Expression>,
+    pub(crate) expressions: Vec<Expression>,
 }
 
 impl Root {
@@ -53,6 +52,7 @@ pub(crate) enum NodeVariant {
 #[derive(Debug)]
 pub(crate) struct Expression {
     pub(crate) variant: ExpressionVariant,
+    ast_type: ASTType,
     line: usize,
     span: Span,
 }
@@ -63,6 +63,7 @@ impl Expression {
             variant,
             line,
             span,
+            ast_type: ASTType::Void,
         }
     }
 
@@ -72,6 +73,14 @@ impl Expression {
 
     pub fn get_line(&self) -> usize {
         self.line
+    }
+
+    pub fn get_type(&self) -> &ASTType {
+        &self.ast_type
+    }
+
+    pub fn set_type(&mut self, ast_type: ASTType) {
+        self.ast_type = ast_type;
     }
 }
 
@@ -117,6 +126,18 @@ impl BinaryExpression {
             right,
         }
     }
+
+    pub(crate) fn get_operator(&self) -> InfixOperator {
+        self.operator.clone()
+    }
+
+    pub(crate) fn get_left(&self) -> &Expression {
+        self.left.as_ref()
+    }
+
+    pub(crate) fn get_right(&self) -> &Expression {
+        self.right.as_ref()
+    }
 }
 
 impl std::fmt::Display for BinaryExpression {
@@ -138,6 +159,14 @@ pub(crate) struct PrefixExpression {
 impl PrefixExpression {
     pub(crate) fn new(prefix: PrefixOperator, inner: Box<Expression>) -> Self {
         Self { prefix, inner }
+    }
+
+    pub(crate) fn get_prefix(&self) -> PrefixOperator {
+        self.prefix.clone()
+    }
+
+    pub(crate) fn get_expression(&self) -> &Expression {
+        self.inner.as_ref()
     }
 }
 
@@ -171,5 +200,30 @@ impl std::fmt::Display for LiteralVariant {
         }
 
         write!(f, "{}", str_value)
+    }
+}
+
+use std::ops::{Deref, DerefMut};
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ASTType {
+    Void,
+    Integer,
+    Boolean,
+    Set(Box<Vec<ASTType>>),
+    Function(Box<Vec<ASTType>>, Box<ASTType>),
+}
+
+impl Deref for ASTType {
+    type Target = ASTType;
+
+    fn deref(&self) -> &Self::Target {
+        self
+    }
+}
+
+impl DerefMut for ASTType {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self
     }
 }

@@ -83,7 +83,6 @@ impl<'stream> Parser<'stream> {
             let _ = self.bump();
 
             // And recurse
-
             let right = self.expression_binding_power(right_binding_power);
 
             if !right.is_some() {
@@ -118,7 +117,7 @@ impl<'stream> Parser<'stream> {
                 TokenKind::Minus | TokenKind::Plus => {
                     self.prefix_expression(PrefixOperator::Negation)
                 }
-                _ => unreachable!(),
+                x => unreachable!("{:?}", x),
             },
             None => None,
         };

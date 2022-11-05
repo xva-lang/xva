@@ -251,8 +251,17 @@ impl VirtualMachine {
 
 #[cfg(test)]
 mod tests {
+    use logos::Logos;
+
     use super::VirtualMachine;
-    use crate::compiler::Compiler;
+    use crate::{
+        compiler::Compiler,
+        syntax::{
+            self,
+            lexer::{language::TokenKind, token_stream::TokenStream},
+            parser::Parser,
+        },
+    };
 
     #[test]
     fn create_machine() {
@@ -277,13 +286,14 @@ mod tests {
     }
 
     fn expect_return_value(input: &str, return_val: i64) {
-        let parse_tree = xvasyntax::parser::parse(input);
-        let mut lines: Vec<&str> = input.split("\n").collect();
-        let mut compiler = Compiler::new(parse_tree.get_line_indexes(), &mut lines);
+        let original_lines = syntax::lexer::utils::input_lines_as_vec(input);
+        let mut lexer = TokenKind::lexer(input);
+        let token_stream = TokenStream::new(&mut lexer);
+        let mut parser = Parser::new(token_stream);
 
-        let mut root = xvasyntax::ast::root::Root::cast(parse_tree.get_root_node()).unwrap();
+        let mut compiler = Compiler::new(original_lines);
 
-        compiler.compile(&mut root);
+        compiler.compile(&mut parser.parse());
         let mut vm = VirtualMachine::new();
         vm.program = compiler.get_output_as_slice().to_vec();
         vm.run();

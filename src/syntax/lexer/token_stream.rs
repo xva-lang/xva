@@ -58,6 +58,7 @@ impl<'text> TokenStream<'text> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_original_length(&self) -> usize {
         self.original_length
     }
@@ -89,7 +90,7 @@ impl<'text> Iterator for TokenStream<'text> {
     type Item = Lexeme<'text>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut result: Option<Self::Item> = None;
+        let result: Option<Self::Item>;
         if self.cursor > self.lexemes.len() - 1 {
             result = None;
         } else {
@@ -101,6 +102,6 @@ impl<'text> Iterator for TokenStream<'text> {
         }
 
         self.cursor += 1;
-        result
+        return result;
     }
 }

@@ -1,76 +1,50 @@
-use std::ops::Range;
-
 use crate::machine::opcode::Opcode;
-// use crate::runtime::typing::type_check;
-// use xvasyntax::ast::ast_type::ASTType;
-use xvasyntax::ast::expression::{Expression, ExpressionVariant};
-use xvasyntax::ast::literal::LiteralVariant;
-use xvasyntax::ast::root::Root;
-use xvasyntax::parser::line_index::LineIndexes;
-use xvasyntax::parser::operator::InfixOperator;
+use crate::syntax::ast::{
+    operator::InfixOperator, Expression, ExpressionVariant, LiteralVariant, Root,
+};
 
-pub(crate) struct Compiler<'lines> {
+pub(crate) struct Compiler<'input> {
     output: Vec<u8>,
     pub(crate) errors: Vec<String>,
-    line_indexes: LineIndexes,
-    lines: &'lines mut Vec<&'lines str>,
+    original_lines: Vec<&'input str>,
 }
 
-impl<'lines> Compiler<'lines> {
-    pub(crate) fn new(line_indexes: LineIndexes, lines: &'lines mut Vec<&'lines str>) -> Self {
+impl<'input> Compiler<'input> {
+    pub(crate) fn new(original_lines: Vec<&'input str>) -> Self {
         Self {
             output: vec![],
+            original_lines,
             errors: vec![],
-            line_indexes,
-            lines,
         }
     }
 
     pub(crate) fn compile(&mut self, root_node: &mut Root) {
         let mut type_checker = super::typecheck::TypeChecker::new(self);
-        let typed_root = type_checker.walk_untyped_tree(root_node);
-        for expression in &typed_root {
+        type_checker.walk_untyped_tree(root_node);
+        for expression in root_node.expressions.iter() {
             self.compile_expression(&expression.variant);
         }
     }
 
     fn compile_expression(&mut self, variant: &ExpressionVariant) {
         match variant {
-            ExpressionVariant::BinaryExpression(e) => {
-                let left = e.left.as_ref();
-                // let mut left_type: &ASTType = &ASTType::Void;
-                // let mut right_type: &ASTType = &ASTType::Void;
+            ExpressionVariant::Binary(e) => {
+                let left = e.get_left();
+                self.compile_expression(&left.variant);
 
-                match left {
-                    Some(x) => {
-                        // left_type = &x.ast_type;
-                        self.compile_expression(&x.variant)
-                    }
-                    None => todo!(),
-                }
+                let right = e.get_right();
+                self.compile_expression(&right.variant);
 
-                let right = e.right.as_ref();
-                match right {
-                    Some(x) => {
-                        // right_type = &x.ast_type;
-                        self.compile_expression(&x.variant)
-                    }
-                    None => todo!(),
-                }
-
-                match e.operator.into() {
-                    Some(o) => self.compile_operator(o),
-                    None => todo!(),
-                }
+                self.compile_operator(e.get_operator());
             }
-            ExpressionVariant::ParenthesisedExpression(pe) => match pe.into() {
-                Some(x) => match x.as_ref() {
-                    Some(expr) => self.compile_expression(&expr.variant),
-                    None => panic!(),
-                },
-                None => todo!(),
-            },
-            ExpressionVariant::Literal(e) => match e.get_variant_as_ref() {
+            // ExpressionVariant::ParenthesisedExpression(pe) => match pe.into() {
+            //     Some(x) => match x.as_ref() {
+            //         Some(expr) => self.compile_expression(&expr.variant),
+            //         None => panic!(),
+            //     },
+            //     None => todo!(),
+            // },
+            ExpressionVariant::Literal(e) => match e {
                 LiteralVariant::Integer(v) => {
                     self.emit(Opcode::LoadInteger);
                     self.emit_vec(v.to_le_bytes().to_vec())
@@ -84,7 +58,8 @@ impl<'lines> Compiler<'lines> {
                     })
                 }
             },
-            ExpressionVariant::Declaration(_) => todo!(),
+            ExpressionVariant::Prefix(_) => todo!(),
+            // ExpressionVariant::Declaration(_) => todo!(),
         }
     }
 
@@ -121,50 +96,49 @@ impl<'lines> Compiler<'lines> {
             InfixOperator::Subtraction => self.emit(Opcode::Subtract),
             InfixOperator::Multiplication => self.emit(Opcode::IntegerMultiply),
             InfixOperator::Division => self.emit(Opcode::IntegerDivide),
-            InfixOperator::NotAnOperator => unreachable!("unknown operator"),
         }
     }
 
     pub(crate) fn raise_error(&mut self, expression: &Expression, error: &str) {
-        let text_range = expression.get_node().text_range();
-        let line_number = self
-            .line_indexes
-            .get_line_range(expression.get_node().text_range().into())
-            .unwrap();
-
-        // let end_position = Into::<Range<usize>>::into(text_range).end;
-        let start_position = Into::<Range<usize>>::into(text_range).start + 1;
-
-        // let position = end_position - start_position;
-        let constructed_line = self.lines[line_number.start - 1];
+        let start_position = expression.get_span().start;
+        let line = self.original_lines[expression.get_line() - 1];
 
         let error_line = format!(
             "      |\n    {} | {}\n      |{}^",
-            line_number.start,
-            constructed_line,
+            expression.get_line(),
+            line,
             " ".repeat(start_position),
         );
 
         self.errors.push(format!(
             "error: {} (at line {}, position {}):\n\n{}",
-            error, line_number.start, start_position, error_line,
+            error,
+            expression.get_line(),
+            start_position,
+            error_line,
         ));
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use logos::Logos;
+
     use super::Compiler;
     use super::Opcode;
-    use xvasyntax::ast::root::Root;
+    use crate::syntax::lexer;
+    use crate::syntax::lexer::{language::TokenKind, token_stream::TokenStream};
+    use crate::syntax::parser::Parser;
 
     fn expect_program(input: &str, expected: Vec<u8>) {
-        let parse_tree = xvasyntax::parser::parse(input);
-        let mut lines: Vec<&str> = input.split("\n").collect();
-        let mut compiler = Compiler::new(parse_tree.get_line_indexes(), &mut lines);
-        let mut root = Root::cast(parse_tree.get_root_node()).unwrap();
+        let original_lines = lexer::utils::input_lines_as_vec(input);
+        let mut lexer = TokenKind::lexer(input);
+        let token_stream = TokenStream::new(&mut lexer);
+        let mut parser = Parser::new(token_stream);
 
-        compiler.compile(&mut root);
+        let mut compiler = Compiler::new(original_lines);
+
+        compiler.compile(&mut parser.parse());
         let out = compiler.get_output_as_slice();
         assert_eq!(out, expected)
     }
