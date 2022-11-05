@@ -3,7 +3,8 @@ use crate::{
     syntax::ast::{
         ast_type::ASTType,
         operator::{InfixOperator, PrefixOperator},
-        Expression, ExpressionVariant, LiteralVariant, Root,
+        root::Root,
+        Expression, ExpressionVariant, LiteralVariant,
     },
 };
 

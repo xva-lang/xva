@@ -1,31 +1,12 @@
 pub(crate) mod ast_type;
 mod node;
 pub(crate) mod operator;
+pub(crate) mod root;
 
 use self::operator::{InfixOperator, PrefixOperator};
 use super::lexer::span::Span;
 use ast_type::ASTType;
 
-pub(crate) struct Root {
-    pub(crate) expressions: Vec<Expression>,
-}
-
-impl Root {
-    pub(crate) fn new(expressions: Vec<Expression>) -> Self {
-        Self { expressions }
-    }
-}
-
-impl std::fmt::Display for Root {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut sb = String::new();
-        for expression in self.expressions.iter() {
-            sb.push_str(format!("{}", expression).as_str())
-        }
-
-        write!(f, "{}", sb)
-    }
-}
 
 #[derive(Debug)]
 pub(crate) struct Expression {

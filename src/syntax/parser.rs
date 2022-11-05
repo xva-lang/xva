@@ -1,8 +1,9 @@
 use super::{
     ast::{
         operator::{BindingPowered, InfixOperator, PrefixOperator},
+        root::Root,
         BinaryExpression, Expression, ExpressionVariant, LiteralVariant, ParenthesisedExpression,
-        PrefixExpression, Root,
+        PrefixExpression,
     },
     lexer::token_stream::TokenStream,
     lexer::{language::TokenKind, lexeme::Lexeme},
