@@ -6,7 +6,7 @@ pub(crate) trait BindingPowered {
     fn binding_power(&self) -> (Option<u8>, u8);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum InfixOperator {
     Addition,
     Subtraction,
@@ -29,7 +29,7 @@ impl std::fmt::Display for InfixOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum PrefixOperator {
     Negation,
 }

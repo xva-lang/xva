@@ -2,7 +2,12 @@ pub(crate) mod language;
 pub(super) mod lexeme;
 pub(crate) mod span;
 pub(crate) mod token_stream;
-use token_stream::*;
+
+pub mod utils {
+    pub(crate) fn input_lines_as_vec(input: &str) -> Vec<&str> {
+        input.split("\n").collect()
+    }
+}
 
 #[cfg(test)]
 mod tests {

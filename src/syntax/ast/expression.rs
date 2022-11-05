@@ -1,58 +1,10 @@
-use self::operator::{InfixOperator, PrefixOperator};
-
-use super::lexer::span::Span;
-
-pub(crate) mod operator;
-#[derive(Debug)]
-pub(crate) struct Node {
-    pub(crate) variant: NodeVariant,
-    line: usize,
-    span: Span,
-}
-
-impl Node {
-    pub fn new(variant: NodeVariant, line: usize, span: Span) -> Self {
-        Self {
-            variant,
-            line,
-            span,
-        }
-    }
-}
-
-pub(crate) struct Root {
-    expressions: Vec<Expression>,
-}
-
-impl Root {
-    pub(crate) fn new(expressions: Vec<Expression>) -> Self {
-        Self { expressions }
-    }
-}
-
-impl std::fmt::Display for Root {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut sb = String::new();
-        for expression in self.expressions.iter() {
-            sb.push_str(format!("{}", expression).as_str())
-        }
-
-        write!(f, "{}", sb)
-    }
-}
-
-#[derive(Debug)]
-pub(crate) enum NodeVariant {
-    Root {
-        expressions: Option<Vec<Expression>>,
-    },
-    Literal(LiteralVariant),
-    Error,
-}
+use super::{ast_type::ASTType, literal::LiteralVariant, operator::{PrefixOperator, InfixOperator}};
+use crate::syntax::lexer::span::Span;
 
 #[derive(Debug)]
 pub(crate) struct Expression {
     pub(crate) variant: ExpressionVariant,
+    ast_type: ASTType,
     line: usize,
     span: Span,
 }
@@ -63,6 +15,7 @@ impl Expression {
             variant,
             line,
             span,
+            ast_type: ASTType::Void,
         }
     }
 
@@ -72,6 +25,14 @@ impl Expression {
 
     pub fn get_line(&self) -> usize {
         self.line
+    }
+
+    pub fn get_type(&self) -> &ASTType {
+        &self.ast_type
+    }
+
+    pub fn set_type(&mut self, ast_type: ASTType) {
+        self.ast_type = ast_type;
     }
 }
 
@@ -86,6 +47,7 @@ pub(crate) enum ExpressionVariant {
     Literal(LiteralVariant),
     Binary(BinaryExpression),
     Prefix(PrefixExpression),
+    Parenthesised(ParenthesisedExpression),
 }
 
 impl std::fmt::Display for ExpressionVariant {
@@ -94,6 +56,7 @@ impl std::fmt::Display for ExpressionVariant {
             ExpressionVariant::Literal(l) => write!(f, "{}", l),
             ExpressionVariant::Binary(b) => write!(f, "{}", b),
             ExpressionVariant::Prefix(p) => write!(f, "{}", p),
+            ExpressionVariant::Parenthesised(p) => write!(f, "{}", p),
         }
     }
 }
@@ -117,6 +80,18 @@ impl BinaryExpression {
             right,
         }
     }
+
+    pub(crate) fn get_operator(&self) -> InfixOperator {
+        self.operator.clone()
+    }
+
+    pub(crate) fn get_left(&self) -> &Expression {
+        self.left.as_ref()
+    }
+
+    pub(crate) fn get_right(&self) -> &Expression {
+        self.right.as_ref()
+    }
 }
 
 impl std::fmt::Display for BinaryExpression {
@@ -139,6 +114,14 @@ impl PrefixExpression {
     pub(crate) fn new(prefix: PrefixOperator, inner: Box<Expression>) -> Self {
         Self { prefix, inner }
     }
+
+    pub(crate) fn get_prefix(&self) -> PrefixOperator {
+        self.prefix.clone()
+    }
+
+    pub(crate) fn get_expression(&self) -> &Expression {
+        self.inner.as_ref()
+    }
 }
 
 impl std::fmt::Display for PrefixExpression {
@@ -148,28 +131,22 @@ impl std::fmt::Display for PrefixExpression {
 }
 
 #[derive(Debug)]
-pub(crate) enum LiteralVariant {
-    Boolean(bool),
-    Integer(i64),
+pub(crate) struct ParenthesisedExpression {
+    inner: Box<Expression>,
 }
 
-impl std::fmt::Display for LiteralVariant {
+impl ParenthesisedExpression {
+    pub fn new(expression: Box<Expression>) -> Self {
+        Self { inner: expression }
+    }
+
+    pub fn get_inner_expression(&self) -> &Expression {
+        self.inner.as_ref()
+    }
+}
+
+impl std::fmt::Display for ParenthesisedExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut str_value = String::new();
-
-        match self {
-            LiteralVariant::Boolean(b) => {
-                if *b {
-                    str_value.push_str("Boolean(true)")
-                } else {
-                    str_value.push_str("Boolean(false)")
-                }
-            }
-            LiteralVariant::Integer(i) => {
-                str_value.push_str(format!("Integer({})", i).as_str());
-            }
-        }
-
-        write!(f, "{}", str_value)
+        write!(f, "Parenthesised({})", self.inner)
     }
 }
