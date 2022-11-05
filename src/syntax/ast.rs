@@ -1,23 +1,10 @@
+mod node;
+
 use self::operator::{InfixOperator, PrefixOperator};
 use super::lexer::span::Span;
 
 pub(crate) mod operator;
-#[derive(Debug)]
-pub(crate) struct Node {
-    pub(crate) variant: NodeVariant,
-    line: usize,
-    span: Span,
-}
 
-impl Node {
-    pub fn new(variant: NodeVariant, line: usize, span: Span) -> Self {
-        Self {
-            variant,
-            line,
-            span,
-        }
-    }
-}
 
 pub(crate) struct Root {
     pub(crate) expressions: Vec<Expression>,
@@ -40,14 +27,7 @@ impl std::fmt::Display for Root {
     }
 }
 
-#[derive(Debug)]
-pub(crate) enum NodeVariant {
-    Root {
-        expressions: Option<Vec<Expression>>,
-    },
-    Literal(LiteralVariant),
-    Error,
-}
+
 
 #[derive(Debug)]
 pub(crate) struct Expression {
