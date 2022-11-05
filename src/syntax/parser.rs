@@ -1,10 +1,12 @@
 use super::{
     ast::{
-        expression::{Expression, ExpressionVariant},
+        expression::{
+            BinaryExpression, Expression, ExpressionVariant, ParenthesisedExpression,
+            PrefixExpression,
+        },
         literal::LiteralVariant,
         operator::{BindingPowered, InfixOperator, PrefixOperator},
         root::Root,
-        BinaryExpression, ParenthesisedExpression, PrefixExpression,
     },
     lexer::token_stream::TokenStream,
     lexer::{language::TokenKind, lexeme::Lexeme},
