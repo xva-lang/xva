@@ -1,6 +1,9 @@
 use crate::machine::opcode::Opcode;
 use crate::syntax::ast::{
-    operator::InfixOperator, root::Root, Expression, ExpressionVariant, LiteralVariant,
+    expression::{Expression, ExpressionVariant},
+    operator::InfixOperator,
+    root::Root,
+    LiteralVariant,
 };
 
 pub(crate) struct Compiler<'input> {

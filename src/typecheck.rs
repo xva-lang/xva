@@ -2,9 +2,10 @@ use crate::{
     compiler::Compiler,
     syntax::ast::{
         ast_type::ASTType,
+        expression::{Expression, ExpressionVariant},
         operator::{InfixOperator, PrefixOperator},
         root::Root,
-        Expression, ExpressionVariant, LiteralVariant,
+        LiteralVariant,
     },
 };
 

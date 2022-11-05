@@ -1,4 +1,4 @@
-use super::Expression;
+use super::expression::Expression;
 
 pub(crate) struct Root {
     pub(crate) expressions: Vec<Expression>,
