@@ -7,6 +7,7 @@ use crate::{
     },
 };
 // use built::util::strptime;
+use chrono::{format, DateTime, Local};
 use logos::Logos;
 use std::io::{self, Write};
 
@@ -22,17 +23,18 @@ pub(crate) fn repl_main() -> io::Result<()> {
 
     let mut vm = VirtualMachine::new();
 
-    // let built_time = strptime(built_info::BUILT_TIME_UTC);
-    // println!(
-    //     "Xva {}\n[{}: {}]\n[{} on {}]",
-    //     built_info::PKG_VERSION,
-    //     built_info::GIT_HEAD_REF.unwrap().replace("refs/heads/", ""),
-    //     built_time
-    //         .with_timezone(&built::chrono::offset::Local)
-    //         .format("%A, %B %d %Y %I:%M:%S%P"),
-    //     built_info::RUSTC_VERSION,
-    //     built_info::TARGET,
-    // );
+    let built_time = DateTime::parse_from_rfc2822(built_info::BUILT_TIME_UTC)
+        .unwrap()
+        .with_timezone(&chrono::Local);
+
+    println!(
+        "Xva {}\n[{}: {}]\n[{} on {}]\n",
+        built_info::PKG_VERSION,
+        built_info::GIT_HEAD_REF.unwrap().replace("refs/heads/", ""),
+        built_time.format("%A, %B %d %Y %I:%M:%S%P"),
+        built_info::RUSTC_VERSION,
+        built_info::TARGET,
+    );
 
     loop {
         write!(stdout, "> ")?;
@@ -40,13 +42,6 @@ pub(crate) fn repl_main() -> io::Result<()> {
 
         let mut input = String::new();
         stdin.read_line(&mut input)?;
-
-        // let original_lines = input.split("\n").collect::<Vec<&str>>().as_slice();
-        // let mut lexer = TokenKind::lexer(input);
-        // let token_stream = TokenStream::new(&mut lexer);
-        // let parser = Parser::new(token_stream);
-
-        // let mut compiler = Compiler::new(original_lines);
 
         let lines = lexer::utils::input_lines_as_vec(input.as_str());
         let mut lexer = TokenKind::lexer(input.as_str());

@@ -1,6 +1,7 @@
 use built;
 
 fn main() {
+    println!("BUILD SCRIPT");
     let mut opts = built::Options::default();
     opts.set_git(true);
     let src = std::env::var("CARGO_MANIFEST_DIR").unwrap();
