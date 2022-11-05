@@ -1,7 +1,8 @@
 use super::{
     ast::{
         operator::{BindingPowered, InfixOperator, PrefixOperator},
-        BinaryExpression, Expression, ExpressionVariant, LiteralVariant, PrefixExpression, Root,
+        BinaryExpression, Expression, ExpressionVariant, LiteralVariant, ParenthesisedExpression,
+        PrefixExpression, Root,
     },
     lexer::token_stream::TokenStream,
     lexer::{language::TokenKind, lexeme::Lexeme},
@@ -51,6 +52,7 @@ impl<'stream> Parser<'stream> {
                     },
                     None => panic!("missing expression after prefix"),
                 },
+                TokenKind::LeftParenthesis => self.parenthesised_expression(),
                 _ => panic!("unknown variant {:?}", variant),
             },
             None => None,
@@ -117,6 +119,7 @@ impl<'stream> Parser<'stream> {
                 TokenKind::Minus | TokenKind::Plus => {
                     self.prefix_expression(PrefixOperator::Negation)
                 }
+                TokenKind::LeftParenthesis => self.parenthesised_expression(),
                 x => unreachable!("{:?}", x),
             },
             None => None,
@@ -167,6 +170,23 @@ impl<'stream> Parser<'stream> {
             line,
             span,
         ))
+    }
+
+    fn parenthesised_expression(&mut self) -> Option<Expression> {
+        let marker = self.bump().unwrap();
+        let (line, span) = (marker.get_line(), marker.get_line_span());
+        let result = Some(Expression::new(
+            ExpressionVariant::Parenthesised(ParenthesisedExpression::new(Box::from(
+                self.expression_binding_power(0).unwrap(),
+            ))),
+            line,
+            span,
+        ));
+
+        // Consume the right parenthesis
+        let _ = self.bump();
+
+        result
     }
 }
 

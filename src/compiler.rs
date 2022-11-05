@@ -37,13 +37,9 @@ impl<'input> Compiler<'input> {
 
                 self.compile_operator(e.get_operator());
             }
-            // ExpressionVariant::ParenthesisedExpression(pe) => match pe.into() {
-            //     Some(x) => match x.as_ref() {
-            //         Some(expr) => self.compile_expression(&expr.variant),
-            //         None => panic!(),
-            //     },
-            //     None => todo!(),
-            // },
+            ExpressionVariant::Parenthesised(pe) => {
+                self.compile_expression(&pe.get_inner_expression().variant)
+            }
             ExpressionVariant::Literal(e) => match e {
                 LiteralVariant::Integer(v) => {
                     self.emit(Opcode::LoadInteger);

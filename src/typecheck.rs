@@ -61,6 +61,9 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
             //         None => panic!("cant infer parenthesised expression"),
             //     }
             // }
+            ExpressionVariant::Parenthesised(pe) => {
+                self.infer_expression(pe.get_inner_expression())
+            }
             ExpressionVariant::Literal(l) => self.infer_literal(&l),
             ExpressionVariant::Prefix(pre) => match pre.get_prefix() {
                 PrefixOperator::Negation => todo!("Prefix expression"),

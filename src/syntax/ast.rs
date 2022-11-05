@@ -95,6 +95,7 @@ pub(crate) enum ExpressionVariant {
     Literal(LiteralVariant),
     Binary(BinaryExpression),
     Prefix(PrefixExpression),
+    Parenthesised(ParenthesisedExpression),
 }
 
 impl std::fmt::Display for ExpressionVariant {
@@ -103,6 +104,7 @@ impl std::fmt::Display for ExpressionVariant {
             ExpressionVariant::Literal(l) => write!(f, "{}", l),
             ExpressionVariant::Binary(b) => write!(f, "{}", b),
             ExpressionVariant::Prefix(p) => write!(f, "{}", p),
+            ExpressionVariant::Parenthesised(p) => write!(f, "{}", p),
         }
     }
 }
@@ -200,6 +202,27 @@ impl std::fmt::Display for LiteralVariant {
         }
 
         write!(f, "{}", str_value)
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ParenthesisedExpression {
+    inner: Box<Expression>,
+}
+
+impl ParenthesisedExpression {
+    pub fn new(expression: Box<Expression>) -> Self {
+        Self { inner: expression }
+    }
+
+    pub fn get_inner_expression(&self) -> &Expression {
+        self.inner.as_ref()
+    }
+}
+
+impl std::fmt::Display for ParenthesisedExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Parenthesised({})", self.inner)
     }
 }
 
