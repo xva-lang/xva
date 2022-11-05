@@ -4,7 +4,3 @@ pub(crate) mod literal;
 mod node;
 pub(crate) mod operator;
 pub(crate) mod root;
-
-use self::expression::Expression;
-use self::operator::{InfixOperator, PrefixOperator};
-

@@ -1,4 +1,8 @@
-use super::{ast_type::ASTType, literal::LiteralVariant, operator::{PrefixOperator, InfixOperator}};
+use super::{
+    ast_type::ASTType,
+    literal::LiteralVariant,
+    operator::{InfixOperator, PrefixOperator},
+};
 use crate::syntax::lexer::span::Span;
 
 #[derive(Debug)]
@@ -27,6 +31,7 @@ impl Expression {
         self.line
     }
 
+    #[allow(dead_code)]
     pub fn get_type(&self) -> &ASTType {
         &self.ast_type
     }
@@ -119,6 +124,7 @@ impl PrefixExpression {
         self.prefix.clone()
     }
 
+    #[allow(dead_code)]
     pub(crate) fn get_expression(&self) -> &Expression {
         self.inner.as_ref()
     }

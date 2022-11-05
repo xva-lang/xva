@@ -5,7 +5,10 @@ pub enum ASTType {
     Void,
     Integer,
     Boolean,
+
+    #[allow(dead_code)]
     Set(Box<Vec<ASTType>>),
+
     Function(Box<Vec<ASTType>>, Box<ASTType>),
 }
 

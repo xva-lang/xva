@@ -7,7 +7,7 @@ use crate::{
     },
 };
 // use built::util::strptime;
-use chrono::{format, DateTime, Local};
+use chrono::DateTime;
 use logos::Logos;
 use std::io::{self, Write};
 

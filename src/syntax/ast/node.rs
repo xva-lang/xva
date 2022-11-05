@@ -3,6 +3,7 @@
 use super::{expression::Expression, literal::LiteralVariant};
 use crate::syntax::lexer::span::Span;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum NodeVariant {
     Root {
@@ -12,6 +13,7 @@ pub(crate) enum NodeVariant {
     Error,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct Node {
     pub(crate) variant: NodeVariant,
@@ -20,6 +22,7 @@ pub(crate) struct Node {
 }
 
 impl Node {
+    #[allow(dead_code)]
     pub fn new(variant: NodeVariant, line: usize, span: Span) -> Self {
         Self {
             variant,
