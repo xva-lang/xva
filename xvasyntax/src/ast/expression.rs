@@ -1,5 +1,6 @@
 use super::ast_type::ASTType;
 use super::binary_expression::BinaryExpression;
+use super::declaration::Declaration;
 use super::literal::{Literal, LiteralVariant};
 use crate::language::SyntaxKind;
 use crate::parser::SyntaxNode;
@@ -15,6 +16,7 @@ pub enum ExpressionVariant {
     BinaryExpression(BinaryExpression),
     ParenthesisedExpression(Box<Option<Expression>>),
     Literal(Literal),
+    Declaration(Declaration),
 }
 
 impl Expression {
@@ -41,6 +43,10 @@ impl Expression {
                     },
                 }
             }
+            SyntaxKind::Declaration => Self {
+                variant: ExpressionVariant::Declaration(Declaration::new(node)),
+                ast_type: ASTType::Void,
+            },
             _ => return None,
         };
 
@@ -59,6 +65,7 @@ impl Expression {
                 None => unreachable!("No expression inside parenthesised expression variant"),
             },
             ExpressionVariant::Literal(l) => &l.syntax_node,
+            ExpressionVariant::Declaration(d) => &d.syntax_node,
         }
     }
 }

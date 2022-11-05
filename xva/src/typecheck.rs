@@ -83,6 +83,10 @@ impl<'compiler, 'lines> TypeChecker<'compiler, 'lines> {
                 }
             }
             expression::ExpressionVariant::Literal(l) => self.infer_literal(&l),
+            expression::ExpressionVariant::Declaration(d) => match &d.assignment.as_ref() {
+                Some(a) => self.infer_expression(a),
+                None => ASTType::Void,
+            },
         }
     }
 

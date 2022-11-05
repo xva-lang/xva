@@ -84,6 +84,7 @@ impl<'lines> Compiler<'lines> {
                     })
                 }
             },
+            ExpressionVariant::Declaration(_) => todo!(),
         }
     }
 

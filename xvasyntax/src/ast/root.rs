@@ -17,13 +17,13 @@ impl Root {
         self.0.children().filter_map(Expression::new).collect()
     }
 
-    pub fn print(&mut self) -> String {
+    pub fn print(&mut self) {
         let mut sb = String::new();
         for expression in self.expressions() {
             sb.push_str(String::from(format!("{:#?}", expression)).as_str());
         }
 
-        sb
+        println!("{}", sb);
     }
 }
 
