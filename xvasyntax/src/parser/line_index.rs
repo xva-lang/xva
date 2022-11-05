@@ -1,8 +1,8 @@
 use std::ops::Range;
 
 /// A mapping from an absolute character offset to its line number relative to the start of the original input.
-#[derive(Debug)]
-pub(crate) struct LineIndex {
+#[derive(Debug, Clone)]
+pub struct LineIndex {
     pub(crate) range: Range<usize>,
     line: usize,
 }
@@ -14,8 +14,8 @@ impl LineIndex {
 }
 
 /// A container for `LineIndex`es
-#[derive(Debug)]
-pub(crate) struct LineIndexes {
+#[derive(Debug, Clone)]
+pub struct LineIndexes {
     indexes: Vec<LineIndex>,
 }
 
@@ -31,7 +31,7 @@ impl LineIndexes {
         self.indexes.push(index)
     }
 
-    pub(crate) fn matched_lines_as_vec(&mut self, line: usize) -> Vec<LineIndex> {
+    pub fn matched_lines_as_vec(&mut self, line: usize) -> Vec<LineIndex> {
         let mut result_vec: Vec<LineIndex> = vec![];
         for index in self.indexes.iter() {
             if index.line == line {
@@ -52,7 +52,7 @@ impl LineIndexes {
     /// # Returns
     /// `Some(Range<usize>)` if the container has at least one line index that fully contains `requested_range`,
     /// otherwise `None`.
-    pub(crate) fn get_line(&mut self, requested_range: Range<usize>) -> Option<Range<usize>> {
+    pub fn get_line_range(&mut self, requested_range: Range<usize>) -> Option<Range<usize>> {
         if self.indexes.len() == 0 {
             return None;
         }
@@ -83,5 +83,9 @@ impl LineIndexes {
 
     fn token_in_range(entry: &LineIndex, requested_range: &Range<usize>) -> bool {
         entry.range.start >= requested_range.start || entry.range.end <= requested_range.end
+    }
+
+    pub fn get_cloned(&self) -> Vec<LineIndex> {
+        self.indexes.clone()
     }
 }

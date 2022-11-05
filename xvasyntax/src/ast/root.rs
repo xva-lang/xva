@@ -14,7 +14,7 @@ impl Root {
     }
 
     pub fn expressions(&mut self) -> Vec<Expression> {
-        self.0.children().filter_map(Expression::cast).collect()
+        self.0.children().filter_map(Expression::new).collect()
     }
 
     pub fn print(&mut self) -> String {

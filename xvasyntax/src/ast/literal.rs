@@ -4,12 +4,13 @@ use crate::{language::SyntaxKind, parser::SyntaxNode};
 #[derive(Debug, Clone)]
 pub enum LiteralVariant {
     Integer(i64), //TODO change this to typey something
+    Boolean(bool),
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Literal {
-    syntax_node: SyntaxNode,
+    pub(crate) syntax_node: SyntaxNode,
     variant: LiteralVariant,
 }
 
@@ -27,6 +28,8 @@ impl Literal {
                 SyntaxKind::IntegerLiteral => {
                     LiteralVariant::Integer(i64_from_node_text(syntax_node))
                 }
+                SyntaxKind::TrueLiteral => LiteralVariant::Boolean(true),
+                SyntaxKind::FalseLiteral => LiteralVariant::Boolean(false),
                 x => unreachable!("Unhandled syntax node kind {:?}", x),
             },
 

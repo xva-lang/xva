@@ -1,92 +1,109 @@
 use xvasyntax::ast::expression::Expression;
+use xvasyntax::ast::literal::LiteralVariant;
 use xvasyntax::ast::{ast_type::ASTType, expression, literal::Literal, root::Root};
 
 use xvasyntax::parser::operator::InfixOperator;
 
+use crate::compiler::Compiler;
+
 // pub(crate) trait TypeCheck<T: HasASTType> {
 //     fn infer(&self) -> ASTType;
 // }
-pub fn walk_untyped_tree(root: &mut Root) -> Vec<Expression> {
-    let mut expressions = root.expressions();
-    for i in 0..expressions.len() {
-        let ast_type = infer_expression(&expressions[i]);
 
-        // expressions[i].ast_type = ast_type;
-        let _ = std::mem::replace(&mut expressions[i].ast_type, ast_type);
-    }
-
-    expressions
+pub(crate) struct TypeChecker<'compiler, 'lines> {
+    compiler: &'compiler mut Compiler<'lines>,
 }
 
-pub fn infer_expression(expression: &expression::Expression) -> ASTType {
-    match &expression.variant {
-        expression::ExpressionVariant::BinaryExpression(be) => {
-            let op_type = infer_operator(be.operator.unwrap());
+impl<'compiler, 'lines> TypeChecker<'compiler, 'lines> {
+    pub fn new(compiler: &'compiler mut Compiler<'lines>) -> Self {
+        Self { compiler }
+    }
 
-            let opt_left = be.left.as_ref();
-            let left_type = match opt_left {
-                Some(l) => match infer_expression(l) {
-                    ASTType::Integer => ASTType::Integer,
-                    _ => unreachable!("Type annotation required"),
-                },
-                None => todo!(),
-            };
+    pub fn walk_untyped_tree(&mut self, root: &mut Root) -> Vec<Expression> {
+        let mut expressions = root.expressions();
+        for i in 0..expressions.len() {
+            let ast_type = self.infer_expression(&expressions[i]);
+            let _ = std::mem::replace(&mut expressions[i].ast_type, ast_type);
+        }
 
-            let opt_right = be.right.as_ref();
-            let right_type = match opt_right {
-                Some(r) => match infer_expression(r) {
-                    ASTType::Integer => ASTType::Integer,
-                    _ => unreachable!("Type annotation required"),
-                },
-                None => todo!(),
-            };
+        expressions
+    }
 
-            // TODO allow floats
-            match &op_type {
-                ASTType::Function(inputs, _) => {
-                    if left_type != *inputs.get(0).unwrap() {
-                        panic!("left type error");
+    pub fn infer_expression(&mut self, expression: &expression::Expression) -> ASTType {
+        match &expression.variant {
+            expression::ExpressionVariant::BinaryExpression(be) => {
+                let op_type = self.infer_operator(be.operator.unwrap());
+
+                let opt_left = be.left.as_ref();
+                let left_type = match opt_left {
+                    Some(l) => self.infer_expression(l),
+                    None => todo!(),
+                };
+
+                let opt_right = be.right.as_ref();
+                let right_type = match opt_right {
+                    Some(r) => self.infer_expression(r),
+                    None => todo!(),
+                };
+
+                // TODO allow floats
+                match &op_type {
+                    ASTType::Function(inputs, _) => {
+                        if left_type != *inputs.get(0).unwrap() {
+                            match be.left.as_ref() {
+                                Some(left) => {
+                                    self.compiler.raise_error(left, "Expected an integer")
+                                }
+                                None => {}
+                            }
+                        }
+
+                        if right_type != *inputs.get(1).unwrap() {
+                            match be.right.as_ref() {
+                                Some(right) => {
+                                    self.compiler.raise_error(right, "Expected an integer")
+                                }
+                                None => {}
+                            }
+                        }
                     }
-
-                    if right_type != *inputs.get(1).unwrap() {
-                        panic!("right type error")
-                    }
+                    _ => panic!("operator must be function type"),
                 }
-                _ => panic!("operator must be function type"),
-            }
 
-            match op_type {
-                ASTType::Function(_, o) => *o,
-                _ => ASTType::Void,
+                match op_type {
+                    ASTType::Function(_, o) => *o,
+                    _ => ASTType::Void,
+                }
             }
+            expression::ExpressionVariant::ParenthesisedExpression(pe) => {
+                let opt_pe = pe.as_ref();
+                match opt_pe {
+                    Some(p) => self.infer_expression(p),
+                    None => panic!("cant infer parenthesised expression"),
+                }
+            }
+            expression::ExpressionVariant::Literal(l) => self.infer_literal(&l),
         }
-        expression::ExpressionVariant::ParenthesisedExpression(pe) => {
-            let opt_pe = pe.as_ref();
-            match opt_pe {
-                Some(p) => infer_expression(p),
-                None => panic!("cant infer parenthesised expression"),
-            }
+    }
+
+    pub fn infer_literal(&self, literal: &Literal) -> ASTType {
+        match literal.get_variant_as_ref() {
+            LiteralVariant::Integer(_) => ASTType::Integer,
+            LiteralVariant::Boolean(_) => ASTType::Boolean,
         }
-        expression::ExpressionVariant::Literal(l) => infer_literal(&l),
     }
-}
 
-pub fn infer_literal(literal: &Literal) -> ASTType {
-    match literal.get_variant_as_ref() {
-        xvasyntax::ast::literal::LiteralVariant::Integer(_) => ASTType::Integer,
-    }
-}
+    pub fn infer_operator(&self, operator: InfixOperator) -> ASTType {
+        match operator {
+            InfixOperator::Addition
+            | InfixOperator::Subtraction
+            | InfixOperator::Multiplication
+            | InfixOperator::Division => ASTType::Function(
+                Box::from(vec![ASTType::Integer, ASTType::Integer]),
+                Box::new(ASTType::Integer),
+            ),
 
-pub fn infer_operator(operator: InfixOperator) -> ASTType {
-    match operator {
-        InfixOperator::Addition
-        | InfixOperator::Subtraction
-        | InfixOperator::Multiplication
-        | InfixOperator::Division => ASTType::Function(
-            Box::from(vec![ASTType::Integer, ASTType::Integer]),
-            Box::new(ASTType::Integer),
-        ),
-
-        InfixOperator::NotAnOperator => ASTType::Void,
+            InfixOperator::NotAnOperator => ASTType::Void,
+        }
     }
 }

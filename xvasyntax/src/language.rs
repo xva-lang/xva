@@ -49,6 +49,12 @@ pub enum SyntaxKind {
     #[regex("[0-9]+")]
     IntegerLiteral,
 
+    #[token("true")]
+    TrueLiteral,
+
+    #[token("false")]
+    FalseLiteral,
+
     #[regex("//.*")]
     Comment,
 

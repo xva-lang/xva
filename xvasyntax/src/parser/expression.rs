@@ -94,6 +94,7 @@ fn left(parser: &mut Parser) -> Option<CompletedMarker> {
         Some(SyntaxKind::IntegerLiteral) => literal(parser),
         Some(SyntaxKind::Minus) => prefix_expression(parser, PrefixOperator::Negation),
         Some(SyntaxKind::LeftParenthesis) => parenthesised_expression(parser),
+        Some(SyntaxKind::TrueLiteral) | Some(SyntaxKind::FalseLiteral) => literal(parser),
         _ => return None,
     };
 
@@ -412,6 +413,28 @@ Root@0..21
     Whitespace@19..20 " "
     Literal@20..21
       IntegerLiteral@20..21 "1""#]],
+        )
+    }
+
+    #[test]
+    fn parse_true() {
+        check_parse(
+            "true",
+            expect![[r#"
+Root@0..4
+  Literal@0..4
+    TrueLiteral@0..4 "true""#]],
+        )
+    }
+
+    #[test]
+    fn parse_false() {
+        check_parse(
+            "false",
+            expect![[r#"
+Root@0..5
+  Literal@0..5
+    FalseLiteral@0..5 "false""#]],
         )
     }
 }

@@ -13,7 +13,6 @@ pub(crate) fn repl_main() -> io::Result<()> {
     let mut stdout = io::stdout();
     let _stderr = io::stderr();
 
-    let mut compiler = compiler::Compiler::new();
     let mut vm = VirtualMachine::new();
 
     let built_time = strptime(built_info::BUILT_TIME_UTC);
@@ -35,6 +34,7 @@ pub(crate) fn repl_main() -> io::Result<()> {
         let mut input = String::new();
         stdin.read_line(&mut input)?;
 
+        let mut lines: Vec<&str> = input.split("\n").collect();
         let parse_tree = xvasyntax::parser::parse(input.as_str());
         let parse_errors = parse_tree.get_errors();
         if parse_errors.len() > 0 {
@@ -46,14 +46,25 @@ pub(crate) fn repl_main() -> io::Result<()> {
         }
 
         let mut root: Root = Root::cast(parse_tree.get_root_node()).unwrap();
-
+        root.print();
+        let mut compiler = compiler::Compiler::new(parse_tree.get_line_indexes(), &mut lines);
         compiler.compile(&mut root);
+
+        if compiler.errors.len() > 0 {
+            for error in compiler.errors {
+                println!("{}\n", error);
+            }
+
+            continue;
+        }
+
         vm.program = compiler.get_output_as_slice().to_vec();
 
         compiler.clear_output();
         vm.run();
         vm.reset_program_counter();
-        println!("{}", vm.pop_i64().unwrap());
+
+        println!("{}", vm.pop_i64().unwrap_or(0));
         input.clear();
         stdout.flush()?;
     }

@@ -108,7 +108,7 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
 
         for error in self.errors {
             let position = error.span.clone();
-            let line_number = self.line_indexes.get_line(error.span.clone());
+            let line_number = self.line_indexes.get_line_range(error.span.clone());
 
             let mut constructed_line = String::new();
             for index in self
@@ -143,7 +143,7 @@ impl<'lexemes, 'input> ParserEventSink<'lexemes, 'input> {
             str_errors.push(format!(
                 "error: {} (at line {}, position {}):\n\n{}",
                 error.error,
-                self.line_indexes.get_line(error.span).unwrap().start,
+                self.line_indexes.get_line_range(error.span).unwrap().start,
                 position.end,
                 error_line,
             ));

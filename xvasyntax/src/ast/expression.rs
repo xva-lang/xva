@@ -18,14 +18,14 @@ pub enum ExpressionVariant {
 }
 
 impl Expression {
-    pub fn cast(node: SyntaxNode) -> Option<Self> {
+    pub fn new(node: SyntaxNode) -> Option<Self> {
         let result = match node.kind() {
             SyntaxKind::BinaryExpression => Self {
                 variant: ExpressionVariant::BinaryExpression(BinaryExpression::new(node)),
                 ast_type: ASTType::Void,
             },
             SyntaxKind::ParenthesisedExpression => Self {
-                variant: ExpressionVariant::ParenthesisedExpression(Box::new(Self::cast(
+                variant: ExpressionVariant::ParenthesisedExpression(Box::new(Self::new(
                     node.first_child().unwrap(),
                 ))),
                 ast_type: ASTType::Void,
@@ -37,6 +37,7 @@ impl Expression {
                     variant: ExpressionVariant::Literal(lit),
                     ast_type: match cloned_variant {
                         LiteralVariant::Integer(_) => ASTType::Integer,
+                        LiteralVariant::Boolean(_) => ASTType::Boolean,
                     },
                 }
             }
@@ -48,5 +49,16 @@ impl Expression {
 
     pub fn update_type(&mut self, ast_type: ASTType) {
         self.ast_type = ast_type;
+    }
+
+    pub fn get_node(&self) -> &SyntaxNode {
+        match &self.variant {
+            ExpressionVariant::BinaryExpression(be) => &be.syntax_node,
+            ExpressionVariant::ParenthesisedExpression(pe) => match pe.as_ref() {
+                Some(x) => x.get_node(),
+                None => unreachable!("No expression inside parenthesised expression variant"),
+            },
+            ExpressionVariant::Literal(l) => &l.syntax_node,
+        }
     }
 }

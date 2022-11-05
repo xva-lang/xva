@@ -210,4 +210,14 @@ mod tests {
     fn lex_colon() {
         check_lex(":", SyntaxKind::Colon);
     }
+
+    #[test]
+    fn lex_true() {
+        check_lex("true", SyntaxKind::TrueLiteral);
+    }
+
+    #[test]
+    fn lex_false() {
+        check_lex("false", SyntaxKind::FalseLiteral)
+    }
 }

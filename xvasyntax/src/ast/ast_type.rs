@@ -4,6 +4,7 @@ use std::ops::{Deref, DerefMut};
 pub enum ASTType {
     Void,
     Integer,
+    Boolean,
     Set(Box<Vec<ASTType>>),
     Function(Box<Vec<ASTType>>, Box<ASTType>),
 }

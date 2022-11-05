@@ -1,6 +1,6 @@
 mod event;
 mod expression;
-mod line_index;
+pub mod line_index;
 mod marker;
 pub mod operator;
 mod sink;
@@ -233,7 +233,7 @@ impl<'lexemes, 'input> Parser<'lexemes, 'input> {
 /// The end result of the parser.
 pub struct ConcreteSyntaxTree {
     green_node: GreenNode,
-    line_indexes: LineIndexes,
+    pub line_indexes: LineIndexes,
     errors: Vec<String>,
 }
 
@@ -252,6 +252,15 @@ impl ConcreteSyntaxTree {
 
     pub fn get_errors(&self) -> Vec<String> {
         self.errors.clone()
+    }
+
+    pub fn get_line_indexes(&self) -> LineIndexes {
+        let mut result = LineIndexes::new();
+        for line_index in self.line_indexes.get_cloned() {
+            result.push(line_index);
+        }
+
+        result
     }
 }
 
@@ -352,7 +361,7 @@ Root@0..10
         assert_eq!(
             parse
                 .line_indexes
-                .get_line(Range::<usize> { start: 4, end: 6 }),
+                .get_line_range(Range::<usize> { start: 4, end: 6 }),
             Some(1..2)
         )
     }

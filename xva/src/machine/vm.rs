@@ -277,8 +277,10 @@ mod tests {
     }
 
     fn expect_return_value(input: &str, return_val: i64) {
-        let mut compiler = Compiler::new();
         let parse_tree = xvasyntax::parser::parse(input);
+        let mut lines: Vec<&str> = input.split("\n").collect();
+        let mut compiler = Compiler::new(parse_tree.get_line_indexes(), &mut lines);
+
         let mut root = xvasyntax::ast::root::Root::cast(parse_tree.get_root_node()).unwrap();
 
         compiler.compile(&mut root);

@@ -11,7 +11,7 @@ use crate::{
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct BinaryExpression {
-    syntax_node: SyntaxNode,
+    pub(crate) syntax_node: SyntaxNode,
     pub left: Rc<Option<Expression>>,
     pub right: Rc<Option<Expression>>,
     pub operator: Option<InfixOperator>,
@@ -27,7 +27,7 @@ impl BinaryExpression {
         }
     }
     pub(crate) fn left(syntax_node: &SyntaxNode) -> Rc<Option<Expression>> {
-        Rc::new(syntax_node.children().find_map(Expression::cast))
+        Rc::new(syntax_node.children().find_map(Expression::new))
     }
 
     pub(crate) fn operator(syntax_node: &SyntaxNode) -> Option<InfixOperator> {
@@ -52,6 +52,6 @@ impl BinaryExpression {
     }
 
     pub(crate) fn right(syntax_node: &SyntaxNode) -> Rc<Option<Expression>> {
-        Rc::new(syntax_node.children().filter_map(Expression::cast).nth(1))
+        Rc::new(syntax_node.children().filter_map(Expression::new).nth(1))
     }
 }
