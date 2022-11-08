@@ -88,7 +88,8 @@ impl<'stream, 'input> Parser<'stream, 'input> {
         message: &str,
         suggestion: Option<&str>,
     ) -> Option<Lexeme<'_>> {
-        match self.peek_next_variant() {
+        let next_var = self.peek_variant();
+        match next_var {
             Some(v) => {
                 if v == kind {
                     self.stream.next()
