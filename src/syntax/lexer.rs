@@ -60,4 +60,14 @@ mod tests {
     fn lex_let_keyword() {
         check_lex("let", expect![[r#"LetKeyword@[1:0..3] "let""#]]);
     }
+
+    #[test]
+    fn lex_negative_int() {
+        check_lex("-1", expect![[r#"IntegerLiteral@[1:0..2] "-1""#]])
+    }
+
+    #[test]
+    fn lex_explicit_positive_int() {
+        check_lex("+1", expect![[r#"IntegerLiteral@[1:0..2] "+1""#]])
+    }
 }
