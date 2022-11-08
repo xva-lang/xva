@@ -42,7 +42,7 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
                 match &op_type {
                     ASTType::Function(inputs, _) => {
                         match inputs.get(0).unwrap() {
-                            ASTType::Set(i) => {
+                            ASTType::OneOf(i) => {
                                 left_is_valid = if !i.iter().any(|x| left_type == *x) {
                                     self.raise_operator_error(be.get_operator(), &left_type, be.get_left());
                                     false
@@ -55,7 +55,7 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
                         }
 
                         match inputs.get(1).unwrap() {
-                            ASTType::Set(i) => {
+                            ASTType::OneOf(i) => {
                                 right_is_valid = if !i.iter().any(|x| right_type == *x) {
                                     self.raise_operator_error(be.get_operator(), &right_type, be.get_right());
                                     false
@@ -72,6 +72,9 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
                             if left_type != right_type {
                                 self.raise_operator_type_mismatch(be.get_right(), &left_type);
                             }
+                            else {
+
+                            }
                         }
                         
                     }
@@ -79,7 +82,12 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
                 }
 
                 match op_type {
-                    ASTType::Function(_, o) => *o,
+                    ASTType::Function(_, o) => match *o {
+                        ASTType::OneOf(one_of) => {
+                            if one_of.contains(&left_type) {left_type} else {ASTType::Void}
+                        },
+                        _ => panic!("operator result type must be a OneOf")
+                    },
                     _ => ASTType::Void,
                 }
             }
@@ -119,10 +127,10 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
             | InfixOperator::Multiplication
             | InfixOperator::Division => ASTType::Function(
                 Box::from(vec![
-                    ASTType::Set(Box::from(vec![ASTType::Integer, ASTType::Float])),
-                    ASTType::Set(Box::from(vec![ASTType::Integer, ASTType::Float])),
+                    ASTType::OneOf(Box::from(vec![ASTType::Integer, ASTType::Float])),
+                    ASTType::OneOf(Box::from(vec![ASTType::Integer, ASTType::Float])),
                 ]),
-                Box::new(ASTType::Integer),
+                Box::new(ASTType::OneOf(Box::from(vec![ASTType::Integer, ASTType::Float]))),
             ),
         }
     }
@@ -133,7 +141,7 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
             ASTType::Integer => "<integer>",
             ASTType::Boolean => "<boolean>",
             ASTType::Float => "<float>",
-            ASTType::Set(_) => "<tuple>",
+            ASTType::OneOf(_) => "<tuple>",
             ASTType::Function(_, _) => "<function>",
         })
     }

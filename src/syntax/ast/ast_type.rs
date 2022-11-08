@@ -8,7 +8,7 @@ pub enum ASTType {
     Float,
 
     #[allow(dead_code)]
-    Set(Box<Vec<ASTType>>),
+    OneOf(Box<Vec<ASTType>>),
 
     Function(Box<Vec<ASTType>>, Box<ASTType>),
 }

@@ -1,4 +1,5 @@
 use crate::machine::opcode::Opcode;
+use crate::syntax::ast::ast_type::ASTType;
 use crate::syntax::ast::{
     expression::{Expression, ExpressionVariant},
     literal::LiteralVariant,
@@ -25,23 +26,23 @@ impl<'input> Compiler<'input> {
         let mut type_checker = super::typecheck::TypeChecker::new(self);
         type_checker.walk_untyped_tree(root_node);
         for expression in root_node.expressions.iter() {
-            self.compile_expression(&expression.variant);
+            self.compile_expression(&expression.variant, expression.get_type());
         }
     }
 
-    fn compile_expression(&mut self, variant: &ExpressionVariant) {
+    fn compile_expression(&mut self, variant: &ExpressionVariant, expr_type: &ASTType) {
         match variant {
             ExpressionVariant::Binary(e) => {
                 let left = e.get_left();
-                self.compile_expression(&left.variant);
+                self.compile_expression(&left.variant, expr_type);
 
                 let right = e.get_right();
-                self.compile_expression(&right.variant);
+                self.compile_expression(&right.variant, expr_type);
 
-                self.compile_operator(e.get_operator());
+                self.compile_operator(e.get_operator(), expr_type);
             }
             ExpressionVariant::Parenthesised(pe) => {
-                self.compile_expression(&pe.get_inner_expression().variant)
+                self.compile_expression(&pe.get_inner_expression().variant, expr_type)
             }
             ExpressionVariant::Literal(e) => match e {
                 LiteralVariant::Integer(v) => {
@@ -93,12 +94,21 @@ impl<'input> Compiler<'input> {
         self.output.as_slice()
     }
 
-    fn compile_operator(&mut self, operator: InfixOperator) {
-        match operator {
-            InfixOperator::Addition => self.emit(Opcode::Add),
-            InfixOperator::Subtraction => self.emit(Opcode::Subtract),
-            InfixOperator::Multiplication => self.emit(Opcode::IntegerMultiply),
-            InfixOperator::Division => self.emit(Opcode::IntegerDivide),
+    fn compile_operator(&mut self, operator: InfixOperator, expr_type: &ASTType) {
+        match expr_type {
+            ASTType::Integer => match operator {
+                InfixOperator::Addition => self.emit(Opcode::Add),
+                InfixOperator::Subtraction => self.emit(Opcode::Subtract),
+                InfixOperator::Multiplication => self.emit(Opcode::IntegerMultiply),
+                InfixOperator::Division => self.emit(Opcode::IntegerDivide),
+            },
+            ASTType::Float => match operator {
+                InfixOperator::Addition => self.emit(Opcode::FloatAdd),
+                InfixOperator::Subtraction => self.emit(Opcode::FloatSubtract),
+                InfixOperator::Multiplication => self.emit(Opcode::FloatMultiply),
+                InfixOperator::Division => self.emit(Opcode::FloatDivide),
+            },
+            _ => {}
         }
     }
 

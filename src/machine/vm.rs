@@ -187,6 +187,71 @@ impl VirtualMachine {
                     self.push_f64(value);
                     // self.assess_flags(value);
                 }
+                Opcode::FloatSubtract => {
+                    let (right, left) = (
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                    );
+                    let value = left - right;
+                    self.push_f64(value);
+                    // self.assess_flags(value);
+                }
+
+                Opcode::FloatMultiply => {
+                    let (right, left) = (
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                    );
+                    let value = left * right;
+                    self.push_f64(value);
+                    // self.assess_flags(value);
+                }
+
+                Opcode::FloatDivide => {
+                    let (right, left) = (
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                    );
+                    let value = left / right;
+                    self.push_f64(value);
+                    // self.assess_flags(value);
+                }
                 unknown => {
                     println!("Unrecognised opcode: {:?}", unknown)
                 }
