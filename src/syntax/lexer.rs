@@ -60,4 +60,44 @@ mod tests {
     fn lex_let_keyword() {
         check_lex("let", expect![[r#"LetKeyword@[1:0..3] "let""#]]);
     }
+
+    #[test]
+    fn lex_float() {
+        check_lex("1.0", expect![[r#"FloatLiteral@[1:0..3] "1.0""#]])
+    }
+
+    #[test]
+    fn lex_float_non_zero_fraction() {
+        check_lex("2.1", expect![[r#"FloatLiteral@[1:0..3] "2.1""#]])
+    }
+
+    #[test]
+    fn lex_float_multiple_zeroes() {
+        check_lex("3.000", expect![[r#"FloatLiteral@[1:0..5] "3.000""#]])
+    }
+
+    #[test]
+    fn lex_float_multiple_zeroes_with_one() {
+        check_lex("3.001", expect![[r#"FloatLiteral@[1:0..5] "3.001""#]])
+    }
+
+    #[test]
+    fn lex_float_positive_lower_e() {
+        check_lex("1.5e6", expect![[r#"FloatLiteral@[1:0..5] "1.5e6""#]])
+    }
+
+    #[test]
+    fn lex_float_positive_upper_e() {
+        check_lex("1.5E6", expect![[r#"FloatLiteral@[1:0..5] "1.5E6""#]])
+    }
+
+    #[test]
+    fn lex_float_negative_lower_e() {
+        check_lex("1.5e-7", expect![[r#"FloatLiteral@[1:0..6] "1.5e-7""#]])
+    }
+
+    #[test]
+    fn lex_float_negative_upper_e() {
+        check_lex("1.5E-7", expect![[r#"FloatLiteral@[1:0..6] "1.5E-7""#]])
+    }
 }
