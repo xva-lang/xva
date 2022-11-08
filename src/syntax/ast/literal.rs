@@ -2,6 +2,7 @@
 pub(crate) enum LiteralVariant {
     Boolean(bool),
     Integer(i64),
+    Float(f64),
 }
 
 impl std::fmt::Display for LiteralVariant {
@@ -18,6 +19,9 @@ impl std::fmt::Display for LiteralVariant {
             }
             LiteralVariant::Integer(i) => {
                 str_value.push_str(format!("Integer({})", i).as_str());
+            }
+            LiteralVariant::Float(f) => {
+                str_value.push_str(format!("Float({})", f).as_str());
             }
         }
 

@@ -160,6 +160,33 @@ impl VirtualMachine {
                     let value = self.require_next_quad_word();
                     self.push_i64(value);
                 }
+
+                Opcode::LoadFloat => {
+                    let value = self.require_next_quad_word();
+                    self.push_i64(value);
+                }
+
+                Opcode::FloatAdd => {
+                    let (right, left) = (
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                        match self.pop_f64() {
+                            Some(x) => x,
+                            None => {
+                                println!("Stack underflow!");
+                                break;
+                            }
+                        },
+                    );
+                    let value = left + right;
+                    self.push_f64(value);
+                    // self.assess_flags(value);
+                }
                 unknown => {
                     println!("Unrecognised opcode: {:?}", unknown)
                 }
@@ -216,6 +243,28 @@ impl VirtualMachine {
     fn push_i64(&mut self, value: i64) {
         self.stack[self.stack_pointer] = value;
         self.stack_pointer += 1;
+    }
+
+    fn push_f64(&mut self, value: f64) {
+        let mut int_result: i64 = 0;
+        let float_bytes = value.to_le_bytes();
+        for (i, v) in float_bytes.iter().enumerate() {
+            int_result += (*v as i64) << (8 * i);
+        }
+
+        self.stack[self.stack_pointer] = int_result;
+        self.stack_pointer += 1;
+    }
+
+    pub fn pop_f64(&mut self) -> Option<f64> {
+        if self.stack_pointer == 0 {
+            return None;
+        }
+
+        self.stack_pointer -= 1;
+        let slice = self.stack[self.stack_pointer].to_le_bytes();
+        let result = f64::from_le_bytes(slice);
+        Some(result)
     }
 
     pub(crate) fn pop_i64(&mut self) -> Option<i64> {

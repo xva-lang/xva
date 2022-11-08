@@ -5,6 +5,7 @@ pub enum ASTType {
     Void,
     Integer,
     Boolean,
+    Float,
 
     #[allow(dead_code)]
     Set(Box<Vec<ASTType>>),

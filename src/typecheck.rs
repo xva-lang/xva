@@ -1,3 +1,7 @@
+
+
+
+
 use crate::{
     compiler::Compiler,
     syntax::ast::{
@@ -31,23 +35,45 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
         match &expression.variant {
             ExpressionVariant::Binary(be) => {
                 let op_type = self.infer_operator(be.get_operator());
-
                 let left_type = self.infer_expression(be.get_left());
-
                 let right_type = self.infer_expression(be.get_right());
-
+                let (left_is_valid, right_is_valid): (bool, bool);
                 // TODO allow floats
                 match &op_type {
                     ASTType::Function(inputs, _) => {
-                        if left_type != *inputs.get(0).unwrap() {
-                            self.compiler
-                                .raise_error(be.get_left(), "Expected an integer")
+                        match inputs.get(0).unwrap() {
+                            ASTType::Set(i) => {
+                                left_is_valid = if !i.iter().any(|x| left_type == *x) {
+                                    self.raise_operator_error(be.get_operator(), &left_type, be.get_left());
+                                    false
+                                }
+                                else {
+                                    true
+                                };
+                            },
+                            _ => unreachable!(),
                         }
 
-                        if right_type != *inputs.get(1).unwrap() {
-                            self.compiler
-                                .raise_error(be.get_right(), "Expected an integer")
+                        match inputs.get(1).unwrap() {
+                            ASTType::Set(i) => {
+                                right_is_valid = if !i.iter().any(|x| right_type == *x) {
+                                    self.raise_operator_error(be.get_operator(), &right_type, be.get_right());
+                                    false
+                                }
+                                else {
+                                    true
+                                };
+                            },
+                            _ => unreachable!(),
                         }
+                        
+                        // Only raise a type mismatch if both types are already valid for the operation
+                        if left_is_valid && right_is_valid {
+                            if left_type != right_type {
+                                self.raise_operator_type_mismatch(be.get_right(), &left_type);
+                            }
+                        }
+                        
                     }
                     _ => panic!("operator must be function type"),
                 }
@@ -82,6 +108,7 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
         match literal {
             LiteralVariant::Integer(_) => ASTType::Integer,
             LiteralVariant::Boolean(_) => ASTType::Boolean,
+            LiteralVariant::Float(_) => ASTType::Float,
         }
     }
 
@@ -91,9 +118,37 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
             | InfixOperator::Subtraction
             | InfixOperator::Multiplication
             | InfixOperator::Division => ASTType::Function(
-                Box::from(vec![ASTType::Integer, ASTType::Integer]),
+                Box::from(vec![
+                    ASTType::Set(Box::from(vec![ASTType::Integer, ASTType::Float])),
+                    ASTType::Set(Box::from(vec![ASTType::Integer, ASTType::Float])),
+                ]),
                 Box::new(ASTType::Integer),
             ),
         }
+    }
+
+    pub(crate) fn repr_type(expr_type: &ASTType) -> String {
+        String::from(match expr_type {
+            ASTType::Void => "<void>",
+            ASTType::Integer => "<integer>",
+            ASTType::Boolean => "<boolean>",
+            ASTType::Float => "<float>",
+            ASTType::Set(_) => "<tuple>",
+            ASTType::Function(_, _) => "<function>",
+        })
+    }
+
+    fn raise_operator_error(&mut self, operator: InfixOperator, expr_type: &ASTType, expr: &Expression) {
+        let error_type = Self::repr_type(expr_type);
+
+        let error = format!("Operation '{}' cannot be applied to type {}", operator, error_type);
+        self.compiler.raise_error(expr, error.as_str(), None);
+    }
+
+    fn raise_operator_type_mismatch(&mut self, expr: &Expression, expected_type: &ASTType) {
+        let suggestion = format!("Consider changing this expression to be of type: {}", 
+            Self::repr_type(expected_type));
+        self.compiler.raise_error(expr, "Types in binary operation do not match", 
+            Some(suggestion.as_str()));
     }
 }

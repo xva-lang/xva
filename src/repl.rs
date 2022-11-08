@@ -2,9 +2,11 @@ use crate::{
     compiler,
     machine::vm::VirtualMachine,
     syntax::{
+        ast::ast_type::ASTType,
         lexer::{self, language::TokenKind, token_stream::TokenStream},
         parser::Parser,
     },
+    typecheck,
 };
 // use built::util::strptime;
 use chrono::DateTime;
@@ -75,7 +77,20 @@ pub(crate) fn repl_main() -> io::Result<()> {
         vm.run();
         vm.reset_program_counter();
 
-        println!("{}", vm.pop_i64().unwrap_or(0));
+        match parse_result.expressions.first() {
+            Some(e) => match e.get_type() {
+                ASTType::Integer => println!("{}", vm.pop_i64().unwrap_or(0)),
+                ASTType::Boolean => match vm.pop_i64().unwrap() {
+                    0 => println!("false"),
+                    1 => println!("true"),
+                    _ => panic!("bad boolean"),
+                },
+                ASTType::Float => println!("{}", vm.pop_f64().unwrap()),
+                _ => println!("{}", typecheck::TypeChecker::repr_type(e.get_type())),
+            },
+            None => println!("{}", typecheck::TypeChecker::repr_type(&ASTType::Void)),
+        }
+        
         input.clear();
         stdout.flush()?;
     }

@@ -56,6 +56,10 @@ impl<'input> Compiler<'input> {
                         0i64.to_le_bytes().to_vec()
                     })
                 }
+                LiteralVariant::Float(v) => {
+                    self.emit(Opcode::LoadFloat);
+                    self.emit_vec(v.to_le_bytes().to_vec());
+                }
             },
             ExpressionVariant::Prefix(_) => todo!(),
             // ExpressionVariant::Declaration(_) => todo!(),
@@ -98,15 +102,30 @@ impl<'input> Compiler<'input> {
         }
     }
 
-    pub(crate) fn raise_error(&mut self, expression: &Expression, error: &str) {
-        let start_position = expression.get_span().start;
+    pub(crate) fn raise_error(
+        &mut self,
+        expression: &Expression,
+        error: &str,
+        suggestion: Option<&str>,
+    ) {
+        let start_position = expression.get_span().start + 1;
         let line = self.original_lines[expression.get_line() - 1];
+        let mut temp = String::new();
+        let suggest = match suggestion {
+            Some(x) => {
+                temp.push(' ');
+                temp.push_str(x);
+                temp.as_str()
+            }
+            None => "",
+        };
 
         let error_line = format!(
-            "      |\n    {} | {}\n      |{}^",
+            "      |\n    {} | {}\n      |{}^{}",
             expression.get_line(),
             line,
             " ".repeat(start_position),
+            suggest
         );
 
         self.errors.push(format!(

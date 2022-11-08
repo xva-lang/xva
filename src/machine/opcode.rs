@@ -88,6 +88,12 @@ pub(crate) enum Opcode {
     ///
     /// n + 1 - Address of register with absolute address
     BranchIfNotEqual,
+
+    LoadFloat,
+    FloatAdd,
+    FloatSubtract,
+    FloatMultiply,
+    FloatDivide,
 }
 
 const OPCODE_HALT: u8 = 0;
@@ -102,6 +108,11 @@ const OPCODE_FORWARDS_RELATIVE_JUMP: u8 = 8;
 const OPCODE_COMPARE: u8 = 9;
 const OPCODE_BRANCH_IF_EQUAL: u8 = 0xA;
 const OPCODE_BRANCH_IF_NOT_EQUAL: u8 = 0xB;
+const OPCODE_LOAD_FLOAT: u8 = 0xC;
+const OPCODE_FLOAT_ADD: u8 = 0xD;
+const OPCODE_FLOAT_SUBTRACT: u8 = 0xE;
+const OPCODE_FLOAT_MULTIPLY: u8 = 0xF;
+const OPCODE_FLOAT_DIVIDE: u8 = 0x10;
 
 impl From<u8> for Opcode {
     fn from(value: u8) -> Self {
@@ -118,6 +129,11 @@ impl From<u8> for Opcode {
             OPCODE_COMPARE => Opcode::Compare,
             OPCODE_BRANCH_IF_EQUAL => Opcode::BranchIfEqual,
             OPCODE_BRANCH_IF_NOT_EQUAL => Opcode::BranchIfNotEqual,
+            OPCODE_LOAD_FLOAT => Opcode::LoadFloat,
+            OPCODE_FLOAT_ADD => Opcode::FloatAdd,
+            OPCODE_FLOAT_SUBTRACT => Opcode::FloatSubtract,
+            OPCODE_FLOAT_MULTIPLY => Opcode::FloatMultiply,
+            OPCODE_FLOAT_DIVIDE => Opcode::FloatDivide,
 
             _ => Opcode::Illegal,
         }
@@ -140,6 +156,11 @@ impl From<Opcode> for u8 {
             Opcode::Compare => OPCODE_COMPARE,
             Opcode::BranchIfEqual => OPCODE_BRANCH_IF_EQUAL,
             Opcode::BranchIfNotEqual => OPCODE_BRANCH_IF_NOT_EQUAL,
+            Opcode::LoadFloat => OPCODE_LOAD_FLOAT,
+            Opcode::FloatAdd => OPCODE_FLOAT_ADD,
+            Opcode::FloatSubtract => OPCODE_FLOAT_SUBTRACT,
+            Opcode::FloatMultiply => OPCODE_FLOAT_MULTIPLY,
+            Opcode::FloatDivide => OPCODE_FLOAT_DIVIDE,
         }
     }
 }

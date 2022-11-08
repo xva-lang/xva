@@ -129,7 +129,9 @@ impl<'stream, 'input> Parser<'stream, 'input> {
     pub fn expression(&mut self) -> Option<Expression> {
         match self.peek_variant() {
             Some(variant) => match variant {
-                TokenKind::IntegerLiteral => self.expression_binding_power(0),
+                TokenKind::IntegerLiteral | TokenKind::FloatLiteral => {
+                    self.expression_binding_power(0)
+                }
                 TokenKind::TrueLiteral | TokenKind::FalseLiteral => {
                     self.expression_binding_power(0)
                 }
@@ -211,9 +213,10 @@ impl<'stream, 'input> Parser<'stream, 'input> {
     fn left(&mut self) -> Option<Expression> {
         let result = match self.peek_variant() {
             Some(variant) => match variant {
-                TokenKind::IntegerLiteral | TokenKind::TrueLiteral | TokenKind::FalseLiteral => {
-                    self.literal()
-                }
+                TokenKind::IntegerLiteral
+                | TokenKind::TrueLiteral
+                | TokenKind::FalseLiteral
+                | TokenKind::FloatLiteral => self.literal(),
                 TokenKind::Minus | TokenKind::Plus => {
                     self.prefix_expression(PrefixOperator::Negation)
                 }
@@ -244,6 +247,10 @@ impl<'stream, 'input> Parser<'stream, 'input> {
             }
             TokenKind::TrueLiteral => LiteralVariant::Boolean(true),
             TokenKind::FalseLiteral => LiteralVariant::Boolean(false),
+            TokenKind::FloatLiteral => {
+                LiteralVariant::Float(literal_lexeme.get_text().parse::<f64>().unwrap())
+            }
+
             x => todo!("Unimplemented literal kind: {:#?}", x),
         };
 
@@ -370,5 +377,15 @@ error: Expected a closing parenthesis (at line 1, position 11):
     1 | 1 + (2 + 2
       |           ^ Consider adding a closing parenthesis here."#]],
         );
+    }
+
+    #[test]
+    fn parse_float() {
+        check_expression("1.0", expect![[r#"Float(1)"#]])
+    }
+
+    #[test]
+    fn parse_float_with_non_zero_fraction() {
+        check_expression("3.1", expect![[r#"Float(3.1)"#]])
     }
 }
