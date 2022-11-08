@@ -312,6 +312,15 @@ mod tests {
         expected.assert_eq(format!("{}", parser.parse()).as_str())
     }
 
+    fn expect_error(input: &str, expected_error: Expect) {
+        let original_lines = lexer::utils::input_lines_as_vec(input);
+        let mut lexer = TokenKind::lexer(input);
+        let token_stream = TokenStream::new(&mut lexer);
+        let mut parser = Parser::new(token_stream, original_lines);
+        let _ = parser.parse();
+        expected_error.assert_eq(parser.errors.get(0).unwrap());
+    }
+
     #[test]
     fn parse_integer_literal() {
         check_expression("1", expect![["Integer(1)"]])
@@ -347,6 +356,19 @@ mod tests {
             expect![[
                 "BinaryExpression(+, BinaryExpression(+, Integer(1), Integer(1)), Integer(1))"
             ]],
+        );
+    }
+
+    #[test]
+    fn expect_closing_parenthesis() {
+        expect_error(
+            "1 + (2 + 2",
+            expect![[r#"
+error: Expected a closing parenthesis (at line 1, position 11):
+
+      |
+    1 | 1 + (2 + 2
+      |           ^ Consider adding a closing parenthesis here."#]],
         );
     }
 }
