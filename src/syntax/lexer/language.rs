@@ -48,7 +48,7 @@ pub enum TokenKind {
 
     Literal,
 
-    #[regex("[+-]*[0-9]+")]
+    #[regex("[0-9]+")]
     IntegerLiteral,
 
     #[token("true")]
