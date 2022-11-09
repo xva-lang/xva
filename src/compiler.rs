@@ -1,4 +1,6 @@
 use crate::machine::opcode::Opcode;
+use crate::machine::symtable::{SymbolTable, SymbolTableEntry};
+use crate::runtime::typing::builtins::ValueType;
 use crate::syntax::ast::ast_type::ASTType;
 use crate::syntax::ast::{
     expression::{Expression, ExpressionVariant},
@@ -7,42 +9,45 @@ use crate::syntax::ast::{
     root::Root,
 };
 
-pub(crate) struct Compiler<'input> {
+pub(crate) struct Compiler {
     output: Vec<u8>,
     pub(crate) errors: Vec<String>,
-    original_lines: Vec<&'input str>,
+    original_lines: Vec<String>,
+    globals: SymbolTable,
 }
 
-impl<'input> Compiler<'input> {
-    pub(crate) fn new(original_lines: Vec<&'input str>) -> Self {
+impl Compiler {
+    pub(crate) fn new() -> Self {
         Self {
             output: vec![],
-            original_lines,
+            original_lines: vec![],
             errors: vec![],
+            globals: SymbolTable::new(),
         }
     }
 
-    pub(crate) fn compile(&mut self, root_node: &mut Root) {
+    pub(crate) fn compile(&mut self, root_node: &mut Root, original_lines: Vec<String>) {
+        self.original_lines = original_lines;
         let mut type_checker = super::typecheck::TypeChecker::new(self);
         type_checker.walk_untyped_tree(root_node);
         for expression in root_node.expressions.iter() {
-            self.compile_expression(&expression.variant, expression.get_type());
+            self.compile_expression(&expression, expression.get_type());
         }
     }
 
-    fn compile_expression(&mut self, variant: &ExpressionVariant, expr_type: &ASTType) {
-        match variant {
+    fn compile_expression(&mut self, expression: &Expression, expr_type: &ASTType) {
+        match &expression.variant {
             ExpressionVariant::Binary(e) => {
                 let left = e.get_left();
-                self.compile_expression(&left.variant, expr_type);
+                self.compile_expression(left, expr_type);
 
                 let right = e.get_right();
-                self.compile_expression(&right.variant, expr_type);
+                self.compile_expression(right, expr_type);
 
                 self.compile_operator(e.get_operator(), expr_type);
             }
             ExpressionVariant::Parenthesised(pe) => {
-                self.compile_expression(&pe.get_inner_expression().variant, expr_type)
+                self.compile_expression(&pe.get_inner_expression(), expr_type)
             }
             ExpressionVariant::Literal(e) => match e {
                 LiteralVariant::Integer(v) => {
@@ -63,7 +68,43 @@ impl<'input> Compiler<'input> {
                 }
             },
             ExpressionVariant::Prefix(_) => todo!(),
-            // ExpressionVariant::Declaration(_) => todo!(),
+            ExpressionVariant::Declaration(d) => {
+                // self.globals.new_symbol(d.get_name().to_string(), value_type)
+                let sym_table_type: ValueType;
+                match d.get_assignment() {
+                    Some(a) => {
+                        sym_table_type = match a.get_type() {
+                            ASTType::Void => ValueType::Void,
+                            ASTType::Integer => ValueType::Integer(0),
+                            ASTType::Boolean => ValueType::Boolean(false),
+                            ASTType::Float => ValueType::Float(0.0),
+                            ASTType::OneOf(_) => todo!(),
+                            ASTType::Function(_, _) => todo!(),
+                        };
+
+                        self.compile_expression(a, a.get_type());
+                        self.emit(Opcode::StoreLocal);
+                        self.emit_vec(
+                            (d.get_name().as_bytes().len() as u16)
+                                .to_le_bytes()
+                                .to_vec(),
+                        );
+                        self.emit_vec(d.get_name().as_bytes().to_vec());
+                    }
+                    None => {
+                        sym_table_type = ValueType::Void;
+                    }
+                }
+
+                let (line, span) = (expression.get_line(), expression.get_span());
+                self.globals
+                    .new_symbol(d.get_name().to_string(), sym_table_type, line, span);
+            }
+            ExpressionVariant::Identifier(i) => {
+                self.emit(Opcode::LoadLocal);
+                self.emit_vec((i.get_name().len() as u16).to_le_bytes().to_vec());
+                self.emit_vec(i.get_name().as_bytes().to_vec());
+            }
         }
     }
 
@@ -119,7 +160,7 @@ impl<'input> Compiler<'input> {
         suggestion: Option<&str>,
     ) {
         let start_position = expression.get_span().start + 1;
-        let line = self.original_lines[expression.get_line() - 1];
+        let line = &self.original_lines[expression.get_line() - 1];
         let mut temp = String::new();
         let suggest = match suggestion {
             Some(x) => {
@@ -146,6 +187,17 @@ impl<'input> Compiler<'input> {
             error_line,
         ));
     }
+
+    pub(crate) fn lookup_symbol(&self, name: &str) -> Result<&SymbolTableEntry, String> {
+        match self.globals.lookup(name) {
+            Some(x) => Ok(x),
+            None => Err(format!("The name '{}' is not declared in this scope", name)),
+        }
+    }
+
+    pub fn get_lines_as_slice(&self) -> &[String] {
+        self.original_lines.as_slice()
+    }
 }
 
 #[cfg(test)]
@@ -159,14 +211,14 @@ mod tests {
     use crate::syntax::parser::Parser;
 
     fn expect_program(input: &str, expected: Vec<u8>) {
-        let original_lines = lexer::utils::input_lines_as_vec(input);
+        let original_lines = lexer::utils::string_lines_as_vec(String::from(input));
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
         let mut parser = Parser::new(token_stream, original_lines.clone());
 
-        let mut compiler = Compiler::new(original_lines.clone());
+        let mut compiler = Compiler::new();
 
-        compiler.compile(&mut parser.parse());
+        compiler.compile(&mut parser.parse(), original_lines.clone());
         let out = compiler.get_output_as_slice();
         assert_eq!(out, expected)
     }

@@ -1,5 +1,7 @@
 pub(crate) mod ast_type;
+pub(crate) mod declaration;
 pub(crate) mod expression;
+pub(crate) mod identifier;
 pub(crate) mod literal;
 mod node;
 pub(crate) mod operator;

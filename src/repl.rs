@@ -11,7 +11,12 @@ use crate::{
 // use built::util::strptime;
 use chrono::DateTime;
 use logos::Logos;
-use std::io::{self, Write};
+use std::{
+    borrow::Borrow,
+    cell::RefCell,
+    io::{self, Write},
+    rc::Rc,
+};
 
 pub mod built_info {
     // The file has been placed there by the build script.
@@ -38,6 +43,10 @@ pub(crate) fn repl_main() -> io::Result<()> {
         built_info::TARGET,
     );
 
+    let mut compiler = compiler::Compiler::new();
+    // let mut lines: Vec<String> = vec![];
+
+    let mut input_lines: Vec<String> = vec![];
     loop {
         write!(stdout, "> ")?;
         stdout.flush()?;
@@ -45,10 +54,13 @@ pub(crate) fn repl_main() -> io::Result<()> {
         let mut input = String::new();
         stdin.read_line(&mut input)?;
 
-        let lines = lexer::utils::input_lines_as_vec(input.as_str());
-        let mut lexer = TokenKind::lexer(input.as_str());
+        let (temp_input_lines, cloned_input) =
+            lexer::utils::string_lines_with_original(String::from(input));
+        input_lines = temp_input_lines;
+
+        let mut lexer = TokenKind::lexer(cloned_input.as_str());
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream, lines.clone());
+        let mut parser = Parser::new(token_stream, input_lines.clone());
         let mut parse_result = parser.parse();
         if parser.get_errors().len() > 0 {
             println!("");
@@ -60,11 +72,10 @@ pub(crate) fn repl_main() -> io::Result<()> {
             continue;
         }
 
-        let mut compiler = compiler::Compiler::new(lines.clone());
-        compiler.compile(&mut parse_result);
+        compiler.compile(&mut parse_result, input_lines.clone());
 
         if compiler.errors.len() > 0 {
-            for error in compiler.errors {
+            for error in &compiler.errors {
                 println!("{}\n", error);
             }
 
@@ -90,8 +101,8 @@ pub(crate) fn repl_main() -> io::Result<()> {
             },
             None => println!("{}", typecheck::TypeChecker::repr_type(&ASTType::Void)),
         }
-        
-        input.clear();
+
+        // input.clear();
         stdout.flush()?;
     }
 }

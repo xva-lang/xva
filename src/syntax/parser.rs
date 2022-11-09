@@ -1,9 +1,11 @@
 use super::{
     ast::{
+        declaration::Declaration,
         expression::{
             BinaryExpression, Expression, ExpressionVariant, ParenthesisedExpression,
             PrefixExpression,
         },
+        identifier::IdentifierExpression,
         literal::LiteralVariant,
         operator::{BindingPowered, InfixOperator, PrefixOperator},
         root::Root,
@@ -12,14 +14,14 @@ use super::{
     lexer::{span::Span, token_stream::TokenStream},
 };
 
-pub(crate) struct Parser<'stream, 'input> {
+pub(crate) struct Parser<'stream> {
     stream: TokenStream<'stream>,
     errors: Vec<String>,
-    original_lines: Vec<&'input str>,
+    original_lines: Vec<String>,
 }
 
-impl<'stream, 'input> Parser<'stream, 'input> {
-    pub fn new(stream: TokenStream<'stream>, original_lines: Vec<&'input str>) -> Self {
+impl<'stream> Parser<'stream> {
+    pub fn new(stream: TokenStream<'stream>, original_lines: Vec<String>) -> Self {
         Self {
             stream,
             errors: vec![],
@@ -143,6 +145,8 @@ impl<'stream, 'input> Parser<'stream, 'input> {
                     None => panic!("missing expression after prefix"),
                 },
                 TokenKind::LeftParenthesis => self.parenthesised_expression(),
+                TokenKind::LetKeyword => self.declaration(),
+                TokenKind::Identifier => self.identifier(),
                 _ => {
                     self.raise_error_at_current(
                         format!(
@@ -159,9 +163,63 @@ impl<'stream, 'input> Parser<'stream, 'input> {
         }
     }
 
-    // pub fn declaration(&mut self) -> Option<Node> {
-    //     let let_keyword = self.next();
-    // }
+    fn declaration(&mut self) -> Option<Expression> {
+        let let_keyword = self.bump();
+        let start = let_keyword.unwrap().get_line_span().start;
+        let (ident, line, end) = match self.expect_kind_or_error(
+            TokenKind::Identifier,
+            "Expected an identifier",
+            None,
+        ) {
+            Some(ident) => (
+                ident.get_text().to_string(),
+                ident.get_line(),
+                ident.get_line_span().end,
+            ),
+            None => {
+                return None;
+            }
+        };
+
+        match self.peek_variant() {
+            Some(v) => match v {
+                TokenKind::Equals => {
+                    let _ = self.bump();
+                    Some(Expression::new(
+                        ExpressionVariant::Declaration(Declaration::new(
+                            ident,
+                            match self.expression() {
+                                Some(e) => Some(Box::from(e)),
+                                None => None,
+                            },
+                        )),
+                        line,
+                        Span { start, end },
+                    ))
+                }
+                _ => Some(Expression::new(
+                    ExpressionVariant::Declaration(Declaration::new(ident, None)),
+                    line,
+                    Span { start, end },
+                )),
+            },
+            None => Some(Expression::new(
+                ExpressionVariant::Declaration(Declaration::new(ident, None)),
+                line,
+                Span { start, end },
+            )),
+        }
+    }
+
+    fn identifier(&mut self) -> Option<Expression> {
+        let ident = self.bump().unwrap();
+        let (line, span) = (ident.get_line(), ident.get_line_span());
+        Some(Expression::new(
+            ExpressionVariant::Identifier(IdentifierExpression::new(ident.get_text().to_string())),
+            line,
+            span,
+        ))
+    }
 
     fn expression_binding_power(&mut self, minimum_binding_power: u8) -> Option<Expression> {
         let mut left = self.left()?;
@@ -311,7 +369,7 @@ mod tests {
     use logos::Logos;
 
     fn check_expression(input: &str, expected: Expect) {
-        let original_lines = lexer::utils::input_lines_as_vec(input);
+        let original_lines = lexer::utils::string_lines_as_vec(String::from(input));
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
         let mut parser = Parser::new(token_stream, original_lines);
@@ -320,7 +378,7 @@ mod tests {
     }
 
     fn expect_error(input: &str, expected_error: Expect) {
-        let original_lines = lexer::utils::input_lines_as_vec(input);
+        let original_lines = lexer::utils::string_lines_as_vec(String::from(input));
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
         let mut parser = Parser::new(token_stream, original_lines);
@@ -387,5 +445,18 @@ error: Expected a closing parenthesis (at line 1, position 11):
     #[test]
     fn parse_float_with_non_zero_fraction() {
         check_expression("3.1", expect![[r#"Float(3.1)"#]])
+    }
+
+    #[test]
+    fn parse_declaration_with_assignment() {
+        check_expression(
+            "let number = 123",
+            expect![[r#"Declaration(number, Integer(123))"#]],
+        )
+    }
+
+    #[test]
+    fn parse_declaration_without_assignment() {
+        check_expression("let number", expect![[r#"Declaration(number, None)"#]])
     }
 }

@@ -1,4 +1,4 @@
-use super::builtins::Type;
+use super::builtins::ValueType;
 
 // pub const BOOLEAN_SIZE: usize = 1;
 // pub const INT_SIZE: usize = 8;
@@ -10,14 +10,14 @@ pub trait ByteSizeable {
     fn size_of(&self) -> usize;
 }
 
-impl ByteSizeable for Type {
+impl ByteSizeable for ValueType {
     fn size_of(&self) -> usize {
         match self {
-            Type::Integer(_) => 8,
-            // Type::Float(_) => 4,
-            // Type::Boolean(_) => 1,
-            // Type::Char(_) => 4,
-            Type::Void => 0,
+            ValueType::Integer(_) => 8,
+            ValueType::Float(_) => 8,
+            ValueType::Boolean(_) => 8,
+            // ValueType::Char(_) => 4,
+            ValueType::Void => 0,
         }
     }
 }

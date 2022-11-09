@@ -1,9 +1,8 @@
-
-
-
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     compiler::Compiler,
+    runtime::typing::builtins::ValueType,
     syntax::ast::{
         ast_type::ASTType,
         expression::{Expression, ExpressionVariant},
@@ -13,13 +12,17 @@ use crate::{
     },
 };
 
-pub(crate) struct TypeChecker<'compiler, 'input> {
-    compiler: &'compiler mut Compiler<'input>,
+pub(crate) struct TypeChecker<'compiler> {
+    compiler: Rc<RefCell<&'compiler mut Compiler>>,
+    errors: Vec<(String, bool)>,
 }
 
-impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
-    pub fn new(compiler: &'compiler mut Compiler<'input>) -> Self {
-        Self { compiler }
+impl<'compiler> TypeChecker<'compiler> {
+    pub fn new(compiler: &'compiler mut Compiler) -> Self {
+        Self {
+            compiler: Rc::new(RefCell::new(compiler)),
+            errors: vec![],
+        }
     }
 
     pub fn walk_untyped_tree(&mut self, root: &mut Root) {
@@ -44,39 +47,42 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
                         match inputs.get(0).unwrap() {
                             ASTType::OneOf(i) => {
                                 left_is_valid = if !i.iter().any(|x| left_type == *x) {
-                                    self.raise_operator_error(be.get_operator(), &left_type, be.get_left());
+                                    self.raise_operator_error(
+                                        be.get_operator(),
+                                        &left_type,
+                                        be.get_left(),
+                                    );
                                     false
-                                }
-                                else {
+                                } else {
                                     true
                                 };
-                            },
+                            }
                             _ => unreachable!(),
                         }
 
                         match inputs.get(1).unwrap() {
                             ASTType::OneOf(i) => {
                                 right_is_valid = if !i.iter().any(|x| right_type == *x) {
-                                    self.raise_operator_error(be.get_operator(), &right_type, be.get_right());
+                                    self.raise_operator_error(
+                                        be.get_operator(),
+                                        &right_type,
+                                        be.get_right(),
+                                    );
                                     false
-                                }
-                                else {
+                                } else {
                                     true
                                 };
-                            },
+                            }
                             _ => unreachable!(),
                         }
-                        
+
                         // Only raise a type mismatch if both types are already valid for the operation
                         if left_is_valid && right_is_valid {
                             if left_type != right_type {
                                 self.raise_operator_type_mismatch(be.get_right(), &left_type);
-                            }
-                            else {
-
+                            } else {
                             }
                         }
-                        
                     }
                     _ => panic!("operator must be function type"),
                 }
@@ -84,9 +90,13 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
                 match op_type {
                     ASTType::Function(_, o) => match *o {
                         ASTType::OneOf(one_of) => {
-                            if one_of.contains(&left_type) {left_type} else {ASTType::Void}
-                        },
-                        _ => panic!("operator result type must be a OneOf")
+                            if one_of.contains(&left_type) {
+                                left_type
+                            } else {
+                                ASTType::Void
+                            }
+                        }
+                        _ => panic!("operator result type must be a OneOf"),
                     },
                     _ => ASTType::Void,
                 }
@@ -104,11 +114,36 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
             ExpressionVariant::Literal(l) => self.infer_literal(&l),
             ExpressionVariant::Prefix(pre) => match pre.get_prefix() {
                 PrefixOperator::Negation => todo!("Prefix expression"),
+            },
+            ExpressionVariant::Declaration(d) => ASTType::Void,
+            ExpressionVariant::Identifier(i) => {
+                let (outer_result, outer_error): (ASTType, String);
+
+                {
+                    let ref_compiler = self.compiler.borrow();
+                    let lookup_result = ref_compiler.lookup_symbol(i.get_name());
+                    let (result, error) = match lookup_result {
+                        Ok(x) => match x.get_type() {
+                            ValueType::Void => (ASTType::Void, String::from("")),
+                            ValueType::Integer(_) => (ASTType::Integer, String::from("")),
+                            ValueType::Float(_) => (ASTType::Float, String::from("")),
+                            ValueType::Boolean(_) => (ASTType::Boolean, String::from("")),
+                        },
+                        Err(err) => (ASTType::Void, err),
+                    };
+
+                    outer_result = result;
+                    outer_error = String::from(error);
+                }
+
+                if outer_error != "" {
+                    self.compiler
+                        .borrow_mut()
+                        .raise_error(expression, outer_error.as_str(), None);
+                }
+
+                outer_result
             }
-            // ExpressionVariant::Declaration(d) => match &d.assignment.as_ref() {
-            //     Some(a) => self.infer_expression(a),
-            //     None => ASTType::Void,
-            // },
         }
     }
 
@@ -130,7 +165,10 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
                     ASTType::OneOf(Box::from(vec![ASTType::Integer, ASTType::Float])),
                     ASTType::OneOf(Box::from(vec![ASTType::Integer, ASTType::Float])),
                 ]),
-                Box::new(ASTType::OneOf(Box::from(vec![ASTType::Integer, ASTType::Float]))),
+                Box::new(ASTType::OneOf(Box::from(vec![
+                    ASTType::Integer,
+                    ASTType::Float,
+                ]))),
             ),
         }
     }
@@ -146,17 +184,68 @@ impl<'compiler, 'input> TypeChecker<'compiler, 'input> {
         })
     }
 
-    fn raise_operator_error(&mut self, operator: InfixOperator, expr_type: &ASTType, expr: &Expression) {
+    fn raise_operator_error(
+        &mut self,
+        operator: InfixOperator,
+        expr_type: &ASTType,
+        expr: &Expression,
+    ) {
         let error_type = Self::repr_type(expr_type);
 
-        let error = format!("Operation '{}' cannot be applied to type {}", operator, error_type);
-        self.compiler.raise_error(expr, error.as_str(), None);
+        let error = format!(
+            "Operation '{}' cannot be applied to type {}",
+            operator, error_type
+        );
+        self.compiler
+            .borrow_mut()
+            .raise_error(expr, error.as_str(), None);
     }
 
     fn raise_operator_type_mismatch(&mut self, expr: &Expression, expected_type: &ASTType) {
-        let suggestion = format!("Consider changing this expression to be of type: {}", 
-            Self::repr_type(expected_type));
-        self.compiler.raise_error(expr, "Types in binary operation do not match", 
-            Some(suggestion.as_str()));
+        let suggestion = format!(
+            "Consider changing this expression to be of type: {}",
+            Self::repr_type(expected_type)
+        );
+        self.compiler.borrow_mut().raise_error(
+            expr,
+            "Types in binary operation do not match",
+            Some(suggestion.as_str()),
+        );
+    }
+
+    pub(crate) fn format_deferred_error(
+        &mut self,
+        expression: &Expression,
+        error: &str,
+        suggestion: Option<&str>,
+    ) -> String {
+        let start_position = expression.get_span().start + 1;
+        let ref_compiler = self.compiler.borrow();
+        let line = &ref_compiler.get_lines_as_slice()[expression.get_line() - 1];
+        let mut temp = String::new();
+        let suggest = match suggestion {
+            Some(x) => {
+                temp.push(' ');
+                temp.push_str(x);
+                temp.as_str()
+            }
+            None => "",
+        };
+
+        let error_line = format!(
+            "      |\n    {} | {}\n      |{}^{}",
+            expression.get_line(),
+            line,
+            " ".repeat(start_position),
+            suggest
+        );
+
+        format!(
+            "error: {} (at line {}, position {}):\n\n{}",
+            error,
+            expression.get_line(),
+            start_position,
+            error_line,
+        )
     }
 }

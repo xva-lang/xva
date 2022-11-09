@@ -1,5 +1,7 @@
 use super::{
     ast_type::ASTType,
+    declaration::Declaration,
+    identifier::IdentifierExpression,
     literal::LiteralVariant,
     operator::{InfixOperator, PrefixOperator},
 };
@@ -53,6 +55,8 @@ pub(crate) enum ExpressionVariant {
     Binary(BinaryExpression),
     Prefix(PrefixExpression),
     Parenthesised(ParenthesisedExpression),
+    Declaration(Declaration),
+    Identifier(IdentifierExpression),
 }
 
 impl std::fmt::Display for ExpressionVariant {
@@ -62,6 +66,8 @@ impl std::fmt::Display for ExpressionVariant {
             ExpressionVariant::Binary(b) => write!(f, "{}", b),
             ExpressionVariant::Prefix(p) => write!(f, "{}", p),
             ExpressionVariant::Parenthesised(p) => write!(f, "{}", p),
+            ExpressionVariant::Declaration(d) => write!(f, "{}", d),
+            ExpressionVariant::Identifier(i) => write!(f, "{}", i),
         }
     }
 }

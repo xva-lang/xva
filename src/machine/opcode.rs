@@ -94,6 +94,10 @@ pub(crate) enum Opcode {
     FloatSubtract,
     FloatMultiply,
     FloatDivide,
+
+    Declaration,
+    StoreLocal,
+    LoadLocal,
 }
 
 const OPCODE_HALT: u8 = 0;
@@ -113,6 +117,9 @@ const OPCODE_FLOAT_ADD: u8 = 0xD;
 const OPCODE_FLOAT_SUBTRACT: u8 = 0xE;
 const OPCODE_FLOAT_MULTIPLY: u8 = 0xF;
 const OPCODE_FLOAT_DIVIDE: u8 = 0x10;
+const OPCODE_DECLARATION: u8 = 0x11;
+const OPCODE_STORE_LOCAL: u8 = 0x12;
+const OPCODE_LOAD_LOCAL: u8 = 0x13;
 
 impl From<u8> for Opcode {
     fn from(value: u8) -> Self {
@@ -134,7 +141,9 @@ impl From<u8> for Opcode {
             OPCODE_FLOAT_SUBTRACT => Opcode::FloatSubtract,
             OPCODE_FLOAT_MULTIPLY => Opcode::FloatMultiply,
             OPCODE_FLOAT_DIVIDE => Opcode::FloatDivide,
-
+            OPCODE_DECLARATION => Opcode::Declaration,
+            OPCODE_STORE_LOCAL => Opcode::StoreLocal,
+            OPCODE_LOAD_LOCAL => Opcode::LoadLocal,
             _ => Opcode::Illegal,
         }
     }
@@ -161,6 +170,9 @@ impl From<Opcode> for u8 {
             Opcode::FloatSubtract => OPCODE_FLOAT_SUBTRACT,
             Opcode::FloatMultiply => OPCODE_FLOAT_MULTIPLY,
             Opcode::FloatDivide => OPCODE_FLOAT_DIVIDE,
+            Opcode::Declaration => OPCODE_DECLARATION,
+            Opcode::StoreLocal => OPCODE_STORE_LOCAL,
+            Opcode::LoadLocal => OPCODE_LOAD_LOCAL,
         }
     }
 }

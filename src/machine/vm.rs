@@ -400,14 +400,14 @@ mod tests {
     }
 
     fn expect_return_value(input: &str, return_val: i64) {
-        let original_lines = syntax::lexer::utils::input_lines_as_vec(input);
+        let original_lines = syntax::lexer::utils::string_lines_as_vec(String::from(input));
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
         let mut parser = Parser::new(token_stream, original_lines.clone());
 
-        let mut compiler = Compiler::new(original_lines.clone());
+        let mut compiler = Compiler::new();
 
-        compiler.compile(&mut parser.parse());
+        compiler.compile(&mut parser.parse(), original_lines.clone());
         let mut vm = VirtualMachine::new();
         vm.program = compiler.get_output_as_slice().to_vec();
         vm.run();
