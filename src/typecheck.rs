@@ -114,30 +114,33 @@ impl<'compiler> TypeChecker<'compiler> {
                 PrefixOperator::Negation => todo!("Prefix expression"),
             },
             ExpressionVariant::Declaration(_) => ASTType::Void,
+            ExpressionVariant::Assignment(_) => ASTType::Void,
             ExpressionVariant::Identifier(i) => {
-                let (outer_result, outer_error): (ASTType, String);
+                let (outer_result, outer_error): (ASTType, Option<String>);
 
                 {
                     let ref_compiler = self.compiler.borrow();
                     let lookup_result = ref_compiler.lookup_symbol(i.get_name());
                     let (result, error) = match lookup_result {
-                        Ok(x) => match x.get_type() {
-                            ValueType::Void => (ASTType::Void, String::from("")),
-                            ValueType::Integer(_) => (ASTType::Integer, String::from("")),
-                            ValueType::Float(_) => (ASTType::Float, String::from("")),
-                            ValueType::Boolean(_) => (ASTType::Boolean, String::from("")),
+                        Ok(x) => match x.get_value() {
+                            ValueType::Void => (ASTType::Void, None),
+                            ValueType::Integer(_) => (ASTType::Integer, None),
+                            ValueType::Float(_) => (ASTType::Float, None),
+                            ValueType::Boolean(_) => (ASTType::Boolean, None),
                         },
-                        Err(err) => (ASTType::Void, err),
+                        Err(err) => (ASTType::Void, Some(err)),
                     };
 
                     outer_result = result;
-                    outer_error = String::from(error);
+                    outer_error = error;
                 }
 
-                if outer_error != "" {
-                    self.compiler
-                        .borrow_mut()
-                        .raise_error(expression, outer_error.as_str(), None);
+                if outer_error.is_some() {
+                    self.compiler.borrow_mut().raise_error(
+                        expression,
+                        outer_error.unwrap().as_str(),
+                        None,
+                    );
                 }
 
                 outer_result

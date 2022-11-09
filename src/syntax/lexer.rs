@@ -102,4 +102,9 @@ mod tests {
     fn lex_float_negative_upper_e() {
         check_lex("1.5E-7", expect![[r#"FloatLiteral@[1:0..6] "1.5E-7""#]])
     }
+
+    #[test]
+    fn lex_mutable_keyword() {
+        check_lex("mutable", expect![[r#"MutableKeyword@[1:0..7] "mutable""#]])
+    }
 }

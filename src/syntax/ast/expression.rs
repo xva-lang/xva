@@ -1,4 +1,5 @@
 use super::{
+    assignment::Assignment,
     ast_type::ASTType,
     declaration::Declaration,
     identifier::IdentifierExpression,
@@ -35,6 +36,10 @@ impl Expression {
         self.location.get_line()
     }
 
+    pub fn get_location(&self) -> SyntaxLocation {
+        self.location
+    }
+
     #[allow(dead_code)]
     pub fn get_type(&self) -> &ASTType {
         &self.ast_type
@@ -59,6 +64,7 @@ pub(crate) enum ExpressionVariant {
     Parenthesised(ParenthesisedExpression),
     Declaration(Declaration),
     Identifier(IdentifierExpression),
+    Assignment(Assignment),
 }
 
 impl std::fmt::Display for ExpressionVariant {
@@ -70,6 +76,7 @@ impl std::fmt::Display for ExpressionVariant {
             ExpressionVariant::Parenthesised(p) => write!(f, "{}", p),
             ExpressionVariant::Declaration(d) => write!(f, "{}", d),
             ExpressionVariant::Identifier(i) => write!(f, "{}", i),
+            ExpressionVariant::Assignment(a) => write!(f, "{}", a),
         }
     }
 }

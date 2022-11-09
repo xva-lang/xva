@@ -1,5 +1,6 @@
 use super::lexer::span::Span;
 
+#[derive(Copy, Clone)]
 pub(crate) struct SyntaxLocation {
     line: usize,
     line_span: Span,

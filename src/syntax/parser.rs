@@ -2,6 +2,7 @@ use crate::compiler::error::CompilerError;
 
 use super::{
     ast::{
+        assignment::Assignment,
         declaration::Declaration,
         expression::{
             BinaryExpression, Expression, ExpressionVariant, ParenthesisedExpression,
@@ -39,9 +40,7 @@ impl<'stream> Parser<'stream> {
         if self.errors.len() > 0 {
             Err(&self.errors)
         } else {
-            Ok(Root {
-                expressions: children,
-            })
+            Ok(Root::new(children))
         }
     }
 
@@ -147,7 +146,13 @@ impl<'stream> Parser<'stream> {
                 },
                 TokenKind::LeftParenthesis => self.parenthesised_expression(),
                 TokenKind::LetKeyword => self.declaration(),
-                TokenKind::Identifier => self.identifier(),
+                TokenKind::Identifier => match self.peek_next_variant() {
+                    Some(t) => match t {
+                        TokenKind::Equals => self.assignment(),
+                        _ => self.identifier(),
+                    },
+                    None => self.identifier(),
+                },
                 _ => {
                     self.raise_error_at_current(
                         format!(
@@ -164,20 +169,109 @@ impl<'stream> Parser<'stream> {
         }
     }
 
-    fn declaration(&mut self) -> Option<Expression> {
-        let let_keyword = self.bump();
-        let line_start = let_keyword.unwrap().get_line_span().start;
-        let absolute_start = let_keyword.unwrap().get_absolute_span().start;
-        let (ident, line, line_end, absolute_end) = match self.expect_kind_or_error(
+    fn assignment(&mut self) -> Option<Expression> {
+        let (ident_location, target_identifier) = match self.expect_kind_or_error(
             TokenKind::Identifier,
             "Expected an identifier",
             None,
         ) {
             Some(ident) => (
+                SyntaxLocation::new(
+                    ident.get_line(),
+                    ident.get_line_span(),
+                    ident.get_absolute_span(),
+                ),
                 ident.get_text().to_string(),
-                ident.get_line(),
-                ident.get_line_span().end,
-                ident.get_absolute_span().end,
+            ),
+            None => {
+                return None;
+            }
+        };
+
+        let equal_sign = self.bump().unwrap();
+        let equal_location = SyntaxLocation::new(
+            equal_sign.get_line(),
+            equal_sign.get_line_span(),
+            equal_sign.get_absolute_span(),
+        );
+
+        if self.peek_variant().is_none() {
+            self.raise_error(
+                "Expected an expression",
+                equal_location,
+                Some("Consider writing an expression here"),
+            );
+
+            None
+        } else {
+            let expr = self.expression();
+            match expr {
+                Some(e) => {
+                    let location = SyntaxLocation::new(
+                        ident_location.get_line(),
+                        Span {
+                            start: ident_location.get_line_span().start,
+                            end: e.get_line_span().end,
+                        },
+                        Span {
+                            start: ident_location.get_absolute_span().start,
+                            end: e.get_absolute_span().end,
+                        },
+                    );
+
+                    Some(Expression::new(
+                        ExpressionVariant::Assignment(Assignment::new(
+                            target_identifier,
+                            location,
+                            Box::from(e),
+                        )),
+                        location,
+                    ))
+                }
+                None => {
+                    self.raise_error(
+                        "Expected an expression",
+                        equal_location,
+                        Some("Consider writing an expression here"),
+                    );
+                    None
+                }
+            }
+        }
+    }
+
+    fn declaration(&mut self) -> Option<Expression> {
+        let let_keyword = self.bump().unwrap();
+        let let_location = SyntaxLocation::new(
+            let_keyword.get_line(),
+            let_keyword.get_line_span(),
+            let_keyword.get_absolute_span(),
+        );
+
+        let mut mutable = false;
+        match self.peek_variant() {
+            Some(v) => match v {
+                TokenKind::MutableKeyword => {
+                    mutable = true;
+                    self.bump();
+                }
+                _ => {}
+            },
+            None => {}
+        }
+
+        let (ident_location, ident) = match self.expect_kind_or_error(
+            TokenKind::Identifier,
+            "Expected an identifier",
+            None,
+        ) {
+            Some(ident) => (
+                SyntaxLocation::new(
+                    ident.get_line(),
+                    ident.get_line_span(),
+                    ident.get_absolute_span(),
+                ),
+                ident.get_text().to_string(),
             ),
             None => {
                 return None;
@@ -188,53 +282,74 @@ impl<'stream> Parser<'stream> {
             Some(v) => match v {
                 TokenKind::Equals => {
                     let _ = self.bump();
+                    let assignment = self.expression();
+                    let assignment_location = match &assignment {
+                        Some(e) => SyntaxLocation::new(
+                            e.get_line(),
+                            e.get_line_span(),
+                            e.get_absolute_span(),
+                        ),
+                        None => ident_location,
+                    };
                     Some(Expression::new(
                         ExpressionVariant::Declaration(Declaration::new(
                             ident,
-                            match self.expression() {
-                                Some(e) => Some(Box::from(e)),
+                            ident_location,
+                            match &assignment {
+                                Some(_) => Some(Box::new(assignment.unwrap())),
                                 None => None,
                             },
+                            mutable,
                         )),
                         SyntaxLocation::new(
-                            line,
+                            let_location.get_line(),
                             Span {
-                                start: line_start,
-                                end: line_end,
+                                start: let_location.get_line_span().start,
+                                end: assignment_location.get_line_span().end,
                             },
                             Span {
-                                start: absolute_start,
-                                end: absolute_end,
+                                start: let_location.get_absolute_span().start,
+                                end: assignment_location.get_absolute_span().end,
                             },
                         ),
                     ))
                 }
                 _ => Some(Expression::new(
-                    ExpressionVariant::Declaration(Declaration::new(ident, None)),
+                    ExpressionVariant::Declaration(Declaration::new(
+                        ident,
+                        ident_location,
+                        None,
+                        mutable,
+                    )),
                     SyntaxLocation::new(
-                        line,
+                        let_location.get_line(),
                         Span {
-                            start: line_start,
-                            end: line_end,
+                            start: let_location.get_line_span().start,
+                            end: ident_location.get_line_span().end,
                         },
                         Span {
-                            start: absolute_start,
-                            end: absolute_end,
+                            start: let_location.get_absolute_span().start,
+                            end: ident_location.get_absolute_span().end,
                         },
                     ),
                 )),
             },
             None => Some(Expression::new(
-                ExpressionVariant::Declaration(Declaration::new(ident, None)),
+                ExpressionVariant::Declaration(Declaration::new(
+                    ident,
+                    ident_location,
+                    None,
+                    mutable,
+                )),
                 SyntaxLocation::new(
-                    line,
+                    let_location.get_line(),
                     Span {
-                        start: line_start,
-                        end: line_end,
+                        start: let_location.get_line_span().start,
+                        end: ident_location.get_line_span().end,
                     },
                     Span {
-                        start: absolute_start,
-                        end: absolute_end,
+                        start: let_location.get_absolute_span().start,
+                        end: ident_location.get_absolute_span().end,
                     },
                 ),
             )),
@@ -325,16 +440,7 @@ impl<'stream> Parser<'stream> {
             },
             None => None,
         };
-        // let result = match parser.peek() {
-        //     Some(SyntaxKind::Identifier) => identifier_expression(parser),
-        //     Some(SyntaxKind::IntegerLiteral) => literal(parser),
-        //     Some(SyntaxKind::Minus) => prefix_expression(parser, PrefixOperator::Negation),
-        //     Some(SyntaxKind::LeftParenthesis) => parenthesised_expression(parser),
-        //     Some(SyntaxKind::TrueLiteral) | Some(SyntaxKind::FalseLiteral) => literal(parser),
-        //     _ => return None,
-        // };
 
-        // result
         result
     }
 
@@ -509,5 +615,18 @@ error: Expected a closing parenthesis (at line 1, position 11):
     #[test]
     fn parse_declaration_without_assignment() {
         check_expression("let number", expect![[r#"Declaration(number, None)"#]])
+    }
+
+    #[test]
+    fn parse_mutable_declaration() {
+        check_expression(
+            "let mutable number = 123",
+            expect![[r#"Declaration(number, mutable, Integer(123))"#]],
+        )
+    }
+
+    #[test]
+    fn parse_assignment_to_mutable_variable() {
+        check_expression("number = 123", expect![["Assignment(number, Integer(123))"]])
     }
 }

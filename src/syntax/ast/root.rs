@@ -15,7 +15,7 @@ impl std::fmt::Display for Root {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut sb = String::new();
         for expression in self.expressions.iter() {
-            sb.push_str(format!("{}", expression).as_str())
+            sb.push_str(format!("{}\n", expression).as_str())
         }
 
         write!(f, "{}", sb)

@@ -1,10 +1,8 @@
 pub(crate) mod error;
+pub(super) mod symtable;
 
 use crate::compiler::error::CompilerError;
-use crate::machine::{
-    opcode::Opcode,
-    symtable::{SymbolTable, SymbolTableEntry},
-};
+use crate::machine::opcode::Opcode;
 use crate::runtime::typing::builtins::ValueType;
 use crate::syntax::ast::{
     ast_type::ASTType,
@@ -14,6 +12,7 @@ use crate::syntax::ast::{
     root::Root,
 };
 use crate::syntax::location::SyntaxLocation;
+use symtable::{SymbolTable, SymbolTableEntry};
 
 pub(crate) struct Compiler {
     output: Vec<u8>,
@@ -31,8 +30,13 @@ impl Compiler {
     }
 
     pub(crate) fn compile(&mut self, root_node: &mut Root) -> Result<(), &Vec<CompilerError>> {
+        for expression in root_node.expressions.iter() {
+            self.collect_symbols(expression, expression.get_type());
+        }
+
         let mut type_checker = super::typecheck::TypeChecker::new(self);
         type_checker.walk_untyped_tree(root_node);
+
         for expression in root_node.expressions.iter() {
             self.compile_expression(&expression, expression.get_type());
         }
@@ -77,43 +81,113 @@ impl Compiler {
                 }
             },
             ExpressionVariant::Prefix(_) => todo!(),
-            ExpressionVariant::Declaration(d) => {
-                // self.globals.new_symbol(d.get_name().to_string(), value_type)
-                let sym_table_type: ValueType;
-                match d.get_assignment() {
-                    Some(a) => {
-                        sym_table_type = match a.get_type() {
+            ExpressionVariant::Declaration(d) => match d.get_assignment() {
+                Some(a) => {
+                    self.compile_expression(a, a.get_type());
+                    self.emit(Opcode::StoreLocal);
+                    self.emit_vec(
+                        (d.get_name().as_bytes().len() as u16)
+                            .to_le_bytes()
+                            .to_vec(),
+                    );
+                    self.emit_vec(d.get_name().as_bytes().to_vec());
+                }
+                None => {}
+            },
+            ExpressionVariant::Identifier(i) => {
+                println!("{}", i);
+                let match_result = self.lookup_symbol(i.get_name());
+                match match_result {
+                    Ok(_) => {
+                        self.emit(Opcode::LoadLocal);
+                        self.emit_vec((i.get_name().len() as u16).to_le_bytes().to_vec());
+                        self.emit_vec(i.get_name().as_bytes().to_vec());
+                    }
+
+                    Err(e) => self.raise_error_at_location(
+                        expression.get_location(),
+                        e.as_str(),
+                        Some(
+                            format!("Consider declaring a variable named '{}'", i.get_name())
+                                .as_str(),
+                        ),
+                    ),
+                }
+            }
+            ExpressionVariant::Assignment(a) => match self.lookup_symbol(a.get_target_identifier())
+            {
+                Ok(s) => {
+                    if s.is_mutable() {
+                        self.compile_expression(a.get_expression(), a.get_expression().get_type());
+                        self.emit(Opcode::StoreLocal);
+                        self.emit_vec(
+                            (a.get_target_identifier().as_bytes().len() as u16)
+                                .to_le_bytes()
+                                .to_vec(),
+                        );
+                        self.emit_vec(a.get_target_identifier().as_bytes().to_vec());
+                    } else {
+                        self.raise_error_at_location(
+                            expression.get_location(),
+                            "Attempted assignment to immutable variable",
+                            Some(
+                                format!(
+                                    "Consider adding the 'mutable' keyword to the declaration of '{}'",
+                                    a.get_target_identifier()
+                                )
+                                .as_str(),
+                            ),
+                        )
+                    }
+                }
+
+                Err(e) => self.raise_error_at_location(
+                    expression.get_location(),
+                    e.as_str(),
+                    Some(
+                        format!(
+                            "Consider declaring a variable named '{}'",
+                            a.get_target_identifier()
+                        )
+                        .as_str(),
+                    ),
+                ),
+            },
+        }
+    }
+
+    fn collect_symbols(&mut self, expression: &Expression, expr_type: &ASTType) {
+        match &expression.variant {
+            ExpressionVariant::Declaration(d) => match self.lookup_symbol(d.get_name()) {
+                Ok(_) => self.raise_error_at_location(
+                    d.get_identifier_location(),
+                    format!("Re-declaring existing name '{}'", d.get_name()).as_str(),
+                    Some("Consider changing this declaration to use a different name"),
+                ),
+                Err(_) => {
+                    let sym_table_type = match d.get_assignment() {
+                        Some(e) => match e.get_type() {
                             ASTType::Void => ValueType::Void,
                             ASTType::Integer => ValueType::Integer(0),
                             ASTType::Boolean => ValueType::Boolean(false),
                             ASTType::Float => ValueType::Float(0.0),
                             ASTType::OneOf(_) => todo!(),
                             ASTType::Function(_, _) => todo!(),
-                        };
+                        },
+                        None => ValueType::Void,
+                    };
 
-                        self.compile_expression(a, a.get_type());
-                        self.emit(Opcode::StoreLocal);
-                        self.emit_vec(
-                            (d.get_name().as_bytes().len() as u16)
-                                .to_le_bytes()
-                                .to_vec(),
-                        );
-                        self.emit_vec(d.get_name().as_bytes().to_vec());
-                    }
-                    None => {
-                        sym_table_type = ValueType::Void;
-                    }
+                    let (line, span) = (expression.get_line(), expression.get_line_span());
+                    self.globals.new_symbol(
+                        d.get_name().to_string(),
+                        sym_table_type,
+                        line,
+                        span,
+                        d.is_mutable(),
+                    );
                 }
-
-                let (line, span) = (expression.get_line(), expression.get_line_span());
-                self.globals
-                    .new_symbol(d.get_name().to_string(), sym_table_type, line, span);
-            }
-            ExpressionVariant::Identifier(i) => {
-                self.emit(Opcode::LoadLocal);
-                self.emit_vec((i.get_name().len() as u16).to_le_bytes().to_vec());
-                self.emit_vec(i.get_name().as_bytes().to_vec());
-            }
+            },
+            _ => {}
         }
     }
 
@@ -179,11 +253,25 @@ impl Compiler {
         ));
     }
 
+    pub(crate) fn raise_error_at_location(
+        &mut self,
+        location: SyntaxLocation,
+        error: &str,
+        suggestion: Option<&str>,
+    ) {
+        self.errors
+            .push(CompilerError::new(location, error, suggestion));
+    }
+
     pub(crate) fn lookup_symbol(&self, name: &str) -> Result<&SymbolTableEntry, String> {
         match self.globals.lookup(name) {
             Some(x) => Ok(x),
             None => Err(format!("The name '{}' is not declared in this scope", name)),
         }
+    }
+
+    pub(crate) fn clear_errors(&mut self) {
+        self.errors.clear();
     }
 }
 

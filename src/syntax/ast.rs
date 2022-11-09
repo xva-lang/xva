@@ -1,3 +1,4 @@
+pub(crate) mod assignment;
 pub(crate) mod ast_type;
 pub(crate) mod declaration;
 pub(crate) mod expression;

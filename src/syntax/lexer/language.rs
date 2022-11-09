@@ -17,6 +17,9 @@ pub enum TokenKind {
     #[token("let")]
     LetKeyword,
 
+    #[token("mutable")]
+    MutableKeyword,
+
     #[regex("[A-Za-z_][A-Za-z0-9_]*!?")]
     Identifier,
 
