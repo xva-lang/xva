@@ -1,3 +1,5 @@
+use crate::utils::errors::CompilerError;
+
 use super::{
     ast::{
         declaration::Declaration,
@@ -12,30 +14,35 @@ use super::{
     },
     lexer::{language::TokenKind, lexeme::Lexeme},
     lexer::{span::Span, token_stream::TokenStream},
+    location::SyntaxLocation,
 };
 
 pub(crate) struct Parser<'stream> {
     stream: TokenStream<'stream>,
-    errors: Vec<String>,
-    original_lines: Vec<String>,
+    errors: Vec<CompilerError>,
 }
 
 impl<'stream> Parser<'stream> {
-    pub fn new(stream: TokenStream<'stream>, original_lines: Vec<String>) -> Self {
+    pub fn new(stream: TokenStream<'stream>) -> Self {
         Self {
             stream,
             errors: vec![],
-            original_lines,
         }
     }
 
-    pub fn parse(&mut self) -> Root {
+    pub fn parse(&mut self) -> Result<Root, &Vec<CompilerError>> {
         let mut children: Vec<Expression> = vec![];
         while let Some(expression) = self.expression() {
             children.push(expression);
         }
 
-        Root::new(children)
+        if self.errors.len() > 0 {
+            Err(&self.errors)
+        } else {
+            Ok(Root {
+                expressions: children,
+            })
+        }
     }
 
     fn peek_variant(&self) -> Option<TokenKind> {
@@ -59,29 +66,39 @@ impl<'stream> Parser<'stream> {
     }
 
     fn raise_error_at_previous(&mut self, message: &str, suggestion: Option<&str>) {
-        let (line, span) = match self.previous_as_ref() {
+        let (line, line_span, absolute_span) = match self.previous_as_ref() {
             Some(l) => {
                 let mut modified_span = l.get_line_span();
                 modified_span.start += l.get_text().len() + 1;
-                (l.get_line(), modified_span)
+                let absolute_span = l.get_absolute_span();
+                (l.get_line(), modified_span, absolute_span)
             }
-            None => (0, (0..0).into()),
+            None => (0, (0..0).into(), (0..0).into()),
         };
 
-        self.raise_error(message, line, span, suggestion);
+        self.raise_error(
+            message,
+            SyntaxLocation::new(line, line_span, absolute_span),
+            suggestion,
+        );
     }
 
     fn raise_error_at_current(&mut self, message: &str, suggestion: Option<&str>) {
-        let (line, span) = match self.current_as_ref() {
+        let (line, line_span, absolute_span) = match self.current_as_ref() {
             Some(l) => {
                 let mut modified_span = l.get_line_span();
                 modified_span.start += 1;
-                (l.get_line(), modified_span)
+
+                (l.get_line(), modified_span, l.get_absolute_span())
             }
-            None => (0, (0..0).into()),
+            None => (0, (0..0).into(), (0..0).into()),
         };
 
-        self.raise_error(message, line, span, suggestion);
+        self.raise_error(
+            message,
+            SyntaxLocation::new(line, line_span, absolute_span),
+            suggestion,
+        );
     }
 
     fn expect_kind_or_error(
@@ -107,25 +124,9 @@ impl<'stream> Parser<'stream> {
         }
     }
 
-    fn raise_error(&mut self, message: &str, line: usize, span: Span, suggestion: Option<&str>) {
-        let error_line = match suggestion {
-            Some(s) => format!(
-                "      |\n    1 | {}\n      |{}^ {}",
-                self.original_lines[line - 1],
-                " ".repeat(span.start),
-                s
-            ),
-            None => format!(
-                "      |\n    1 | {}\n      |{}^",
-                self.original_lines[line],
-                " ".repeat(span.start)
-            ),
-        };
-
-        self.errors.push(format!(
-            "error: {message} (at line {line}, position {}):\n\n{}",
-            span.start, error_line
-        ))
+    fn raise_error(&mut self, message: &str, location: SyntaxLocation, suggestion: Option<&str>) {
+        self.errors
+            .push(CompilerError::new(location, message, suggestion));
     }
 
     pub fn expression(&mut self) -> Option<Expression> {
@@ -165,8 +166,9 @@ impl<'stream> Parser<'stream> {
 
     fn declaration(&mut self) -> Option<Expression> {
         let let_keyword = self.bump();
-        let start = let_keyword.unwrap().get_line_span().start;
-        let (ident, line, end) = match self.expect_kind_or_error(
+        let line_start = let_keyword.unwrap().get_line_span().start;
+        let absolute_start = let_keyword.unwrap().get_absolute_span().start;
+        let (ident, line, line_end, absolute_end) = match self.expect_kind_or_error(
             TokenKind::Identifier,
             "Expected an identifier",
             None,
@@ -175,6 +177,7 @@ impl<'stream> Parser<'stream> {
                 ident.get_text().to_string(),
                 ident.get_line(),
                 ident.get_line_span().end,
+                ident.get_absolute_span().end,
             ),
             None => {
                 return None;
@@ -193,37 +196,67 @@ impl<'stream> Parser<'stream> {
                                 None => None,
                             },
                         )),
-                        line,
-                        Span { start, end },
+                        SyntaxLocation::new(
+                            line,
+                            Span {
+                                start: line_start,
+                                end: line_end,
+                            },
+                            Span {
+                                start: absolute_start,
+                                end: absolute_end,
+                            },
+                        ),
                     ))
                 }
                 _ => Some(Expression::new(
                     ExpressionVariant::Declaration(Declaration::new(ident, None)),
-                    line,
-                    Span { start, end },
+                    SyntaxLocation::new(
+                        line,
+                        Span {
+                            start: line_start,
+                            end: line_end,
+                        },
+                        Span {
+                            start: absolute_start,
+                            end: absolute_end,
+                        },
+                    ),
                 )),
             },
             None => Some(Expression::new(
                 ExpressionVariant::Declaration(Declaration::new(ident, None)),
-                line,
-                Span { start, end },
+                SyntaxLocation::new(
+                    line,
+                    Span {
+                        start: line_start,
+                        end: line_end,
+                    },
+                    Span {
+                        start: absolute_start,
+                        end: absolute_end,
+                    },
+                ),
             )),
         }
     }
 
     fn identifier(&mut self) -> Option<Expression> {
         let ident = self.bump().unwrap();
-        let (line, span) = (ident.get_line(), ident.get_line_span());
+        let (line, line_span, absolute_span) = (
+            ident.get_line(),
+            ident.get_line_span(),
+            ident.get_absolute_span(),
+        );
         Some(Expression::new(
             ExpressionVariant::Identifier(IdentifierExpression::new(ident.get_text().to_string())),
-            line,
-            span,
+            SyntaxLocation::new(line, line_span, absolute_span),
         ))
     }
 
     fn expression_binding_power(&mut self, minimum_binding_power: u8) -> Option<Expression> {
         let mut left = self.left()?;
-        let left_span = left.get_span();
+        let (left_line_span, left_absolute_span) = (left.get_line_span(), left.get_absolute_span());
         let left_line = left.get_line();
 
         loop {
@@ -249,8 +282,8 @@ impl<'stream> Parser<'stream> {
                 break;
             }
 
-            let right_span = match &right {
-                Some(r) => r.get_span(),
+            let (right_line_span, right_absolute_span) = match &right {
+                Some(r) => (r.get_line_span(), r.get_absolute_span()),
                 None => unreachable!("Right span match condition failed"),
             };
 
@@ -260,8 +293,17 @@ impl<'stream> Parser<'stream> {
                     operator,
                     Box::from(right.unwrap()),
                 )),
-                left_line,
-                (left_span.start..right_span.end).into(),
+                SyntaxLocation::new(
+                    left_line,
+                    Span {
+                        start: left_line_span.start,
+                        end: right_line_span.end,
+                    },
+                    Span {
+                        start: left_absolute_span.start,
+                        end: right_absolute_span.end,
+                    },
+                ),
             );
         }
 
@@ -298,6 +340,10 @@ impl<'stream> Parser<'stream> {
 
     fn literal(&mut self) -> Option<Expression> {
         let literal_lexeme = self.bump().unwrap();
+        let (line_span, absolute_span) = (
+            literal_lexeme.get_line_span(),
+            literal_lexeme.get_absolute_span(),
+        );
 
         let literal_variant = match literal_lexeme.get_variant() {
             TokenKind::IntegerLiteral => {
@@ -314,8 +360,7 @@ impl<'stream> Parser<'stream> {
 
         Some(Expression::new(
             ExpressionVariant::Literal(literal_variant),
-            literal_lexeme.get_line(),
-            literal_lexeme.get_line_span(),
+            SyntaxLocation::new(literal_lexeme.get_line(), line_span, absolute_span),
         ))
     }
 
@@ -323,27 +368,33 @@ impl<'stream> Parser<'stream> {
         let (_, right_binding_power) = operator.binding_power();
 
         let marker = self.bump().unwrap();
-        let (line, span) = (marker.get_line(), marker.get_line_span());
+        let (line, line_span, absolute_span) = (
+            marker.get_line(),
+            marker.get_line_span(),
+            marker.get_absolute_span(),
+        );
 
         Some(Expression::new(
             ExpressionVariant::Prefix(PrefixExpression::new(
                 operator,
                 Box::from(self.expression_binding_power(right_binding_power).unwrap()),
             )),
-            line,
-            span,
+            SyntaxLocation::new(line, line_span, absolute_span),
         ))
     }
 
     fn parenthesised_expression(&mut self) -> Option<Expression> {
         let marker = self.bump().unwrap();
-        let (line, span) = (marker.get_line(), marker.get_line_span());
+        let (line, line_span, absolute_span) = (
+            marker.get_line(),
+            marker.get_line_span(),
+            marker.get_absolute_span(),
+        );
         let result = Some(Expression::new(
             ExpressionVariant::Parenthesised(ParenthesisedExpression::new(Box::from(
                 self.expression_binding_power(0).unwrap(),
             ))),
-            line,
-            span,
+            SyntaxLocation::new(line, line_span, absolute_span),
         ));
 
         // Consume the right parenthesis
@@ -355,35 +406,35 @@ impl<'stream> Parser<'stream> {
 
         result
     }
-
-    pub(crate) fn get_errors(&self) -> &Vec<String> {
-        &self.errors
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Parser;
-    use crate::syntax::lexer::{self, language::TokenKind, token_stream::TokenStream};
+    use crate::syntax::lexer::{language::TokenKind, token_stream::TokenStream};
     use expect_test::{expect, Expect};
     use logos::Logos;
 
     fn check_expression(input: &str, expected: Expect) {
-        let original_lines = lexer::utils::string_lines_as_vec(String::from(input));
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream, original_lines);
-
-        expected.assert_eq(format!("{}", parser.parse()).as_str())
+        let mut parser = Parser::new(token_stream);
+        expected.assert_eq(format!("{}", parser.parse().unwrap()).as_str())
     }
 
     fn expect_error(input: &str, expected_error: Expect) {
-        let original_lines = lexer::utils::string_lines_as_vec(String::from(input));
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream, original_lines);
+        let mut parser = Parser::new(token_stream);
         let _ = parser.parse();
-        expected_error.assert_eq(parser.errors.get(0).unwrap());
+        expected_error.assert_eq(
+            parser
+                .errors
+                .get(0)
+                .unwrap()
+                .format_with_line(input)
+                .as_str(),
+        );
     }
 
     #[test]

@@ -1,40 +1,15 @@
-use logos::{Lexer, Logos};
-
-use self::language::TokenKind;
-
 pub(crate) mod language;
 pub(super) mod lexeme;
 pub(crate) mod span;
 pub(crate) mod token_stream;
 
-pub mod utils {
-    pub(crate) fn input_lines_as_vec(input: &str) -> Vec<&str> {
-        input.split("\n").collect()
-    }
+#[allow(dead_code)]
+pub mod utils;
 
-    pub(crate) fn string_lines_as_vec(input: String) -> Vec<String> {
-        let mut result: Vec<String> = vec![];
-        for line in input.split("\n") {
-            result.push(String::from(line));
-        }
-
-        result
-    }
-
-    pub(crate) fn string_lines_with_original(input: String) -> (Vec<String>, String) {
-        let mut result: Vec<String> = vec![];
-        for line in input.split("\n") {
-            result.push(String::from(line));
-        }
-
-        (result, String::from(input))
-    }
-}
-
-pub(crate) fn lex(input: &str) -> (Lexer<TokenKind>, String) {
-    let new_string = String::from(input);
-    (TokenKind::lexer(input), new_string)
-}
+// pub(crate) fn lex(input: &str) -> (Lexer<TokenKind>, String) {
+//     let new_string = String::from(input);
+//     (TokenKind::lexer(input), new_string)
+// }
 
 #[cfg(test)]
 mod tests {

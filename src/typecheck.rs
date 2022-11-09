@@ -14,14 +14,12 @@ use crate::{
 
 pub(crate) struct TypeChecker<'compiler> {
     compiler: Rc<RefCell<&'compiler mut Compiler>>,
-    errors: Vec<(String, bool)>,
 }
 
 impl<'compiler> TypeChecker<'compiler> {
     pub fn new(compiler: &'compiler mut Compiler) -> Self {
         Self {
             compiler: Rc::new(RefCell::new(compiler)),
-            errors: vec![],
         }
     }
 
@@ -115,7 +113,7 @@ impl<'compiler> TypeChecker<'compiler> {
             ExpressionVariant::Prefix(pre) => match pre.get_prefix() {
                 PrefixOperator::Negation => todo!("Prefix expression"),
             },
-            ExpressionVariant::Declaration(d) => ASTType::Void,
+            ExpressionVariant::Declaration(_) => ASTType::Void,
             ExpressionVariant::Identifier(i) => {
                 let (outer_result, outer_error): (ASTType, String);
 
@@ -211,41 +209,5 @@ impl<'compiler> TypeChecker<'compiler> {
             "Types in binary operation do not match",
             Some(suggestion.as_str()),
         );
-    }
-
-    pub(crate) fn format_deferred_error(
-        &mut self,
-        expression: &Expression,
-        error: &str,
-        suggestion: Option<&str>,
-    ) -> String {
-        let start_position = expression.get_span().start + 1;
-        let ref_compiler = self.compiler.borrow();
-        let line = &ref_compiler.get_lines_as_slice()[expression.get_line() - 1];
-        let mut temp = String::new();
-        let suggest = match suggestion {
-            Some(x) => {
-                temp.push(' ');
-                temp.push_str(x);
-                temp.as_str()
-            }
-            None => "",
-        };
-
-        let error_line = format!(
-            "      |\n    {} | {}\n      |{}^{}",
-            expression.get_line(),
-            line,
-            " ".repeat(start_position),
-            suggest
-        );
-
-        format!(
-            "error: {} (at line {}, position {}):\n\n{}",
-            error,
-            expression.get_line(),
-            start_position,
-            error_line,
-        )
     }
 }

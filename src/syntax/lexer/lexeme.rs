@@ -3,7 +3,7 @@ use super::{language::TokenKind, span::Span};
 #[derive(Debug, Clone, Copy)]
 pub struct Lexeme<'text> {
     line: usize,
-    _absolute_span: Span,
+    absolute_span: Span,
     line_span: Span,
     text: &'text str,
     variant: TokenKind,
@@ -19,7 +19,7 @@ impl<'text> Lexeme<'text> {
     ) -> Self {
         Self {
             line,
-            _absolute_span: absolute_span,
+            absolute_span,
             line_span,
             text,
             variant,
@@ -40,6 +40,10 @@ impl<'text> Lexeme<'text> {
 
     pub(crate) fn get_line_span(&self) -> Span {
         self.line_span
+    }
+
+    pub(crate) fn get_absolute_span(&self) -> Span {
+        self.absolute_span
     }
 }
 

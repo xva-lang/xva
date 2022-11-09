@@ -5,32 +5,34 @@ use super::{
     literal::LiteralVariant,
     operator::{InfixOperator, PrefixOperator},
 };
-use crate::syntax::lexer::span::Span;
+use crate::syntax::{lexer::span::Span, location::SyntaxLocation};
 
 #[derive(Debug)]
 pub(crate) struct Expression {
     pub(crate) variant: ExpressionVariant,
     ast_type: ASTType,
-    line: usize,
-    span: Span,
+    location: SyntaxLocation,
 }
 
 impl Expression {
-    pub fn new(variant: ExpressionVariant, line: usize, span: Span) -> Self {
+    pub fn new(variant: ExpressionVariant, location: SyntaxLocation) -> Self {
         Self {
             variant,
-            line,
-            span,
+            location,
             ast_type: ASTType::Void,
         }
     }
 
-    pub fn get_span(&self) -> Span {
-        self.span
+    pub fn get_line_span(&self) -> Span {
+        self.location.get_line_span()
+    }
+
+    pub fn get_absolute_span(&self) -> Span {
+        self.location.get_absolute_span()
     }
 
     pub fn get_line(&self) -> usize {
-        self.line
+        self.location.get_line()
     }
 
     #[allow(dead_code)]

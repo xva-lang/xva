@@ -370,6 +370,7 @@ mod tests {
     use super::VirtualMachine;
     use crate::{
         compiler::Compiler,
+        error_resolver,
         syntax::{
             self,
             lexer::{language::TokenKind, token_stream::TokenStream},
@@ -401,17 +402,38 @@ mod tests {
 
     fn expect_return_value(input: &str, return_val: i64) {
         let original_lines = syntax::lexer::utils::string_lines_as_vec(String::from(input));
+        let error_resolver = error_resolver::ErrorResolver::new(original_lines);
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream, original_lines.clone());
+        let mut parser = Parser::new(token_stream);
 
         let mut compiler = Compiler::new();
+        match parser.parse() {
+            Ok(mut r) => match compiler.compile(&mut r) {
+                Ok(_) => {
+                    let mut vm = VirtualMachine::new();
+                    vm.program = compiler.get_output_as_slice().to_vec();
+                    vm.run();
+                    assert_eq!(vm.pop_i64().unwrap(), return_val);
+                }
+                Err(e) => {
+                    let mut full_error = String::new();
+                    for err in e {
+                        full_error.push_str(&error_resolver.resolve(err));
+                    }
 
-        compiler.compile(&mut parser.parse(), original_lines.clone());
-        let mut vm = VirtualMachine::new();
-        vm.program = compiler.get_output_as_slice().to_vec();
-        vm.run();
-        assert_eq!(vm.pop_i64().unwrap(), return_val);
+                    panic!("{}", full_error);
+                }
+            },
+            Err(e) => {
+                let mut full_error = String::new();
+                for err in e {
+                    full_error.push_str(&error_resolver.resolve(err));
+                }
+
+                panic!("{}", full_error);
+            }
+        }
     }
 
     #[test]

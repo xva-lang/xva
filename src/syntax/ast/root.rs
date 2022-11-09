@@ -1,5 +1,6 @@
 use super::expression::Expression;
 
+#[derive(Debug)]
 pub(crate) struct Root {
     pub(crate) expressions: Vec<Expression>,
 }

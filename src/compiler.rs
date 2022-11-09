@@ -8,11 +8,12 @@ use crate::syntax::ast::{
     operator::InfixOperator,
     root::Root,
 };
+use crate::syntax::location::SyntaxLocation;
+use crate::utils::errors::CompilerError;
 
 pub(crate) struct Compiler {
     output: Vec<u8>,
-    pub(crate) errors: Vec<String>,
-    original_lines: Vec<String>,
+    pub(crate) errors: Vec<CompilerError>,
     globals: SymbolTable,
 }
 
@@ -20,18 +21,22 @@ impl Compiler {
     pub(crate) fn new() -> Self {
         Self {
             output: vec![],
-            original_lines: vec![],
             errors: vec![],
             globals: SymbolTable::new(),
         }
     }
 
-    pub(crate) fn compile(&mut self, root_node: &mut Root, original_lines: Vec<String>) {
-        self.original_lines = original_lines;
+    pub(crate) fn compile(&mut self, root_node: &mut Root) -> Result<(), &Vec<CompilerError>> {
         let mut type_checker = super::typecheck::TypeChecker::new(self);
         type_checker.walk_untyped_tree(root_node);
         for expression in root_node.expressions.iter() {
             self.compile_expression(&expression, expression.get_type());
+        }
+
+        if self.errors.len() > 0 {
+            Err(&self.errors)
+        } else {
+            Ok(())
         }
     }
 
@@ -96,7 +101,7 @@ impl Compiler {
                     }
                 }
 
-                let (line, span) = (expression.get_line(), expression.get_span());
+                let (line, span) = (expression.get_line(), expression.get_line_span());
                 self.globals
                     .new_symbol(d.get_name().to_string(), sym_table_type, line, span);
             }
@@ -159,32 +164,14 @@ impl Compiler {
         error: &str,
         suggestion: Option<&str>,
     ) {
-        let start_position = expression.get_span().start + 1;
-        let line = &self.original_lines[expression.get_line() - 1];
-        let mut temp = String::new();
-        let suggest = match suggestion {
-            Some(x) => {
-                temp.push(' ');
-                temp.push_str(x);
-                temp.as_str()
-            }
-            None => "",
-        };
-
-        let error_line = format!(
-            "      |\n    {} | {}\n      |{}^{}",
-            expression.get_line(),
-            line,
-            " ".repeat(start_position),
-            suggest
-        );
-
-        self.errors.push(format!(
-            "error: {} (at line {}, position {}):\n\n{}",
+        self.errors.push(CompilerError::new(
+            SyntaxLocation::new(
+                expression.get_line(),
+                expression.get_line_span(),
+                expression.get_absolute_span(),
+            ),
             error,
-            expression.get_line(),
-            start_position,
-            error_line,
+            suggestion,
         ));
     }
 
@@ -194,33 +181,46 @@ impl Compiler {
             None => Err(format!("The name '{}' is not declared in this scope", name)),
         }
     }
-
-    pub fn get_lines_as_slice(&self) -> &[String] {
-        self.original_lines.as_slice()
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use logos::Logos;
-
     use super::Compiler;
     use super::Opcode;
-    use crate::syntax::lexer;
     use crate::syntax::lexer::{language::TokenKind, token_stream::TokenStream};
     use crate::syntax::parser::Parser;
+    use logos::Logos;
 
     fn expect_program(input: &str, expected: Vec<u8>) {
-        let original_lines = lexer::utils::string_lines_as_vec(String::from(input));
+        // let original_lines = lexer::utils::string_lines_as_vec(String::from(input));
         let mut lexer = TokenKind::lexer(input);
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream, original_lines.clone());
+        let mut parser = Parser::new(token_stream);
 
         let mut compiler = Compiler::new();
 
-        compiler.compile(&mut parser.parse(), original_lines.clone());
-        let out = compiler.get_output_as_slice();
-        assert_eq!(out, expected)
+        match parser.parse() {
+            Ok(mut r) => match compiler.compile(&mut r) {
+                Ok(_) => {
+                    let out = compiler.get_output_as_slice();
+                    assert_eq!(out, expected)
+                }
+                Err(e) => {
+                    let mut full_error = String::new();
+                    for err in e {
+                        full_error.push_str(&err.format_with_line(input))
+                    }
+                    panic!("{}", full_error);
+                }
+            },
+            Err(e) => {
+                let mut full_error = String::new();
+                for err in e {
+                    full_error.push_str(&err.format_with_line(input))
+                }
+                panic!("{}", full_error);
+            }
+        };
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use crate::{
-    compiler,
+    compiler, error_resolver,
     machine::vm::VirtualMachine,
     syntax::{
         ast::ast_type::ASTType,
@@ -8,15 +8,9 @@ use crate::{
     },
     typecheck,
 };
-// use built::util::strptime;
 use chrono::DateTime;
 use logos::Logos;
-use std::{
-    borrow::Borrow,
-    cell::RefCell,
-    io::{self, Write},
-    rc::Rc,
-};
+use std::io::{self, Write};
 
 pub mod built_info {
     // The file has been placed there by the build script.
@@ -44,9 +38,6 @@ pub(crate) fn repl_main() -> io::Result<()> {
     );
 
     let mut compiler = compiler::Compiler::new();
-    // let mut lines: Vec<String> = vec![];
-
-    let mut input_lines: Vec<String> = vec![];
     loop {
         write!(stdout, "> ")?;
         stdout.flush()?;
@@ -56,50 +47,58 @@ pub(crate) fn repl_main() -> io::Result<()> {
 
         let (temp_input_lines, cloned_input) =
             lexer::utils::string_lines_with_original(String::from(input));
-        input_lines = temp_input_lines;
+        let error_resolver = error_resolver::ErrorResolver::new(temp_input_lines);
 
         let mut lexer = TokenKind::lexer(cloned_input.as_str());
         let token_stream = TokenStream::new(&mut lexer);
-        let mut parser = Parser::new(token_stream, input_lines.clone());
-        let mut parse_result = parser.parse();
-        if parser.get_errors().len() > 0 {
-            println!("");
-            for error in parser.get_errors() {
-                println!("{error}")
+        let mut parser = Parser::new(token_stream);
+        let parse_result = parser.parse();
+
+        match parse_result {
+            Ok(mut r) => {
+                match compiler.compile(&mut r) {
+                    Ok(_) => {
+                        compiler.clear_output();
+                        vm.run();
+                        vm.reset_program_counter();
+
+                        match r.expressions.first() {
+                            Some(e) => match e.get_type() {
+                                ASTType::Integer => println!("{}", vm.pop_i64().unwrap_or(0)),
+                                ASTType::Boolean => match vm.pop_i64().unwrap() {
+                                    0 => println!("false"),
+                                    1 => println!("true"),
+                                    b => panic!("bad boolean '{b}'"),
+                                },
+                                ASTType::Float => println!("{}", vm.pop_f64().unwrap()),
+                                _ => {
+                                    println!("{}", typecheck::TypeChecker::repr_type(e.get_type()))
+                                }
+                            },
+                            None => {
+                                println!("{}", typecheck::TypeChecker::repr_type(&ASTType::Void))
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        let mut full_error = String::new();
+                        for err in e {
+                            full_error.push_str(&error_resolver.resolve(err))
+                        }
+                        println!("{}", full_error);
+                        continue;
+                    }
+                }
+                vm.program = compiler.get_output_as_slice().to_vec();
             }
-
-            println!("");
-            continue;
-        }
-
-        compiler.compile(&mut parse_result, input_lines.clone());
-
-        if compiler.errors.len() > 0 {
-            for error in &compiler.errors {
-                println!("{}\n", error);
+            Err(e) => {
+                let mut full_error = String::new();
+                for err in e {
+                    full_error.push_str(&error_resolver.resolve(err))
+                }
+                println!("{}", full_error);
+                continue;
             }
-
-            continue;
-        }
-
-        vm.program = compiler.get_output_as_slice().to_vec();
-
-        compiler.clear_output();
-        vm.run();
-        vm.reset_program_counter();
-
-        match parse_result.expressions.first() {
-            Some(e) => match e.get_type() {
-                ASTType::Integer => println!("{}", vm.pop_i64().unwrap_or(0)),
-                ASTType::Boolean => match vm.pop_i64().unwrap() {
-                    0 => println!("false"),
-                    1 => println!("true"),
-                    _ => panic!("bad boolean"),
-                },
-                ASTType::Float => println!("{}", vm.pop_f64().unwrap()),
-                _ => println!("{}", typecheck::TypeChecker::repr_type(e.get_type())),
-            },
-            None => println!("{}", typecheck::TypeChecker::repr_type(&ASTType::Void)),
         }
 
         // input.clear();
