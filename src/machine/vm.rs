@@ -1,10 +1,12 @@
+use crate::runtime::typing::builtins::ValueType;
+
 use super::{flags::Flag, flags::FlagsRegister, opcode::Opcode};
 
 pub(crate) const MAX_REGISTERS: usize = 256;
 const MAX_STACK: usize = 1024; // FIXME
 pub(crate) struct VirtualMachine {
     registers: [i64; MAX_REGISTERS],
-    stack: [i64; MAX_STACK],
+    stack: Vec<ValueType>,
     stack_pointer: usize,
     program_counter: usize,
     pub(crate) program: Vec<u8>,
@@ -16,7 +18,7 @@ impl VirtualMachine {
     pub(crate) fn new() -> Self {
         Self {
             registers: [0; MAX_REGISTERS],
-            stack: [0; MAX_STACK],
+            stack: vec![],
             stack_pointer: 0,
             program_counter: 0,
             program: vec![],
@@ -162,8 +164,8 @@ impl VirtualMachine {
                 }
 
                 Opcode::LoadFloat => {
-                    let value = self.require_next_quad_word();
-                    self.push_i64(value);
+                    let value = self.require_next_float();
+                    self.push_f64(value);
                 }
 
                 Opcode::FloatAdd => {
@@ -295,6 +297,15 @@ impl VirtualMachine {
         )
     }
 
+    fn require_next_float(&mut self) -> f64 {
+        self.program_counter += 8;
+        f64::from_le_bytes(
+            self.program[self.program_counter - 8..self.program_counter]
+                .try_into()
+                .expect("Bad array"),
+        )
+    }
+
     fn require_next_double_word(&mut self) -> i32 {
         self.program_counter += 4;
 
@@ -306,39 +317,35 @@ impl VirtualMachine {
     }
 
     fn push_i64(&mut self, value: i64) {
-        self.stack[self.stack_pointer] = value;
-        self.stack_pointer += 1;
+        self.stack.push(ValueType::Integer(value));
     }
 
     fn push_f64(&mut self, value: f64) {
-        let mut int_result: i64 = 0;
-        let float_bytes = value.to_le_bytes();
-        for (i, v) in float_bytes.iter().enumerate() {
-            int_result += (*v as i64) << (8 * i);
-        }
-
-        self.stack[self.stack_pointer] = int_result;
-        self.stack_pointer += 1;
+        self.stack.push(ValueType::Float(value));
     }
 
     pub fn pop_f64(&mut self) -> Option<f64> {
-        if self.stack_pointer == 0 {
-            return None;
+        match self.stack.pop() {
+            Some(v) => match v {
+                ValueType::Float(f) => Some(f),
+                _ => panic!("Top of stack is not a float"),
+            },
+            None => None,
         }
-
-        self.stack_pointer -= 1;
-        let slice = self.stack[self.stack_pointer].to_le_bytes();
-        let result = f64::from_le_bytes(slice);
-        Some(result)
     }
 
     pub(crate) fn pop_i64(&mut self) -> Option<i64> {
-        if self.stack_pointer == 0 {
-            return None;
+        match self.stack.pop() {
+            Some(v) => match v {
+                ValueType::Integer(i) => Some(i),
+                _ => panic!("Top of stack is not an int"),
+            },
+            None => None,
         }
+    }
 
-        self.stack_pointer -= 1;
-        Some(self.stack[self.stack_pointer])
+    pub(crate) fn pop_indeterminate(&mut self) -> Option<ValueType> {
+        self.stack.pop()
     }
 
     pub(crate) fn reset_program_counter(&mut self) {
@@ -349,7 +356,7 @@ impl VirtualMachine {
     pub(crate) fn print_stack(&self) {
         for i in (0..MAX_STACK).step_by(8) {
             println!(
-                "0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+                "{} {} {} {} {} {} {} {}",
                 self.stack[i],
                 self.stack[i + 1],
                 self.stack[i + 2],

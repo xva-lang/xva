@@ -58,27 +58,32 @@ pub(crate) fn repl_main() -> io::Result<()> {
             Ok(mut r) => {
                 match compiler.compile(&mut r) {
                     Ok(_) => {
+                        vm.program = compiler.get_output_as_slice().to_vec();
                         compiler.clear_output();
                         vm.run();
                         vm.reset_program_counter();
 
-                        match r.expressions.first() {
-                            Some(e) => match e.get_type() {
-                                ASTType::Integer => println!("{}", vm.pop_i64().unwrap_or(0)),
-                                ASTType::Boolean => match vm.pop_i64().unwrap() {
-                                    0 => println!("false"),
-                                    1 => println!("true"),
-                                    b => panic!("bad boolean '{b}'"),
-                                },
-                                ASTType::Float => println!("{}", vm.pop_f64().unwrap()),
-                                _ => {
-                                    println!("{}", typecheck::TypeChecker::repr_type(e.get_type()))
-                                }
-                            },
-                            None => {
-                                println!("{}", typecheck::TypeChecker::repr_type(&ASTType::Void))
-                            }
+                        match vm.pop_indeterminate() {
+                            Some(v) => println!("{}", v),
+                            None => {}
                         }
+                        // match r.expressions.first() {
+                        //     Some(e) => match e.get_type() {
+                        //         ASTType::Integer => println!("{}", vm.pop_i64().unwrap_or(0)),
+                        //         ASTType::Boolean => match vm.pop_i64().unwrap() {
+                        //             0 => println!("false"),
+                        //             1 => println!("true"),
+                        //             b => panic!("bad boolean '{b}'"),
+                        //         },
+                        //         ASTType::Float => println!("{}", vm.pop_f64().unwrap()),
+                        //         _ => {
+                        //             println!("{}", typecheck::TypeChecker::repr_type(e.get_type()))
+                        //         }
+                        //     },
+                        //     None => {
+                        //         println!("{}", typecheck::TypeChecker::repr_type(&ASTType::Void))
+                        //     }
+                        // }
                     }
                     Err(e) => {
                         let mut full_error = String::new();
@@ -89,7 +94,6 @@ pub(crate) fn repl_main() -> io::Result<()> {
                         continue;
                     }
                 }
-                vm.program = compiler.get_output_as_slice().to_vec();
             }
             Err(e) => {
                 let mut full_error = String::new();

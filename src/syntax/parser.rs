@@ -1,4 +1,4 @@
-use crate::utils::errors::CompilerError;
+use crate::compiler::error::CompilerError;
 
 use super::{
     ast::{

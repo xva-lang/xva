@@ -1,15 +1,19 @@
-use crate::machine::opcode::Opcode;
-use crate::machine::symtable::{SymbolTable, SymbolTableEntry};
+pub(crate) mod error;
+
+use crate::compiler::error::CompilerError;
+use crate::machine::{
+    opcode::Opcode,
+    symtable::{SymbolTable, SymbolTableEntry},
+};
 use crate::runtime::typing::builtins::ValueType;
-use crate::syntax::ast::ast_type::ASTType;
 use crate::syntax::ast::{
+    ast_type::ASTType,
     expression::{Expression, ExpressionVariant},
     literal::LiteralVariant,
     operator::InfixOperator,
     root::Root,
 };
 use crate::syntax::location::SyntaxLocation;
-use crate::utils::errors::CompilerError;
 
 pub(crate) struct Compiler {
     output: Vec<u8>,

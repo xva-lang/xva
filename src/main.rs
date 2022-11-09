@@ -7,7 +7,7 @@ mod repl;
 mod runtime;
 mod syntax;
 mod typecheck;
-mod utils;
+
 use cli::cli;
 
 fn main() {

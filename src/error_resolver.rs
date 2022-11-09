@@ -1,4 +1,4 @@
-use crate::utils::errors::CompilerError;
+use crate::compiler::error::CompilerError;
 
 pub(crate) struct ErrorResolver {
     original_lines: Vec<String>,
