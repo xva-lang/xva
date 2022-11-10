@@ -27,13 +27,13 @@ impl CompilerError {
             Some(s) => format!(
                 "      |\n    1 | {}\n      |{}^ {}",
                 line,
-                " ".repeat(self.location.get_line_span().start + 1),
+                " ".repeat(self.location.get_line_span().start),
                 s
             ),
             None => format!(
                 "      |\n    1 | {}\n      |{}^",
                 line,
-                " ".repeat(self.location.get_line_span().start + 1)
+                " ".repeat(self.location.get_line_span().start)
             ),
         };
 
@@ -41,7 +41,7 @@ impl CompilerError {
             "error: {} (at line {}, position {}):\n\n{}",
             self.message.as_str(),
             self.location.get_line(),
-            self.location.get_line_span().start + 1,
+            self.location.get_line_span().start,
             error_line
         )
     }

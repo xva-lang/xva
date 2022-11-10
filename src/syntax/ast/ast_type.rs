@@ -1,28 +1,16 @@
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone, PartialEq)]
+
 pub enum ASTType {
+    Primitive(ASTPrimitiveType),
+    Function(Box<ASTType>, Vec<ASTType>)
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ASTPrimitiveType {
     Void,
-    Integer,
     Boolean,
+    Integer,
     Float,
-
-    #[allow(dead_code)]
-    OneOf(Box<Vec<ASTType>>),
-
-    Function(Box<Vec<ASTType>>, Box<ASTType>),
-}
-
-impl Deref for ASTType {
-    type Target = ASTType;
-
-    fn deref(&self) -> &Self::Target {
-        self
-    }
-}
-
-impl DerefMut for ASTType {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self
-    }
 }

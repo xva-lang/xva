@@ -4,6 +4,7 @@ pub(super) mod symtable;
 use crate::compiler::error::CompilerError;
 use crate::machine::opcode::Opcode;
 use crate::runtime::typing::builtins::ValueType;
+use crate::syntax::ast::ast_type::ASTPrimitiveType;
 use crate::syntax::ast::{
     ast_type::ASTType,
     expression::{Expression, ExpressionVariant},
@@ -11,6 +12,7 @@ use crate::syntax::ast::{
     operator::InfixOperator,
     root::Root,
 };
+use crate::syntax::lexer::span::Span;
 use crate::syntax::location::SyntaxLocation;
 use symtable::{SymbolTable, SymbolTableEntry};
 
@@ -51,16 +53,22 @@ impl Compiler {
     fn compile_expression(&mut self, expression: &Expression, expr_type: &ASTType) {
         match &expression.variant {
             ExpressionVariant::Binary(e) => {
+                let (left_type, right_type) = e.get_type();
+                if left_type != right_type {
+                    self.raise_error(expression, "Types in binary expression do not match", None);
+                }
+
                 let left = e.get_left();
                 self.compile_expression(left, expr_type);
 
                 let right = e.get_right();
                 self.compile_expression(right, expr_type);
 
-                self.compile_operator(e.get_operator(), expr_type);
+                // left.get_type() is safe because type checker has already guaranteed type compatibility
+                self.compile_operator(e.get_operator(), left.get_type());
             }
             ExpressionVariant::Parenthesised(pe) => {
-                self.compile_expression(&pe.get_inner_expression(), expr_type)
+                self.compile_expression(&pe.get_inner_expression().as_ref().borrow(), expr_type)
             }
             ExpressionVariant::Literal(e) => match e {
                 LiteralVariant::Integer(v) => {
@@ -167,12 +175,12 @@ impl Compiler {
                 Err(_) => {
                     let sym_table_type = match d.get_assignment() {
                         Some(e) => match e.get_type() {
-                            ASTType::Void => ValueType::Void,
-                            ASTType::Integer => ValueType::Integer(0),
-                            ASTType::Boolean => ValueType::Boolean(false),
-                            ASTType::Float => ValueType::Float(0.0),
-                            ASTType::OneOf(_) => todo!(),
-                            ASTType::Function(_, _) => todo!(),
+                            ASTType::Primitive(p) => match p {
+                                ASTPrimitiveType::Void => ValueType::Void,
+                                ASTPrimitiveType::Integer => ValueType::Integer(0),
+                                ASTPrimitiveType::Boolean => ValueType::Boolean(false),
+                                ASTPrimitiveType::Float => ValueType::Float(0.0),
+                            },
                         },
                         None => ValueType::Void,
                     };
@@ -219,20 +227,25 @@ impl Compiler {
     }
 
     fn compile_operator(&mut self, operator: InfixOperator, expr_type: &ASTType) {
+        println!("expr_type: {:?}", expr_type);
         match expr_type {
-            ASTType::Integer => match operator {
-                InfixOperator::Addition => self.emit(Opcode::Add),
-                InfixOperator::Subtraction => self.emit(Opcode::Subtract),
-                InfixOperator::Multiplication => self.emit(Opcode::IntegerMultiply),
-                InfixOperator::Division => self.emit(Opcode::IntegerDivide),
+            ASTType::Primitive(p) => match p {
+                ASTPrimitiveType::Integer => match operator {
+                    InfixOperator::Addition => self.emit(Opcode::Add),
+                    InfixOperator::Subtraction => self.emit(Opcode::Subtract),
+                    InfixOperator::Multiplication => self.emit(Opcode::IntegerMultiply),
+                    InfixOperator::Division => self.emit(Opcode::IntegerDivide),
+                },
+                ASTPrimitiveType::Float => match operator {
+                    InfixOperator::Addition => self.emit(Opcode::FloatAdd),
+                    InfixOperator::Subtraction => self.emit(Opcode::FloatSubtract),
+                    InfixOperator::Multiplication => self.emit(Opcode::FloatMultiply),
+                    InfixOperator::Division => self.emit(Opcode::FloatDivide),
+                },
+                _ => {
+                    println!("");
+                }
             },
-            ASTType::Float => match operator {
-                InfixOperator::Addition => self.emit(Opcode::FloatAdd),
-                InfixOperator::Subtraction => self.emit(Opcode::FloatSubtract),
-                InfixOperator::Multiplication => self.emit(Opcode::FloatMultiply),
-                InfixOperator::Division => self.emit(Opcode::FloatDivide),
-            },
-            _ => {}
         }
     }
 
@@ -245,7 +258,10 @@ impl Compiler {
         self.errors.push(CompilerError::new(
             SyntaxLocation::new(
                 expression.get_line(),
-                expression.get_line_span(),
+                Span {
+                    start: expression.get_line_span().start,
+                    end: expression.get_line_span().end,
+                },
                 expression.get_absolute_span(),
             ),
             error,

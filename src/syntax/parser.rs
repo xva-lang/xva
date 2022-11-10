@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::compiler::error::CompilerError;
 
 use super::{
@@ -497,9 +499,9 @@ impl<'stream> Parser<'stream> {
             marker.get_absolute_span(),
         );
         let result = Some(Expression::new(
-            ExpressionVariant::Parenthesised(ParenthesisedExpression::new(Box::from(
+            ExpressionVariant::Parenthesised(ParenthesisedExpression::new(Rc::new(RefCell::new(
                 self.expression_binding_power(0).unwrap(),
-            ))),
+            )))),
             SyntaxLocation::new(line, line_span, absolute_span),
         ));
 
@@ -627,6 +629,9 @@ error: Expected a closing parenthesis (at line 1, position 11):
 
     #[test]
     fn parse_assignment_to_mutable_variable() {
-        check_expression("number = 123", expect![["Assignment(number, Integer(123))"]])
+        check_expression(
+            "number = 123",
+            expect![["Assignment(number, Integer(123))"]],
+        )
     }
 }

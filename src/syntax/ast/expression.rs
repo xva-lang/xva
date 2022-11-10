@@ -1,6 +1,11 @@
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+};
+
 use super::{
     assignment::Assignment,
-    ast_type::ASTType,
+    ast_type::{ASTPrimitiveType, ASTType},
     declaration::Declaration,
     identifier::IdentifierExpression,
     literal::LiteralVariant,
@@ -20,7 +25,7 @@ impl Expression {
         Self {
             variant,
             location,
-            ast_type: ASTType::Void,
+            ast_type: ASTType::Primitive(ASTPrimitiveType::Void),
         }
     }
 
@@ -47,6 +52,35 @@ impl Expression {
 
     pub fn set_type(&mut self, ast_type: ASTType) {
         self.ast_type = ast_type;
+    }
+
+    pub fn type_walk(&mut self) {
+        match &mut self.variant {
+            ExpressionVariant::Literal(l) => match l {
+                LiteralVariant::Boolean(_) => {
+                    self.ast_type = ASTType::Primitive(ASTPrimitiveType::Boolean)
+                }
+                LiteralVariant::Integer(_) => {
+                    self.ast_type = ASTType::Primitive(ASTPrimitiveType::Integer)
+                }
+                LiteralVariant::Float(_) => {
+                    self.ast_type = ASTType::Primitive(ASTPrimitiveType::Float)
+                }
+            },
+            ExpressionVariant::Binary(b) => b.type_walk(),
+            ExpressionVariant::Prefix(_) => todo!(),
+            ExpressionVariant::Parenthesised(pe) => {
+                {
+                    pe.get_inner_expression_mut().type_walk();
+                }
+
+                self.ast_type = pe.get_inner_expression().as_ref().borrow().ast_type.clone();
+                println!("");
+            }
+            ExpressionVariant::Declaration(_) => todo!(),
+            ExpressionVariant::Identifier(_) => todo!(),
+            ExpressionVariant::Assignment(_) => todo!(),
+        }
     }
 }
 
@@ -86,6 +120,7 @@ pub struct BinaryExpression {
     left: Box<Expression>,
     operator: InfixOperator,
     right: Box<Expression>,
+    ast_type: (ASTType, ASTType),
 }
 
 impl BinaryExpression {
@@ -98,6 +133,10 @@ impl BinaryExpression {
             left,
             operator,
             right,
+            ast_type: (
+                ASTType::Primitive(ASTPrimitiveType::Void),
+                ASTType::Primitive(ASTPrimitiveType::Void),
+            ),
         }
     }
 
@@ -111,6 +150,17 @@ impl BinaryExpression {
 
     pub(crate) fn get_right(&self) -> &Expression {
         self.right.as_ref()
+    }
+
+    pub(crate) fn type_walk(&mut self) {
+        self.left.type_walk();
+        self.right.type_walk();
+
+        self.ast_type = (self.left.ast_type.clone(), self.right.ast_type.clone());
+    }
+
+    pub(crate) fn get_type(&self) -> &(ASTType, ASTType) {
+        &self.ast_type
     }
 }
 
@@ -153,21 +203,57 @@ impl std::fmt::Display for PrefixExpression {
 
 #[derive(Debug)]
 pub(crate) struct ParenthesisedExpression {
-    inner: Box<Expression>,
+    inner: Rc<RefCell<Expression>>,
 }
 
 impl ParenthesisedExpression {
-    pub fn new(expression: Box<Expression>) -> Self {
+    pub fn new(expression: Rc<RefCell<Expression>>) -> Self {
         Self { inner: expression }
     }
 
-    pub fn get_inner_expression(&self) -> &Expression {
-        self.inner.as_ref()
+    pub fn get_inner_expression(&self) -> &Rc<RefCell<Expression>> {
+        &self.inner
+    }
+
+    pub fn get_inner_expression_mut(&self) -> RefMut<'_, Expression> {
+        self.inner.borrow_mut()
     }
 }
 
 impl std::fmt::Display for ParenthesisedExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Parenthesised({})", self.inner)
+        write!(
+            f,
+            "Parenthesised({})",
+            self.get_inner_expression().as_ref().borrow()
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        compiler::Compiler,
+        syntax::{
+            lexer::{language::TokenKind, token_stream::TokenStream},
+            parser::Parser,
+        },
+    };
+    use logos::Logos;
+
+    #[test]
+    fn test() {
+        let mut lexer = TokenKind::lexer("1");
+        let token_stream = TokenStream::new(&mut lexer);
+        let mut parser = Parser::new(token_stream);
+
+        let mut compiler = Compiler::new();
+        match parser.parse() {
+            Ok(mut r) => match compiler.compile(&mut r) {
+                Ok(_) => println!("{:?}", r),
+                Err(_) => panic!(),
+            },
+            Err(_) => panic!(),
+        }
     }
 }
