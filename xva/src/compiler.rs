@@ -181,6 +181,7 @@ impl Compiler {
                                 ASTPrimitiveType::Boolean => ValueType::Boolean(false),
                                 ASTPrimitiveType::Float => ValueType::Float(0.0),
                             },
+                            ASTType::Function(_, _) => todo!(),
                         },
                         None => ValueType::Void,
                     };
@@ -246,6 +247,7 @@ impl Compiler {
                     println!("");
                 }
             },
+            ASTType::Function(_, _) => todo!(),
         }
     }
 

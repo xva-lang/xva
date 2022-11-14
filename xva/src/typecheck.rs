@@ -66,7 +66,8 @@ impl<'compiler> TypeChecker<'compiler> {
                 ASTPrimitiveType::Boolean => "<boolean>",
                 ASTPrimitiveType::Integer => "<integer>",
                 ASTPrimitiveType::Float => "<float>",
-            }
+            },
+            ASTType::Function(_, _) => todo!(),
             // ASTType::Void => "<void>",
             // ASTType::Integer => "<integer>",
             // ASTType::Boolean => "<boolean>",

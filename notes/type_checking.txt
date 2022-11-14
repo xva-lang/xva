@@ -1,0 +1,88 @@
+∧ - Logical conjuction, means "and"
+=> - Implies, essentially "if (left) then (right)
+x : T - x has type T
+
+⊢ - "It is provable that"
+::= - "Is defined as"
+() - unit type
+
+
+If e1 has type int, and e2 has type int, it implies that e1 + e2 has type int
+    ----- becomes -----
+e1 : int ∧ e1 : int => e1 + e2 : int
+
+The above is an inference rule. Inference rules have the form:
+    Hypothesis_1 ∧ ... ∧ Hypothesis_n => Conclusion
+
+That is, a bunch of hypotheses conjoined together implies some conclusion.
+
+By tradition, inference rules are written as:
+
+⊢ Hypothesis_1 ... ⊢ Hypothesis_n 
+----------------------------------
+          ⊢ Conclusion
+
+and read as "If the hypotheses are provable, then the conclusion is provable"
+
+
+The integer inference rule "Given i is an integer literal then the type of i is provable to be int":
+
+⊢ i is an integer literal
+-------------------------
+      ⊢ i : int
+
+The addition of integers inference rule "If it is provable that the expression e1 is an integer and it is provable that
+the expression e2 is an integer, then the type of the expression e1 + e2 is int":
+
+⊢ e1 : int ⊢ e2 : int
+---------------------
+   ⊢ e1 + e2 : int
+
+A type system is sound if:
+    - whenever ⊢ e : T
+    - Then e evaluates to a value of type T
+
+So, this is NOT a sound rule: 
+
+i is an integer
+---------------
+  ⊢ i : Object
+
+Technically, this rule holds because we can box an int, but then we can't perform any specialised integer operations
+on the boxed value, because it's an Object. This rule is not sound.
+
+Placing something to the left of ⊢ means that "in the context of something, it is provable that". So:
+Γ ⊢ e : A 
+comes out to "In the context of Γ, it is provable that the type of the expression e is A."
+
+
+SLTC - Simply typed lambda calculus
+λx.t - an anonymous function that takes an input x and produces an output t. 
+for example, λx.x ** 2 + 2 is an abstraction of the function, in Xva syntax: 
+
+def f(x):
+    return x ** 2 + 2 
+end
+
+| - or 
+
+
+Lambda calculus syntax (in Backus-Naur form)
+
+expression ::= variable         // identifier
+    | expression expression     // application
+    | λ variable . expression   // abstraction
+    | ( expression )            // grouping 
+
+
+Applications are the application of a function f to its argument a. So the application ƒ 𝑥 comes out to, in Xva syntax:
+
+    f(x)
+
+ƒ a b comes out to, in Xva syntax:
+    f(a)(b) // because lambda calculus functions have an arity of 1, so we continously "apply" functions.
+
+
+Abstractions are a notation of how an output is produced given an input. The Xva function def f(a) => b would
+be written in λ-calculus as λa.b. The Xva function def f(a) => b(x) would be written in
+λ-calculus as λa.b x, using application syntax as well

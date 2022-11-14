@@ -1,9 +1,0 @@
-{
-  "editor.formatOnSave": true,
-  "editor.inlayHints.fontSize": 10,
-  "workbench.colorCustomizations": {
-    "editorInlayHint.background": "#00000000",
-    "editorInlayHint.foreground": "#395A75"
-  },
-  "python.formatting.provider": "black"
-}
