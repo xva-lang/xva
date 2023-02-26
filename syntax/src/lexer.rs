@@ -8,6 +8,7 @@ use std::ops::Range;
 
 mod keyword;
 mod literal;
+mod operator;
 
 /// A representation of a location within written code,
 /// with a start and end.
@@ -22,10 +23,23 @@ pub enum TokenType {
     Integer(i64),
     Float(f64),
     String(String),
+
+    /*  All operators could inherit from an Operator class or we could avoid multiple inhertince by dividing parent operator
+        classes into Arithmetic, Assignment, Comparison etc.. 
+    */
     Operator(String),
+
     LetKeyword,
     DefKeyword,
     EndKeyword,
+
+    // Arithmetic operators
+    AdditionOperator,
+    SubtractionOperator,
+    MultiplicationOperator,
+    DivisionOperator,
+    ModuloOperator,
+    ExponentiationOperator,
 }
 
 impl std::fmt::Display for TokenType {
@@ -39,6 +53,14 @@ impl std::fmt::Display for TokenType {
             TokenType::LetKeyword => write!(f, "let"),
             TokenType::DefKeyword => write!(f, "def"),
             TokenType::EndKeyword => write!(f, "end"),
+
+            // Arithmetic operators
+            TokenType::AdditionOperator => write!(f, "+"),
+            TokenType::SubtractionOperator => write!(f, "-"),
+            TokenType::MultiplicationOperator => write!(f, "*"),
+            TokenType::DivisionOperator => write!(f, "/"),
+            TokenType::ModuloOperator => write!(f, "%"),
+            TokenType::ExponentiationOperator => write!(f, "**"),
         }
     }
 }

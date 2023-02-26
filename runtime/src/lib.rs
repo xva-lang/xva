@@ -1,6 +1,7 @@
 mod error;
 mod object;
 mod value;
+mod operator;
 
 pub use crate::{
     error::RuntimeError,
