@@ -1,4 +1,5 @@
 mod lexer;
+mod tree_sitter;
 
 pub use lexer::{lex, Span, Token};
 
