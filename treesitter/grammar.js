@@ -3,6 +3,7 @@ const KEYWORDS = {
   RETURN: "return",
   TRUE: "true",
   FALSE: "false",
+  NOT: "not",
 };
 
 const SYMBOLS = {
@@ -12,6 +13,35 @@ const SYMBOLS = {
   CLOSE_BRACE: "}",
   COLON: ":",
   COMMA: ",",
+  DOUBLE_QUOTE: '"',
+  SINGLE_QUOTE: "'",
+  PLUS: "+",
+  MINUS: "-",
+  STAR: "*",
+  SLASH: "/",
+  PERCENT: "%",
+  DOUBLE_STAR: "**",
+};
+
+const PRECEDENCE = {
+  ASSIGNMENT: 1,
+  LAMBDA: 2,
+  TERNARY: 3,
+  OR: 4,
+  AND: 5,
+  NOT: 6,
+  COMPARISION: 7,
+  BIT_OR: 8,
+  BIT_XOR: 9,
+  BIT_AND: 10,
+  BIT_SHIFT: 11,
+  ADD_SUB: 12,
+  MUL_DIV_MOD: 13,
+  NEGATE: 14,
+  EXPONENT: 15,
+  AWAIT: 16,
+  CALL: 17,
+  PARENTHESISED: 18,
 };
 
 module.exports = grammar({
@@ -20,7 +50,7 @@ module.exports = grammar({
   word: ($) => $.identifier,
 
   rules: {
-    source_file: ($) => repeat($.expression),
+    source_file: ($) => repeat($._expression),
 
     // _definition: ($) =>
     //   choice(
@@ -75,12 +105,44 @@ module.exports = grammar({
 
     // return_statement: ($) => seq(KEYWORDS.RETURN, $._expression),
 
-    expression: ($) =>
-      choice(
-        prec(1, $.literal),
-        $.identifier
+    _expression: ($) =>
+      choice($.literal, $.identifier, $.unary_expression, $.binary_expression),
 
-        // TODO: other kinds of expressions
+    unary_expression: ($) =>
+      prec(
+        2,
+        choice(
+          seq(SYMBOLS.MINUS, $._expression),
+          seq(KEYWORDS.NOT, $._expression)
+        )
+      ),
+
+    binary_expression: ($) =>
+      choice(
+        prec.left(
+          PRECEDENCE.ADD_SUB,
+          seq($._expression, SYMBOLS.PLUS, $._expression)
+        ),
+        prec.left(
+          PRECEDENCE.ADD_SUB,
+          seq($._expression, SYMBOLS.MINUS, $._expression)
+        ),
+        prec.left(
+          PRECEDENCE.MUL_DIV_MOD,
+          seq($._expression, SYMBOLS.STAR, $._expression)
+        ),
+        prec.left(
+          PRECEDENCE.MUL_DIV_MOD,
+          seq($._expression, SYMBOLS.SLASH, $._expression)
+        ),
+        prec.left(
+          PRECEDENCE.MUL_DIV_MOD,
+          seq($._expression, SYMBOLS.PERCENT, $._expression)
+        ),
+        prec.left(
+          PRECEDENCE.EXPONENT,
+          seq($._expression, SYMBOLS.DOUBLE_STAR, $._expression)
+        )
       ),
 
     hex_literal: ($) => /0[xX][a-fA-F0-9](?:_?[a-fA-F0-9])/,
@@ -88,13 +150,43 @@ module.exports = grammar({
     binary_literal: ($) => /0[bB][01](?:_?[01])/,
     decimal_literal: ($) => /(?:0|[1-9](?:_*[0-9])*)/,
     boolean_literal: ($) => /true|false/,
+    string_literal: ($) =>
+      seq(
+        SYMBOLS.DOUBLE_QUOTE,
+        repeat($.character_literal),
+        SYMBOLS.DOUBLE_QUOTE
+      ),
+
+    // character_literal, character_literal_unescaped and escape_sequence were all borrowed from
+    // tree-sitter-csharp: https://github.com/tree-sitter/tree-sitter-c-sharp/
+    character_literal: ($) =>
+      seq(
+        SYMBOLS.SINGLE_QUOTE,
+        choice($.character_literal_unescaped, $.escape_sequence),
+        SYMBOLS.SINGLE_QUOTE
+      ),
+
+    character_literal_unescaped: ($) => token.immediate(/[^'\\]/),
+
+    escape_sequence: ($) =>
+      token(
+        choice(
+          /\\x[0-9a-fA-F][0-9a-fA-F]?[0-9a-fA-F]?[0-9a-fA-F]?/,
+          /\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]/,
+          /\\U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]/,
+          /\\[^xuU]/
+        )
+      ),
+
     literal: ($) =>
       choice(
         $.hex_literal,
         $.octal_literal,
         $.binary_literal,
         $.decimal_literal,
-        $.boolean_literal
+        $.boolean_literal,
+        $.character_literal,
+        $.string_literal
       ),
 
     identifier: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,

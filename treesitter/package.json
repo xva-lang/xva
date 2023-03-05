@@ -1,4 +1,12 @@
 {
+  "tree-sitter": [
+    {
+      "scope": "source.xva",
+      "file-types": [
+        "xva"
+      ]
+    }
+  ],
   "name": "tree-sitter-xva",
   "version": "0.0.1",
   "description": "xva grammar for tree-sitter",
