@@ -4,5 +4,5 @@ members = [
     "xva",
     "syntax",
     "runtime",
-    "treesitter"
+    "syntax/treesitter"
 ]
