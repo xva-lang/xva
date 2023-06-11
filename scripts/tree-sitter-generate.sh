@@ -1,2 +1,2 @@
-cd treesitter 
+cd syntax/treesitter 
 tree-sitter generate
