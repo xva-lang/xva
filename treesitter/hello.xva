@@ -1,1 +1,2 @@
-2 + 4
+let x: mutable boolean = 2
+let y: int = 2

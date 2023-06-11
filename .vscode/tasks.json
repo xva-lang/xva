@@ -11,6 +11,24 @@
         "command": ".\\scripts\\tree-sitter-generate.bat"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Tree Sitter build-wasm",
+      "type": "shell",
+      "command": "./scripts/tree-sitter-build-wasm.sh",
+      "windows": {
+        "command": ".\\scripts\\tree-sitter-build-wasm.ps1"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tree Sitter parse",
+      "type": "shell",
+      "command": "./scripts/tree-sitter-parse.sh",
+      "windows": {
+        "command": ".\\scripts\\tree-sitter-parse.bat"
+      },
+      "problemMatcher": []
     }
   ]
 }
