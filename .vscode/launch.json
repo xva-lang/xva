@@ -15,7 +15,7 @@
           "kind": "bin"
         }
       },
-      "args": ["treesitter\\hello.xva", "-Zprint-cst"],
+      "args": ["syntax\\treesitter\\hello.xva", "-Zprint-cst"],
       "cwd": "${workspaceFolder}"
     },
     {

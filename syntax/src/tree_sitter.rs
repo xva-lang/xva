@@ -30,11 +30,13 @@ const NODE_KIND_SOURCE_FILE: &str = "source_file";
 fn print_node<'a>(source: &impl AsRef<[u8]>, tree: &Tree, node: Node, depth: &'a mut usize) {
     let mut cursor = tree.walk();
     println!(
-        "{} {} @ {},{} {}",
+        "{} {} @ {},{} - {},{} {}",
         "  ".repeat(depth.clone()),
         node.kind(),
         node.start_position().row,
         node.start_position().column,
+        node.end_position().row,
+        node.end_position().column,
         if node.kind() != NODE_KIND_SOURCE_FILE {
             match node.utf8_text(source.as_ref()) {
                 Ok(v) => format!("\"{v}\""),
