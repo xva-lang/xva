@@ -24,6 +24,8 @@ const SYMBOLS = {
   PERCENT: "%",
   DOUBLE_STAR: "**",
   EQUALS: "=",
+  LEFT_ANGLE: "<",
+  RIGHT_ANGLE: ">",
 };
 
 const PRECEDENCE = {
@@ -62,6 +64,9 @@ const BUILT_IN_TYPES = [
   "char",
 ];
 
+const sepBy1 = (sep, rule) => seq(rule, repeat(seq(sep, rule)));
+const sepBy = (sep, rule) => optional(sepBy1(sep, rule));
+
 module.exports = grammar({
   name: "xva",
 
@@ -72,7 +77,7 @@ module.exports = grammar({
 
     _statement: ($) => choice($._declaration_statement, $._expression),
 
-    _declaration_statement: ($) => choice($.let_declaration),
+    _declaration_statement: ($) => choice($.let_declaration, $.function),
     let_declaration: ($) =>
       seq(
         $._let_keyword,
@@ -85,6 +90,46 @@ module.exports = grammar({
     type_annotation: ($) =>
       seq($._colon_symbol, optional($.mutable_modifier), $.type),
 
+    block: ($) =>
+      seq(
+        SYMBOLS.OPEN_BRACE,
+        repeat(choice($._declaration_statement, $._expression)),
+        SYMBOLS.CLOSE_BRACE
+      ),
+
+    // parameters: $ => seq(
+    //   '(',
+    //   sepBy(',', seq(
+    //     optional($.attribute_item),
+    //     choice(
+    //       $.parameter,
+    //       $.self_parameter,
+    //       $.variadic_parameter,
+    //       '_',
+    //       $._type
+    //     ))),
+    //   optional(','),
+    //   ')'
+    // ),
+    parameter: ($) => seq($.identifier, SYMBOLS.COLON, $.type),
+    parameters: ($) =>
+      seq(
+        SYMBOLS.OPEN_PARENTHESIS,
+        sepBy(",", $.parameter),
+        SYMBOLS.CLOSE_PARENTHESIS
+      ),
+
+    function: ($) =>
+      seq(
+        KEYWORDS.DEF,
+        field("name", $.identifier),
+        $.parameters,
+        optional(field("return_type", $.type_annotation)),
+        field("body", choice($.block, $.arrow_function_body))
+      ),
+
+    _fat_arrow: ($) => "=>",
+    arrow_function_body: ($) => seq($._fat_arrow, $._expression),
     mutable_modifier: ($) => KEYWORDS.MUTABLE,
 
     type: ($) => choice($.built_in_type, $.identifier),
