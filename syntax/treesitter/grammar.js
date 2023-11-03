@@ -26,6 +26,8 @@ const SYMBOLS = {
   EQUALS: "=",
   LEFT_ANGLE: "<",
   RIGHT_ANGLE: ">",
+  INCREMENT: "++",
+  DECREMENT: "--",
 };
 
 const PRECEDENCE = {
@@ -75,7 +77,7 @@ module.exports = grammar({
   rules: {
     source_file: ($) => repeat($._statement),
 
-    _statement: ($) => choice($._declaration_statement, $._expression),
+    _statement: ($) => choice($._expression),
 
     _declaration_statement: ($) => choice($.let_declaration, $.function),
     let_declaration: ($) =>
@@ -137,46 +139,56 @@ module.exports = grammar({
     _equals_symbol: ($) => SYMBOLS.EQUALS,
     _let_keyword: ($) => KEYWORDS.LET,
     built_in_type: ($) => choice(...BUILT_IN_TYPES),
+
     _expression: ($) =>
-      choice($.literal, $.identifier, $.unary_expression, $.binary_expression),
+      choice($._primary_expression, $._unary_expression, $._binary_expression),
 
-    unary_expression: ($) =>
-      prec(
-        2,
-        choice(
-          seq(SYMBOLS.MINUS, $._expression),
-          seq(KEYWORDS.NOT, $._expression)
-        )
-      ),
+    /************** Primary expressions *************/
+    _primary_expression: ($) => choice($.identifier, $._literal_constant),
 
-    binary_expression: ($) =>
+    _literal_constant: ($) =>
       choice(
-        prec.left(
-          PRECEDENCE.ADD_SUB,
-          seq($._expression, SYMBOLS.PLUS, $._expression)
-        ),
-        prec.left(
-          PRECEDENCE.ADD_SUB,
-          seq($._expression, SYMBOLS.MINUS, $._expression)
-        ),
-        prec.left(
-          PRECEDENCE.MUL_DIV_MOD,
-          seq($._expression, SYMBOLS.STAR, $._expression)
-        ),
-        prec.left(
-          PRECEDENCE.MUL_DIV_MOD,
-          seq($._expression, SYMBOLS.SLASH, $._expression)
-        ),
-        prec.left(
-          PRECEDENCE.MUL_DIV_MOD,
-          seq($._expression, SYMBOLS.PERCENT, $._expression)
-        ),
-        prec.left(
-          PRECEDENCE.EXPONENT,
-          seq($._expression, SYMBOLS.DOUBLE_STAR, $._expression)
-        )
+        $.boolean_literal,
+        $.decimal_literal,
+        $.hex_literal,
+        $.binary_literal,
+        $.octal_literal,
+        $.character_literal,
+        $.string_literal
       ),
 
+    /************* Unary expressions **************/
+    _unary_expression: ($) => choice($.prefix_expression),
+
+    prefix_expression: ($) =>
+      prec.right(seq(choice($.prefix_unary_operator), $._expression)),
+
+    prefix_unary_operator: ($) =>
+      choice(SYMBOLS.INCREMENT, SYMBOLS.DECREMENT, SYMBOLS.MINUS, SYMBOLS.PLUS),
+
+    /************* Binary expressions **************/
+    _binary_expression: ($) =>
+      choice($.multiplicative_expression, $.additive_expression),
+
+    multiplicative_expression: ($) =>
+      prec.left(
+        PRECEDENCE.MUL_DIV_MOD,
+        seq($._expression, $.multiplicative_operator, $._expression)
+      ),
+
+    additive_expression: ($) =>
+      prec.left(
+        PRECEDENCE.ADD_SUB,
+        seq($._expression, $.additive_operator, $._expression)
+      ),
+
+    /********** Operators ************/
+    multiplicative_operator: ($) =>
+      choice(SYMBOLS.STAR, SYMBOLS.SLASH, SYMBOLS.PERCENT),
+
+    additive_operator: ($) => choice(SYMBOLS.PLUS, SYMBOLS.MINUS),
+
+    /*********** Literals ************/
     hex_literal: ($) => /0[xX][a-fA-F0-9](?:_?[a-fA-F0-9])/,
     octal_literal: ($) => /0[oO][0-7](?:_?[0-7])/,
     binary_literal: ($) => /0[bB][01](?:_?[01])/,
@@ -208,17 +220,6 @@ module.exports = grammar({
           /\\U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]/,
           /\\[^xuU]/
         )
-      ),
-
-    literal: ($) =>
-      choice(
-        $.hex_literal,
-        $.octal_literal,
-        $.binary_literal,
-        $.decimal_literal,
-        $.boolean_literal,
-        $.character_literal,
-        $.string_literal
       ),
 
     identifier: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,

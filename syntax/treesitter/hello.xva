@@ -1,12 +1,9 @@
-def void_function() {}
-def void_function_with_one_param(param: int) {}
-def void_function_with_many_params(param1: bool, param2: int, param3: string) {}
-def function(): SomeType {}
-def function_with_one_param(param: int): SomeType {}
-def function_with_many_params(param1: bool, param2: int, param3: string): SomeType {}
-def void_arrow() => 5
-def void_arrow_with_one_param(param: int) => 69
-def void_arrow_with_many_params(param1: bool, param2: int, param3: string) => "hello world"
-def arrow(): SomeType => 5
-def arrow_with_one_param(param: int): SomeType => 69
-def arrow_with_many_params(param1: bool, param2: int, param3: string): SomeType => "hello world"
+1 + 1
+1-1
+1 * 1
+1/1
+1%1
+
+1 + 1 * 1
+
+1 + -1

@@ -1,5 +1,8 @@
+pub mod parser;
 pub mod tree_sitter;
 pub use crate::tree_sitter::print_cst;
+
+mod ast;
 #[cfg(test)]
 mod tests {
     use crate::tree_sitter::{debug_tree, get_tree};

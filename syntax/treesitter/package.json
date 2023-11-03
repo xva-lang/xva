@@ -16,7 +16,8 @@
     "incremental"
   ],
   "dependencies": {
-    "nan": "^2.12.1"
+    "nan": "^2.12.1",
+    "tree-sitter": "^0.20.6"
   },
   "devDependencies": {
     "tree-sitter-cli": "^0.20.7"
