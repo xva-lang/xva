@@ -16,23 +16,7 @@
           "named": true
         },
         {
-          "type": "binary_literal",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
           "type": "character_literal",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "hex_literal",
           "named": true
         },
         {
@@ -40,11 +24,11 @@
           "named": true
         },
         {
-          "type": "multiplicative_expression",
+          "type": "integer_literal",
           "named": true
         },
         {
-          "type": "octal_literal",
+          "type": "multiplicative_expression",
           "named": true
         },
         {
@@ -76,23 +60,7 @@
           "named": true
         },
         {
-          "type": "binary_literal",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
           "type": "character_literal",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "hex_literal",
           "named": true
         },
         {
@@ -100,11 +68,11 @@
           "named": true
         },
         {
-          "type": "multiplicative_expression",
+          "type": "integer_literal",
           "named": true
         },
         {
-          "type": "octal_literal",
+          "type": "multiplicative_expression",
           "named": true
         },
         {
@@ -119,6 +87,11 @@
     }
   },
   {
+    "type": "ascii_escape",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "assignment",
     "named": true,
     "fields": {},
@@ -131,23 +104,7 @@
           "named": true
         },
         {
-          "type": "binary_literal",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
           "type": "character_literal",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "hex_literal",
           "named": true
         },
         {
@@ -155,11 +112,11 @@
           "named": true
         },
         {
-          "type": "multiplicative_expression",
+          "type": "integer_literal",
           "named": true
         },
         {
-          "type": "octal_literal",
+          "type": "multiplicative_expression",
           "named": true
         },
         {
@@ -186,19 +143,7 @@
           "named": true
         },
         {
-          "type": "binary_literal",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
           "type": "character_literal",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
           "named": true
         },
         {
@@ -206,11 +151,11 @@
           "named": true
         },
         {
-          "type": "hex_literal",
+          "type": "identifier",
           "named": true
         },
         {
-          "type": "identifier",
+          "type": "integer_literal",
           "named": true
         },
         {
@@ -219,10 +164,6 @@
         },
         {
           "type": "multiplicative_expression",
-          "named": true
-        },
-        {
-          "type": "octal_literal",
           "named": true
         },
         {
@@ -247,14 +188,18 @@
     "fields": {},
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
-          "type": "character_literal_unescaped",
+          "type": "ascii_escape",
           "named": true
         },
         {
-          "type": "escape_sequence",
+          "type": "quote_escape",
+          "named": true
+        },
+        {
+          "type": "unicode_escape",
           "named": true
         }
       ]
@@ -311,6 +256,44 @@
     }
   },
   {
+    "type": "integer_literal",
+    "named": true,
+    "fields": {
+      "suffix": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "suffix_no_e",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "binary_literal",
+          "named": true
+        },
+        {
+          "type": "decimal_literal",
+          "named": true
+        },
+        {
+          "type": "hex_literal",
+          "named": true
+        },
+        {
+          "type": "octal_literal",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "let_declaration",
     "named": true,
     "fields": {},
@@ -346,27 +329,15 @@
           "named": true
         },
         {
-          "type": "binary_literal",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
           "type": "character_literal",
           "named": true
         },
         {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "hex_literal",
-          "named": true
-        },
-        {
           "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "integer_literal",
           "named": true
         },
         {
@@ -375,10 +346,6 @@
         },
         {
           "type": "multiplicative_operator",
-          "named": true
-        },
-        {
-          "type": "octal_literal",
           "named": true
         },
         {
@@ -444,23 +411,7 @@
           "named": true
         },
         {
-          "type": "binary_literal",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
           "type": "character_literal",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "hex_literal",
           "named": true
         },
         {
@@ -468,11 +419,11 @@
           "named": true
         },
         {
-          "type": "multiplicative_expression",
+          "type": "integer_literal",
           "named": true
         },
         {
-          "type": "octal_literal",
+          "type": "multiplicative_expression",
           "named": true
         },
         {
@@ -496,6 +447,11 @@
     "fields": {}
   },
   {
+    "type": "quote_escape",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "source_file",
     "named": true,
     "fields": {},
@@ -508,23 +464,7 @@
           "named": true
         },
         {
-          "type": "binary_literal",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
           "type": "character_literal",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "hex_literal",
           "named": true
         },
         {
@@ -532,11 +472,11 @@
           "named": true
         },
         {
-          "type": "multiplicative_expression",
+          "type": "integer_literal",
           "named": true
         },
         {
-          "type": "octal_literal",
+          "type": "multiplicative_expression",
           "named": true
         },
         {
@@ -553,17 +493,7 @@
   {
     "type": "string_literal",
     "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": false,
-      "types": [
-        {
-          "type": "character_literal",
-          "named": true
-        }
-      ]
-    }
+    "fields": {}
   },
   {
     "type": "type",
@@ -602,6 +532,11 @@
         }
       ]
     }
+  },
+  {
+    "type": "unicode_escape",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "\"",
@@ -656,6 +591,38 @@
     "named": false
   },
   {
+    "type": "\\\"",
+    "named": false
+  },
+  {
+    "type": "\\'",
+    "named": false
+  },
+  {
+    "type": "\\0",
+    "named": false
+  },
+  {
+    "type": "\\\\",
+    "named": false
+  },
+  {
+    "type": "\\n",
+    "named": false
+  },
+  {
+    "type": "\\r",
+    "named": false
+  },
+  {
+    "type": "\\t",
+    "named": false
+  },
+  {
+    "type": "\\x",
+    "named": false
+  },
+  {
     "type": "binary_literal",
     "named": true
   },
@@ -664,20 +631,12 @@
     "named": false
   },
   {
-    "type": "boolean_literal",
-    "named": true
-  },
-  {
     "type": "byte",
     "named": false
   },
   {
     "type": "char",
     "named": false
-  },
-  {
-    "type": "character_literal_unescaped",
-    "named": true
   },
   {
     "type": "decimal_literal",
@@ -690,10 +649,6 @@
   {
     "type": "double",
     "named": false
-  },
-  {
-    "type": "escape_sequence",
-    "named": true
   },
   {
     "type": "float",
@@ -730,6 +685,10 @@
   {
     "type": "short",
     "named": false
+  },
+  {
+    "type": "suffix_no_e",
+    "named": true
   },
   {
     "type": "uint",

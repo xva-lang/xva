@@ -69,159 +69,108 @@ const BUILT_IN_TYPES = [
 const sepBy1 = (sep, rule) => seq(rule, repeat(seq(sep, rule)));
 const sepBy = (sep, rule) => optional(sepBy1(sep, rule));
 
+const SUFFIX_NO_E = /[a-df-zA-DF-Z_][a-zA-Z0-9_]*/;
+
 module.exports = grammar({
   name: "xva",
 
   word: ($) => $.identifier,
 
   rules: {
-    source_file: ($) => repeat($._statement),
+    source_file: ($) => repeat($._item),
 
-    _statement: ($) => choice($._expression),
+    _item: ($) => choice($.expression),
 
-    _declaration_statement: ($) => choice($.let_declaration, $.function),
-    let_declaration: ($) =>
-      seq(
-        $._let_keyword,
-        $.identifier,
-        optional($.type_annotation),
-        $.assignment
-      ),
-    assignment: ($) => seq($._equals_symbol, $._expression),
-
-    type_annotation: ($) =>
-      seq($._colon_symbol, optional($.mutable_modifier), $.type),
-
-    block: ($) =>
-      seq(
-        SYMBOLS.OPEN_BRACE,
-        repeat(choice($._declaration_statement, $._expression)),
-        SYMBOLS.CLOSE_BRACE
-      ),
-
-    // parameters: $ => seq(
-    //   '(',
-    //   sepBy(',', seq(
-    //     optional($.attribute_item),
-    //     choice(
-    //       $.parameter,
-    //       $.self_parameter,
-    //       $.variadic_parameter,
-    //       '_',
-    //       $._type
-    //     ))),
-    //   optional(','),
-    //   ')'
-    // ),
-    parameter: ($) => seq($.identifier, SYMBOLS.COLON, $.type),
-    parameters: ($) =>
-      seq(
-        SYMBOLS.OPEN_PARENTHESIS,
-        sepBy(",", $.parameter),
-        SYMBOLS.CLOSE_PARENTHESIS
-      ),
-
-    function: ($) =>
-      seq(
-        KEYWORDS.DEF,
-        field("name", $.identifier),
-        $.parameters,
-        optional(field("return_type", $.type_annotation)),
-        field("body", choice($.block, $.arrow_function_body))
-      ),
-
-    _fat_arrow: ($) => "=>",
-    arrow_function_body: ($) => seq($._fat_arrow, $._expression),
-    mutable_modifier: ($) => KEYWORDS.MUTABLE,
-
-    type: ($) => choice($.built_in_type, $.identifier),
-    _colon_symbol: ($) => SYMBOLS.COLON,
-    _equals_symbol: ($) => SYMBOLS.EQUALS,
-    _let_keyword: ($) => KEYWORDS.LET,
-    built_in_type: ($) => choice(...BUILT_IN_TYPES),
-
-    _expression: ($) =>
-      choice($._primary_expression, $._unary_expression, $._binary_expression),
+    expression: ($) => choice($._primary_expression),
 
     /************** Primary expressions *************/
-    _primary_expression: ($) => choice($.identifier, $._literal_constant),
+    _primary_expression: ($) => choice($.literal),
 
-    _literal_constant: ($) =>
+    literal: ($) =>
       choice(
-        $.boolean_literal,
-        $.decimal_literal,
-        $.hex_literal,
-        $.binary_literal,
-        $.octal_literal,
+        $.integer_literal,
         $.character_literal,
-        $.string_literal
+        $.string_literal,
+        $.boolean_literal
       ),
 
-    /************* Unary expressions **************/
-    _unary_expression: ($) => choice($.prefix_expression),
-
-    prefix_expression: ($) =>
-      prec.right(seq(choice($.prefix_unary_operator), $._expression)),
-
-    prefix_unary_operator: ($) =>
-      choice(SYMBOLS.INCREMENT, SYMBOLS.DECREMENT, SYMBOLS.MINUS, SYMBOLS.PLUS),
-
-    /************* Binary expressions **************/
-    _binary_expression: ($) =>
-      choice($.multiplicative_expression, $.additive_expression),
-
-    multiplicative_expression: ($) =>
-      prec.left(
-        PRECEDENCE.MUL_DIV_MOD,
-        seq($._expression, $.multiplicative_operator, $._expression)
-      ),
-
-    additive_expression: ($) =>
-      prec.left(
-        PRECEDENCE.ADD_SUB,
-        seq($._expression, $.additive_operator, $._expression)
-      ),
-
-    /********** Operators ************/
-    multiplicative_operator: ($) =>
-      choice(SYMBOLS.STAR, SYMBOLS.SLASH, SYMBOLS.PERCENT),
-
-    additive_operator: ($) => choice(SYMBOLS.PLUS, SYMBOLS.MINUS),
+    // TODO: byte literals, byte string literals, raw string literals
 
     /*********** Literals ************/
-    hex_literal: ($) => /0[xX][a-fA-F0-9](?:_?[a-fA-F0-9])/,
-    octal_literal: ($) => /0[oO][0-7](?:_?[0-7])/,
-    binary_literal: ($) => /0[bB][01](?:_?[01])/,
-    decimal_literal: ($) => /(?:0|[1-9](?:_*[0-9])*)/,
-    boolean_literal: ($) => /true|false/,
-    string_literal: ($) =>
+    // Integer literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#integer-literals
+    integer_literal: ($) =>
       seq(
-        SYMBOLS.DOUBLE_QUOTE,
-        repeat($.character_literal),
-        SYMBOLS.DOUBLE_QUOTE
+        choice(
+          $.decimal_literal,
+          $.binary_literal,
+          $.octal_literal,
+          $.hex_literal
+        ),
+        field("suffix", optional($.suffix_no_e))
       ),
+    suffix_no_e: ($) => SUFFIX_NO_E,
 
-    // character_literal, character_literal_unescaped and escape_sequence were all borrowed from
-    // tree-sitter-csharp: https://github.com/tree-sitter/tree-sitter-c-sharp/
+    decimal_literal: ($) => /[1-9]([0-9]|_)*/,
+    binary_literal: ($) => /0b([0-1]|_)*[0-1]([0-1]|_)*/,
+    octal_literal: ($) => /0o([0-7]|_)*[0-7]([0-7]|_)*/,
+    hex_literal: ($) => /0x([0-9a-fA-F]|_)*[0-9a-fA-F]([0-9a-fA-F]|_)*/,
+
+    // Character literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#character-literals
     character_literal: ($) =>
       seq(
         SYMBOLS.SINGLE_QUOTE,
-        choice($.character_literal_unescaped, $.escape_sequence),
+        choice(
+          /[^\'\\(\\n)(\\r)(\\t)]/,
+          $.quote_escape,
+          $.ascii_escape,
+          $.unicode_escape
+        ),
         SYMBOLS.SINGLE_QUOTE
       ),
+    quote_escape: ($) => choice("\\'", '\\"'),
+    ascii_escape: ($) =>
+      choice(
+        seq("\\x", /[0-7]/, /[0-9a-fA-f]/),
+        "\\n",
+        "\\r",
+        "\\t",
+        "\\\\",
+        "\\0"
+      ),
+    unicode_escape: ($) => /\\u\{([0-9a-fA-F]|_*){1,6}\}/,
 
-    character_literal_unescaped: ($) => token.immediate(/[^'\\]/),
-
-    escape_sequence: ($) =>
-      token(
-        choice(
-          /\\x[0-9a-fA-F][0-9a-fA-F]?[0-9a-fA-F]?[0-9a-fA-F]?/,
-          /\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]/,
-          /\\U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]/,
-          /\\[^xuU]/
-        )
+    // String literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#string-literals
+    string_literal: ($) =>
+      seq(
+        SYMBOLS.DOUBLE_QUOTE,
+        repeat(
+          choice(
+            /[^\"\\\n]/,
+            $._quote_escape,
+            $._ascii_escape,
+            $._unicode_escape,
+            $._string_continuation
+          )
+        ),
+        SYMBOLS.DOUBLE_QUOTE
       ),
 
-    identifier: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,
+    // Hidden versions of the esacapes:
+    _quote_escape: ($) => choice("\\'", '\\"'),
+    _ascii_escape: ($) =>
+      choice(
+        seq("\\x", /[0-7]/, /[0-9a-fA-f]/),
+        "\\n",
+        "\\r",
+        "\\t",
+        "\\\\",
+        "\\0"
+      ),
+    _unicode_escape: ($) => /\\u\{([0-9a-fA-F]|_*){1,6}\}/,
+
+    _string_continuation: ($) => /\\\n/,
+
+    boolean_literal: ($) => choice("true", "false"),
+    /*********** Literals ************/
   },
 });

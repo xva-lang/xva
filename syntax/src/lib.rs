@@ -11,4 +11,9 @@ mod tests {
     fn test() {
         debug_tree(&get_tree(r#"let x: mutable boolean = false"#, None))
     }
+
+    #[test]
+    fn vec_test() {
+        let vect = vec!(1,2,3);
+    }
 }
