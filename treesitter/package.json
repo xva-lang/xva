@@ -1,12 +1,4 @@
 {
-  "tree-sitter": [
-    {
-      "scope": "source.xva",
-      "file-types": [
-        "xva"
-      ]
-    }
-  ],
   "name": "tree-sitter-xva",
   "version": "0.0.1",
   "description": "xva grammar for tree-sitter",
@@ -16,8 +8,7 @@
     "incremental"
   ],
   "dependencies": {
-    "nan": "^2.12.1",
-    "tree-sitter": "^0.20.6"
+    "nan": "^2.12.1"
   },
   "devDependencies": {
     "tree-sitter-cli": "^0.20.7"

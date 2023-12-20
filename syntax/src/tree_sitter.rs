@@ -1,6 +1,6 @@
 use tree_sitter::{Node, Parser, Tree};
 use tree_sitter_traversal::{traverse_tree, Order};
-use tree_sitter_xva::language;
+use xvatreesitter::language;
 
 #[allow(dead_code)]
 pub(crate) fn get_tree(input: impl AsRef<[u8]>, existing_tree: Option<&Tree>) -> Tree {

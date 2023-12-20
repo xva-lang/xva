@@ -1,8 +1,2 @@
 [workspace]
-
-members = [
-    "xva",
-    "syntax",
-    "runtime",
-    "syntax/treesitter"
-]
+members = ["xva", "syntax", "runtime", "treesitter"]

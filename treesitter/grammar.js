@@ -74,7 +74,9 @@ const SUFFIX_NO_E = /[a-df-zA-DF-Z_][a-zA-Z0-9_]*/;
 module.exports = grammar({
   name: "xva",
 
-  word: ($) => $.identifier,
+  // https://github.com/tree-sitter/tree-sitter/issues/328
+  // The "word" rule being set to an undefined rule causes a weird error when running `tree-sitter generate`
+  // word: ($) => $.identifier,
 
   rules: {
     source_file: ($) => repeat($._item),
