@@ -24,7 +24,9 @@ Xva is still extremely experimental. The team is always open to new ideas and co
 
 Xva is written in Rust. We are using the latest stable Rust version, which you can get by downloading [Rustup](https://www.rust-lang.org/tools/install), the Rust toolchain installer.
 
-Rust is all you need to get started! However, the `syntax` crate has a dependency on the famous [Tree Sitter](https://tree-sitter.github.io/tree-sitter) parsing library. Changing the Tree Sitter grammar and testing it requires a few more development dependencies, so if you are interested in working on that crate, please read on.
+Rust is all you need to get started! However, the `treesitter` crate has a dependency on the famous [Tree Sitter](https://tree-sitter.github.io/tree-sitter) parsing library. Building the crate as-is does not require any extra dependencies,
+however, changing the Tree Sitter grammar and testing it requires a few development dependencies, so if you are
+interested in working on that crate, please read on.
 
 ## Tree Sitter
 
@@ -33,7 +35,6 @@ Tree Sitter requires a few prerequesites to be able to get going with developing
 - tree-sitter-cli
 - Node
 - A C and C++ compiler
-- Emscripten (optional)
 
 ### tree-sitter-cli
 
@@ -51,33 +52,5 @@ The tree-sitter-cli requires Node to generate parsers. Head to the [Node website
 
 ### C and C++ compiler
 
-The tree-sitter-cli requires a C and C++ compiler for building, testing and running parsers, as Tree Sitter itself is a C library.
-
-For Windows:
-
-For macOS:
-
-For Linux:
-
-### Emscripten
-
-Emscripten is a compiler frontend for WebAssembly. This step is optional, you can build, test and run the parsers and build the compiler without it, but tree-sitter-cli has a playground function that runs a little web app for you to play with the parser, which is super helpful to visualise your syntax trees.
-
-Quick and dirty install (for Windows):
-
-```powershell
-# Clone the Emscripten SDK repository to your local machine
-git clone https://github.com/emscripten-core/emsdk.git
-
-# Make sure it's up to date
-git pull
-
-# Change into the folder you cloned the SDK into
-cd emsdk
-
-# Install it
-.\emsdk install latest
-
-# Then activate it
-.\emsdk activate latest --permanent
-```
+The tree-sitter-cli requires a C and C++ compiler for building, testing and running parsers, as Tree Sitter itself is a C library. Because there are a multitude of different C/C++ compilers for a multitude of different operating systems,
+instructions to install one is outside the scope of this document and it is assumed you have now installed one.
