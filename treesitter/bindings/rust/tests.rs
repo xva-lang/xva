@@ -1,6 +1,6 @@
 mod literals;
 
-use tree_sitter::{Node, Parser};
+use tree_sitter::{Node, Parser, Tree};
 
 #[test]
 fn test_can_load_grammar() {
@@ -21,8 +21,8 @@ fn get_parser() -> Parser {
 /// Extracts nth sibling node at the mth level descendant from the root
 ///
 /// `n = 0` is the level immediately descendant of the root.
-fn extract_nth_node_at_mth_level(root: Node, n: usize, level: usize) -> Node {
-    let mut node: Option<Node> = None;
+fn extract_nth_node_at_mth_level<'root>(root: &'root Node, n: usize, level: usize) -> Node<'root> {
+    let mut node: Option<Node<'root>> = None;
     for i in 0..=level {
         if i == 0 {
             node = root.child(0)
@@ -38,3 +38,7 @@ fn extract_nth_node_at_mth_level(root: Node, n: usize, level: usize) -> Node {
     node.unwrap()
 }
 
+fn get_tree(input: &str) -> Tree {
+    let mut parser = get_parser();
+    parser.parse(input, None).expect("Failed to parse")
+}

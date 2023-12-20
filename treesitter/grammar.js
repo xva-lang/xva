@@ -112,7 +112,7 @@ module.exports = grammar({
       ),
     suffix_no_e: ($) => SUFFIX_NO_E,
 
-    decimal_literal: ($) => /[1-9]([0-9]|_)*/,
+    decimal_literal: ($) => /[0-9]([0-9]|_)*/,
     binary_literal: ($) => /0b([0-1]|_)*[0-1]([0-1]|_)*/,
     octal_literal: ($) => /0o([0-7]|_)*[0-7]([0-7]|_)*/,
     hex_literal: ($) => /0x([0-9a-fA-F]|_)*[0-9a-fA-F]([0-9a-fA-F]|_)*/,
