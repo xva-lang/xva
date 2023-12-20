@@ -3,15 +3,17 @@ use crate::tests::{extract_nth_node_at_mth_level, get_parser};
 use super::get_tree;
 
 #[test]
-fn boolean_literal() {
-    let mut parser = get_parser();
-    let tree = parser.parse("true", None).expect("Failed to parse");
+fn boolean_literal_true() {
+    let tree = get_tree("true");
     assert_eq!(
         extract_nth_node_at_mth_level(&tree.root_node(), 0, 2).kind(),
         "boolean_literal"
     );
+}
 
-    let tree = parser.parse("false", None).expect("Failed to parse");
+#[test]
+fn boolean_literal_false() {
+    let tree = get_tree("false");
     assert_eq!(
         extract_nth_node_at_mth_level(&tree.root_node(), 0, 2).kind(),
         "boolean_literal"
