@@ -52,6 +52,38 @@ fn assert_binary_literal(input: &str) {
     assert_eq!(fourth.kind(), "binary_literal");
 }
 
+fn assert_hex_literal(input: &str) {
+    let tree = get_tree(input);
+    let root = tree.root_node();
+    let (first, second, third, fourth) = (
+        extract_nth_node_at_mth_level(&root, 0, 0),
+        extract_nth_node_at_mth_level(&root, 0, 1),
+        extract_nth_node_at_mth_level(&root, 0, 2),
+        extract_nth_node_at_mth_level(&root, 0, 3),
+    );
+
+    assert_eq!(first.kind(), "expression");
+    assert_eq!(second.kind(), "literal");
+    assert_eq!(third.kind(), "integer_literal");
+    assert_eq!(fourth.kind(), "hex_literal");
+}
+
+fn assert_octal_literal(input: &str) {
+    let tree = get_tree(input);
+    let root = tree.root_node();
+    let (first, second, third, fourth) = (
+        extract_nth_node_at_mth_level(&root, 0, 0),
+        extract_nth_node_at_mth_level(&root, 0, 1),
+        extract_nth_node_at_mth_level(&root, 0, 2),
+        extract_nth_node_at_mth_level(&root, 0, 3),
+    );
+
+    assert_eq!(first.kind(), "expression");
+    assert_eq!(second.kind(), "literal");
+    assert_eq!(third.kind(), "integer_literal");
+    assert_eq!(fourth.kind(), "octal_literal");
+}
+
 #[test]
 fn decimal_literals() {
     assert_decimal_literal("0");
@@ -91,4 +123,60 @@ fn binary_literal_with_trailing_underscore() {
 #[should_panic]
 fn binary_literal_without_prefix() {
     assert_binary_literal("0");
+}
+
+#[test]
+fn hex_literal_zero() {
+    assert_hex_literal("0x0");
+}
+
+#[test]
+fn hex_literal_one() {
+    assert_hex_literal("0x1");
+}
+
+#[test]
+fn hex_literal() {
+    assert_hex_literal("0x123456789ABcdEF");
+}
+
+#[test]
+fn hex_literal_with_underscore() {
+    assert_hex_literal("0x12345_6789ABcdEF");
+}
+
+#[test]
+fn hex_literal_with_trailing_underscore() {
+    assert_hex_literal("0x12345_6789ABcdEF_");
+}
+
+#[test]
+#[should_panic]
+fn hex_literal_without_prefix() {
+    assert_hex_literal("123456789ABcdEF");
+}
+
+#[test]
+fn octal_literal_zero() {
+    assert_octal_literal("0o0");
+}
+
+#[test]
+fn octal_literal_one() {
+    assert_octal_literal("0o1");
+}
+
+#[test]
+fn octal_literal() {
+    assert_octal_literal("0o1234567");
+}
+
+#[test]
+fn octal_literal_with_underscore() {
+    assert_octal_literal("0o1234_567");
+}
+
+#[test]
+fn octal_literal_with_trailing_underscore() {
+    assert_octal_literal("0o1234_567_");
 }
