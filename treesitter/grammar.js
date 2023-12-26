@@ -139,7 +139,7 @@ module.exports = grammar({
         "\\\\",
         "\\0"
       ),
-    unicode_escape: ($) => /\\u\{([0-9a-fA-F]|_*){1,6}\}/,
+    unicode_escape: ($) => /\\u([0-9a-fA-F]|_*){1,6}/,
 
     // String literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#string-literals
     string_literal: ($) =>

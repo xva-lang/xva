@@ -84,6 +84,20 @@ fn assert_octal_literal(input: &str) {
     assert_eq!(fourth.kind(), "octal_literal");
 }
 
+fn assert_char_literal(input: &str) {
+    let tree = get_tree(input);
+    let root = tree.root_node();
+    let (first, second, third) = (
+        extract_nth_node_at_mth_level(&root, 0, 0),
+        extract_nth_node_at_mth_level(&root, 0, 1),
+        extract_nth_node_at_mth_level(&root, 0, 2),
+    );
+
+    assert_eq!(first.kind(), "expression");
+    assert_eq!(second.kind(), "literal");
+    assert_eq!(third.kind(), "character_literal");
+}
+
 #[test]
 fn decimal_literals() {
     assert_decimal_literal("0");
@@ -179,4 +193,30 @@ fn octal_literal_with_underscore() {
 #[test]
 fn octal_literal_with_trailing_underscore() {
     assert_octal_literal("0o1234_567_");
+}
+
+#[test]
+fn char_literal() {
+    assert_char_literal("\'c\'");
+}
+
+#[test]
+fn ascii_literals() {
+    assert_char_literal(r#"'\x69'"#);
+    assert_char_literal(r#"'\r'"#);
+    assert_char_literal(r#"'\n'"#);
+    assert_char_literal(r#"'\t'"#);
+    assert_char_literal(r#"'\0'"#);
+    assert_char_literal(r#"'\\'"#);
+}
+
+#[test]
+fn quote_escape_literals() {
+    assert_char_literal(r#"'\''"#);
+    assert_char_literal(r#"'\"'"#)
+}
+
+#[test]
+fn unicode_literal() {
+    assert_char_literal(r"'\u211B'");
 }

@@ -138,11 +138,6 @@
     "fields": {}
   },
   {
-    "type": "unicode_escape",
-    "named": true,
-    "fields": {}
-  },
-  {
     "type": "\"",
     "named": false
   },
@@ -209,5 +204,9 @@
   {
     "type": "true",
     "named": false
+  },
+  {
+    "type": "unicode_escape",
+    "named": true
   }
 ]
