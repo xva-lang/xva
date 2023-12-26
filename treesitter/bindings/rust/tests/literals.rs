@@ -1,6 +1,14 @@
-use crate::tests::{extract_nth_node_at_mth_level, get_parser};
+use crate::tests::{extract_nth_node_at_mth_level, get_tree};
 
-use super::get_tree;
+const KIND_EXPRESSION: &str = "expression";
+const KIND_LITERAL: &str = "literal";
+const KIND_INTEGER_LITERAL: &str = "integer_literal";
+const KIND_DECIMAL_LITERAL: &str = "decimal_literal";
+const KIND_HEX_LITERAL: &str = "hex_literal";
+const KIND_OCTAL_LITERAL: &str = "octal_literal";
+const KIND_BINARY_LITERAL: &str = "binary_literal";
+const KIND_CHARACTER_LITERAL: &str = "character_literal";
+const KIND_STRING_LITERAL: &str = "string_literal";
 
 #[test]
 fn boolean_literal_true() {
@@ -30,10 +38,10 @@ fn assert_decimal_literal(input: &str) {
         extract_nth_node_at_mth_level(&root, 0, 3),
     );
 
-    assert_eq!(first.kind(), "expression");
-    assert_eq!(second.kind(), "literal");
-    assert_eq!(third.kind(), "integer_literal");
-    assert_eq!(fourth.kind(), "decimal_literal");
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_INTEGER_LITERAL);
+    assert_eq!(fourth.kind(), KIND_DECIMAL_LITERAL);
 }
 
 fn assert_binary_literal(input: &str) {
@@ -46,10 +54,10 @@ fn assert_binary_literal(input: &str) {
         extract_nth_node_at_mth_level(&root, 0, 3),
     );
 
-    assert_eq!(first.kind(), "expression");
-    assert_eq!(second.kind(), "literal");
-    assert_eq!(third.kind(), "integer_literal");
-    assert_eq!(fourth.kind(), "binary_literal");
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_INTEGER_LITERAL);
+    assert_eq!(fourth.kind(), KIND_BINARY_LITERAL);
 }
 
 fn assert_hex_literal(input: &str) {
@@ -62,10 +70,10 @@ fn assert_hex_literal(input: &str) {
         extract_nth_node_at_mth_level(&root, 0, 3),
     );
 
-    assert_eq!(first.kind(), "expression");
-    assert_eq!(second.kind(), "literal");
-    assert_eq!(third.kind(), "integer_literal");
-    assert_eq!(fourth.kind(), "hex_literal");
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_INTEGER_LITERAL);
+    assert_eq!(fourth.kind(), KIND_HEX_LITERAL);
 }
 
 fn assert_octal_literal(input: &str) {
@@ -78,10 +86,10 @@ fn assert_octal_literal(input: &str) {
         extract_nth_node_at_mth_level(&root, 0, 3),
     );
 
-    assert_eq!(first.kind(), "expression");
-    assert_eq!(second.kind(), "literal");
-    assert_eq!(third.kind(), "integer_literal");
-    assert_eq!(fourth.kind(), "octal_literal");
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_INTEGER_LITERAL);
+    assert_eq!(fourth.kind(), KIND_OCTAL_LITERAL);
 }
 
 fn assert_char_literal(input: &str) {
@@ -93,9 +101,22 @@ fn assert_char_literal(input: &str) {
         extract_nth_node_at_mth_level(&root, 0, 2),
     );
 
-    assert_eq!(first.kind(), "expression");
-    assert_eq!(second.kind(), "literal");
-    assert_eq!(third.kind(), "character_literal");
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_CHARACTER_LITERAL);
+}
+
+fn assert_string_literal(input: &str) {
+    let tree = get_tree(input);
+    let root = tree.root_node();
+    let (first, second, third) = (
+        extract_nth_node_at_mth_level(&root, 0, 0),
+        extract_nth_node_at_mth_level(&root, 0, 1),
+        extract_nth_node_at_mth_level(&root, 0, 2),
+    );
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_STRING_LITERAL);
 }
 
 #[test]
@@ -219,4 +240,9 @@ fn quote_escape_literals() {
 #[test]
 fn unicode_literal() {
     assert_char_literal(r"'\u211B'");
+}
+
+#[test]
+fn strings() {
+    assert_string_literal(r#""abcdef\0\r\n\t\x39\u211B\"\'\"""#)
 }

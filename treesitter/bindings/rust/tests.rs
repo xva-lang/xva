@@ -24,6 +24,7 @@ fn get_parser() -> Parser {
 /// `n = 0` is the level immediately descendant of the root.
 fn extract_nth_node_at_mth_level<'root>(root: &'root Node, n: usize, level: usize) -> Node<'root> {
     let mut node: Option<Node<'root>> = None;
+
     for i in 0..=level {
         if i == 0 {
             node = root.child(0)

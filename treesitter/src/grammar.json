@@ -309,7 +309,7 @@
     },
     "_unicode_escape": {
       "type": "PATTERN",
-      "value": "\\\\u\\{([0-9a-fA-F]|_*){1,6}\\}"
+      "value": "\\\\u([0-9a-fA-F]|_*){1,6}"
     },
     "_string_continuation": {
       "type": "PATTERN",

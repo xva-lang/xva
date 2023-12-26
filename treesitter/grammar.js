@@ -168,7 +168,7 @@ module.exports = grammar({
         "\\\\",
         "\\0"
       ),
-    _unicode_escape: ($) => /\\u\{([0-9a-fA-F]|_*){1,6}\}/,
+    _unicode_escape: ($) => /\\u([0-9a-fA-F]|_*){1,6}/,
 
     _string_continuation: ($) => /\\\n/,
 
