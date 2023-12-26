@@ -69,8 +69,6 @@ const BUILT_IN_TYPES = [
 const sepBy1 = (sep, rule) => seq(rule, repeat(seq(sep, rule)));
 const sepBy = (sep, rule) => optional(sepBy1(sep, rule));
 
-const SUFFIX_NO_E = /[a-df-zA-DF-Z_][a-zA-Z0-9_]*/;
-
 module.exports = grammar({
   name: "xva",
 
@@ -107,10 +105,8 @@ module.exports = grammar({
           $.binary_literal,
           $.octal_literal,
           $.hex_literal
-        ),
-        field("suffix", optional($.suffix_no_e))
+        )
       ),
-    suffix_no_e: ($) => SUFFIX_NO_E,
 
     decimal_literal: ($) => /[0-9]([0-9]|_)*/,
     binary_literal: ($) => /0b([0-1]|_)*[0-1]([0-1]|_)*/,
