@@ -1,5 +1,5 @@
 [package]
-name = "xvabuildinfo"
+name = "xva-buildinfo"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 build-info = "0.0.31"
 build-info-common = "0.0.31"
+chrono = "0.4.31"
 
 [build-dependencies]
 build-info-build = "0.0.31"

@@ -1,8 +1,8 @@
 use std::{fs::File, io::Read};
 
 use clap::{Arg, Command};
-use xvabuildinfo::get_build_info;
-use xvacompiler::CompilerOptions;
+use xva_buildinfo::get_build_info;
+use xva_compiler::CompilerOptions;
 
 const PACKAGE_VERSION: &str = std::env!("CARGO_PKG_VERSION");
 
@@ -45,7 +45,7 @@ fn main() -> Result<(), std::io::Error> {
         File::open(file_name)?.read_to_string(&mut buffer)?;
 
         if compiler_options.print_cst {
-            xvasyntax::print_cst(buffer);
+            xva_syntax::print_cst(buffer);
         }
     }
 

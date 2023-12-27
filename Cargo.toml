@@ -1,2 +1,3 @@
 [workspace]
-members = ["xva", "syntax", "runtime", "treesitter"]
+resolver = "2"
+members = ["xva", "xva-*"]
