@@ -33,6 +33,11 @@
     }
   },
   {
+    "type": "decimal_literal",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "expression",
     "named": true,
     "fields": {},
@@ -45,6 +50,22 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "float_literal",
+    "named": true,
+    "fields": {
+      "exponent": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "float_exponent",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -88,6 +109,10 @@
         },
         {
           "type": "character_literal",
+          "named": true
+        },
+        {
+          "type": "float_literal",
           "named": true
         },
         {
@@ -140,6 +165,10 @@
     "named": false
   },
   {
+    "type": ".",
+    "named": false
+  },
+  {
     "type": "\\\"",
     "named": false
   },
@@ -176,12 +205,12 @@
     "named": true
   },
   {
-    "type": "decimal_literal",
-    "named": true
-  },
-  {
     "type": "false",
     "named": false
+  },
+  {
+    "type": "float_exponent",
+    "named": true
   },
   {
     "type": "hex_literal",

@@ -53,6 +53,10 @@
         {
           "type": "SYMBOL",
           "name": "boolean_literal"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "float_literal"
         }
       ]
     },
@@ -307,6 +311,82 @@
           "value": "false"
         }
       ]
+    },
+    "_decimal_literal": {
+      "type": "PATTERN",
+      "value": "[0-9]([0-9]|_)*"
+    },
+    "float_exponent": {
+      "type": "PATTERN",
+      "value": "[eE][+-]?([0-9]|_)*[0-9]([0-9]|_)*"
+    },
+    "float_literal": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_decimal_literal"
+            },
+            {
+              "type": "STRING",
+              "value": "."
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_decimal_literal"
+            },
+            {
+              "type": "STRING",
+              "value": "."
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_decimal_literal"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_decimal_literal"
+            },
+            {
+              "type": "STRING",
+              "value": "."
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "_decimal_literal"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "FIELD",
+              "name": "exponent",
+              "content": {
+                "type": "SYMBOL",
+                "name": "float_exponent"
+              }
+            }
+          ]
+        }
+      ]
     }
   },
   "extras": [
@@ -315,7 +395,11 @@
       "value": "\\s"
     }
   ],
-  "conflicts": [],
+  "conflicts": [
+    [
+      "float_literal"
+    ]
+  ],
   "precedences": [],
   "externals": [],
   "inline": [],

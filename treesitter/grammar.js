@@ -28,6 +28,7 @@ const SYMBOLS = {
   RIGHT_ANGLE: ">",
   INCREMENT: "++",
   DECREMENT: "--",
+  DOT: ".",
 };
 
 const PRECEDENCE = {
@@ -76,6 +77,9 @@ module.exports = grammar({
   // The "word" rule being set to an undefined rule causes a weird error when running `tree-sitter generate`
   // word: ($) => $.identifier,
 
+  // Conflicts:
+  conflicts: ($) => [[$.float_literal]],
+
   rules: {
     source_file: ($) => repeat($._item),
 
@@ -91,7 +95,8 @@ module.exports = grammar({
         $.integer_literal,
         $.character_literal,
         $.string_literal,
-        $.boolean_literal
+        $.boolean_literal,
+        $.float_literal
       ),
 
     // TODO: byte literals, byte string literals, raw string literals
@@ -169,6 +174,22 @@ module.exports = grammar({
     _string_continuation: ($) => /\\\n/,
 
     boolean_literal: ($) => choice("true", "false"),
-    /*********** Literals ************/
+
+    // Float literals
+    // Hidden version of decimal_literal for use in parsing floats
+    _decimal_literal: ($) => /[0-9]([0-9]|_)*/,
+
+    float_exponent: ($) => /[eE][+-]?([0-9]|_)*[0-9]([0-9]|_)*/,
+    float_literal: ($) =>
+      choice(
+        seq($._decimal_literal, SYMBOLS.DOT),
+        seq($._decimal_literal, SYMBOLS.DOT, $._decimal_literal),
+        seq(
+          $._decimal_literal,
+          SYMBOLS.DOT,
+          optional($._decimal_literal),
+          field("exponent", $.float_exponent)
+        )
+      ),
   },
 });

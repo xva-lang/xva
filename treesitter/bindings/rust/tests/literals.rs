@@ -9,6 +9,7 @@ const KIND_OCTAL_LITERAL: &str = "octal_literal";
 const KIND_BINARY_LITERAL: &str = "binary_literal";
 const KIND_CHARACTER_LITERAL: &str = "character_literal";
 const KIND_STRING_LITERAL: &str = "string_literal";
+const KIND_FLOAT_LITERAL: &str = "float_literal";
 
 #[test]
 fn boolean_literal_true() {
@@ -117,6 +118,36 @@ fn assert_string_literal(input: &str) {
     assert_eq!(first.kind(), KIND_EXPRESSION);
     assert_eq!(second.kind(), KIND_LITERAL);
     assert_eq!(third.kind(), KIND_STRING_LITERAL);
+}
+
+fn assert_float_literal(input: &str) {
+    let tree = get_tree(input);
+    let root = tree.root_node();
+    let (first, second, third) = (
+        extract_nth_node_at_mth_level(&root, 0, 0),
+        extract_nth_node_at_mth_level(&root, 0, 1),
+        extract_nth_node_at_mth_level(&root, 0, 2),
+    );
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_FLOAT_LITERAL);
+}
+
+/// Expensive: this function clones a [`tree_sitter::Tree`]
+fn assert_float_literal_returning_tree(input: &str) -> tree_sitter::Tree {
+    let tree = get_tree(input);
+    let cloned_tree = tree.clone();
+    let root = tree.root_node();
+    let (first, second, third) = (
+        extract_nth_node_at_mth_level(&root, 0, 0),
+        extract_nth_node_at_mth_level(&root, 0, 1),
+        extract_nth_node_at_mth_level(&root, 0, 2),
+    );
+    assert_eq!(first.kind(), KIND_EXPRESSION);
+    assert_eq!(second.kind(), KIND_LITERAL);
+    assert_eq!(third.kind(), KIND_FLOAT_LITERAL);
+
+    cloned_tree
 }
 
 #[test]
@@ -245,4 +276,44 @@ fn unicode_literal() {
 #[test]
 fn strings() {
     assert_string_literal(r#""abcdef\0\r\n\t\x39\u211B\"\'\"""#)
+}
+
+#[test]
+fn floats() {
+    assert_float_literal("1.23")
+}
+
+#[test]
+fn float_literal_leading_zero() {
+    assert_float_literal("0.1");
+}
+
+#[test]
+fn float_literal_trailing_dot() {
+    assert_float_literal("1.");
+}
+
+#[test]
+fn float_literal_capital_exponent() {
+    let input = "1.0E5";
+    let tree = assert_float_literal_returning_tree(input);
+    let root = tree.root_node();
+    let float_node = extract_nth_node_at_mth_level(&root, 0, 2);
+    let exponent_node = float_node.child_by_field_name("exponent").unwrap();
+    assert_eq!(exponent_node.utf8_text(input.as_bytes()).unwrap(), "E5")
+}
+
+#[test]
+fn float_literal_negative_exponent() {
+    let input = "1.0e-5";
+    let tree = assert_float_literal_returning_tree(input);
+    let root = tree.root_node();
+    let float_node = extract_nth_node_at_mth_level(&root, 0, 2);
+    let exponent_node = float_node.child_by_field_name("exponent").unwrap();
+    assert_eq!(exponent_node.utf8_text(input.as_bytes()).unwrap(), "e-5")
+}
+
+#[test]
+fn float_literal_underscore_fraction() {
+    assert_float_literal("0.12_34");
 }
