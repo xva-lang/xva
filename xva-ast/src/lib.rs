@@ -18,6 +18,12 @@ pub struct Brick {
     items: Vec<Item>,
 }
 
+impl Brick {
+    pub fn new_from_items(items: Vec<Item>) -> Self {
+        Self { items }
+    }
+}
+
 pub struct Item {
     id: NodeId,
     kind: ItemKind,
