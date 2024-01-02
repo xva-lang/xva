@@ -1,0 +1,78 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'xva'",
+      "cargo": {
+        "args": ["build", "--bin=xva", "--package=xva"],
+        "filter": {
+          "name": "xva",
+          "kind": "bin"
+        }
+      },
+      "args": ["syntax\\treesitter\\hello.xva", "-Zprint-cst"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'xva'",
+      "cargo": {
+        "args": ["test", "--no-run", "--bin=xva", "--package=xva"],
+        "filter": {
+          "name": "xva",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'xvasyntax'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=xvasyntax"],
+        "filter": {
+          "name": "xvasyntax",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'tree-sitter-xva'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=tree-sitter-xva"],
+        "filter": {
+          "name": "tree-sitter-xva",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'xvaruntime'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=xvaruntime"],
+        "filter": {
+          "name": "xvaruntime",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
