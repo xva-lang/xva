@@ -1,9 +1,11 @@
 [package]
 name = "xva"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-xvasyntax = {path = "../syntax"}
+clap = { version = "4.3.3", features = ["derive", "cargo"] }
+xva-buildinfo = { path = "../xva-buildinfo" }
+xva-compiler = { path = "../xva-compiler" }

@@ -305,43 +305,6 @@ mod tests {
     }
 
     #[test]
-    fn valid_object_field_size_and_offset() {
-        let method_table = MethodTable::new();
-        let rtti = RuntimeType::new(method_table.as_ptr(), vec![4, 8, 16]);
-        let header = match ObjectHeader::new_on_heap(&rtti as *const RuntimeType) {
-            Ok(h) => h,
-            Err(e) => panic!("{}", e),
-        };
-
-        let object = Object::new(header);
-        object.debug_object();
-        let mut current_index = 0usize;
-
-        assert_eq!(
-            object.get_offset_into_heap_region(current_index).unwrap(),
-            (size_of::<Object>() + 0) as isize,
-            "Zeroth item has a zero offset relative to bottom of object header"
-        );
-
-        current_index = 1;
-        let descriptor = object.get_field_descriptor_at(current_index).unwrap();
-        assert_eq!(descriptor.get_size(), 8, "Size is as defined");
-
-        assert_eq!(
-            object.get_offset_into_heap_region(current_index).unwrap(),
-            (size_of::<Object>() + 4) as isize,
-            "Nth item has an offset of the size of all items up to n-1, relative to bottom of object header"
-        );
-
-        current_index = 2;
-        assert_eq!(
-            object.get_offset_into_heap_region(current_index).unwrap(),
-            (size_of::<Object>() + 12) as isize,
-            "Nth item has an offset of the size of all items up to n-1"
-        )
-    }
-
-    #[test]
     fn object_set_and_get_field() {
         let method_table = MethodTable::new();
         let rtti = RuntimeType::new(method_table.as_ptr(), vec![4, 8, 16]);

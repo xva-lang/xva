@@ -1,0 +1,12 @@
+[package]
+name = "xva-syntax"
+version = "0.0.1"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chumsky = "0.8.0"
+tree-sitter = "0.20.9"
+tree-sitter-traversal = "0.1.2"
+xva-treesitter = { path = "../xva-treesitter" }
