@@ -45,7 +45,7 @@ fn main() -> Result<(), std::io::Error> {
         File::open(file_name)?.read_to_string(&mut buffer)?;
 
         if compiler_options.print_cst {
-            xva_syntax::print_cst(buffer);
+            // xva_syntax::print_cst(buffer);
         }
     }
 

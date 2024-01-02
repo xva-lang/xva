@@ -6,7 +6,7 @@
 //! ```
 //! let code = "";
 //! let mut parser = tree_sitter::Parser::new();
-//! parser.set_language(xvatreesitter::language()).expect("Error loading xva grammar");
+//! parser.set_language(xva_treesitter::language()).expect("Error loading xva grammar");
 //! let tree = parser.parse(code, None).unwrap();
 //! ```
 //!
