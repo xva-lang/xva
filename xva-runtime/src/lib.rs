@@ -2,6 +2,7 @@ mod error;
 mod object;
 mod value;
 mod operator;
+mod associativity;
 
 pub use crate::{
     error::RuntimeError,
