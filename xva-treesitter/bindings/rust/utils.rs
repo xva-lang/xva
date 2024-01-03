@@ -1,5 +1,15 @@
 use tree_sitter::{Node, Tree};
 
+/// Formats a node and all its children and places the result in a buffer, according to the following format:
+///
+/// ```ignore
+/// parent_kind @start_row:start_col..end_row:end_col
+///   child1_kind @start_row:start_col..end_row:end_col
+///   ..
+///   child1_kind @start_row:start_col..end_row:end_col "terminal_text"
+/// ```
+///
+/// The `end_row` and `end_col` values are **zero-based** and **exclusive**.
 pub fn print_node<'a>(
     source: impl AsRef<[u8]>,
     tree: &Tree,
@@ -28,6 +38,8 @@ pub fn print_node<'a>(
             }
         }
     } else {
+        // If the node has no children, but its start byte does not equal its end byte,
+        // it's (probably?) a terminal node with text in it.
         if node.start_byte() != node.end_byte() {
             result.push_str(&format!(
                 " \"{}\"",

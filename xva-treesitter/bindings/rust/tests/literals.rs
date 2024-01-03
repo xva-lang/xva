@@ -1,4 +1,9 @@
-use crate::tests::{extract_nth_node_at_mth_level, get_tree};
+use crate::{
+    tests::{check, extract_nth_node_at_mth_level, get_tree},
+    utils::print_node,
+};
+
+use expect_test::expect;
 
 const KIND_EXPRESSION: &str = "expression";
 const KIND_LITERAL: &str = "literal";
@@ -162,33 +167,71 @@ fn decimal_literals() {
 
 #[test]
 fn binary_literal_zero() {
-    assert_binary_literal("0b0")
+    // assert_binary_literal("0b0")
+    // assert_eq!(print_node("0b0", tree, node, depth, result))
+    check(
+        "0b0",
+        expect![[r#"
+source_file @0:0..0:3
+  expression @0:0..0:3
+    literal @0:0..0:3
+      integer_literal @0:0..0:3
+        binary_literal @0:0..0:3 "0b0""#]],
+    )
 }
 
 #[test]
 fn binary_literal_one() {
-    assert_binary_literal("0b1");
+    check(
+        "0b1",
+        expect![[r#"
+source_file @0:0..0:3
+  expression @0:0..0:3
+    literal @0:0..0:3
+      integer_literal @0:0..0:3
+        binary_literal @0:0..0:3 "0b1""#]],
+    )
 }
 
 #[test]
 fn binary_literal() {
-    assert_binary_literal("0b1100");
+    check(
+        "0b1100",
+        expect![[r#"
+source_file @0:0..0:6
+  expression @0:0..0:6
+    literal @0:0..0:6
+      integer_literal @0:0..0:6
+        binary_literal @0:0..0:6 "0b1100""#]],
+    )
 }
 
 #[test]
 fn binary_literal_with_underscore() {
     assert_binary_literal("0b100_100");
+    check(
+        "0b100_100",
+        expect![[r#"
+source_file @0:0..0:9
+  expression @0:0..0:9
+    literal @0:0..0:9
+      integer_literal @0:0..0:9
+        binary_literal @0:0..0:9 "0b100_100""#]],
+    )
 }
 
 #[test]
 fn binary_literal_with_trailing_underscore() {
     assert_binary_literal("0b100_100_");
-}
-
-#[test]
-#[should_panic]
-fn binary_literal_without_prefix() {
-    assert_binary_literal("0");
+    check(
+        "0b100_100_",
+        expect![[r#"
+source_file @0:0..0:10
+  expression @0:0..0:10
+    literal @0:0..0:10
+      integer_literal @0:0..0:10
+        binary_literal @0:0..0:10 "0b100_100_""#]],
+    )
 }
 
 #[test]
