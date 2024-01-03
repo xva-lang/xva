@@ -127,12 +127,42 @@
     }
   },
   {
+    "type": "negation_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "not_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "quote_escape",
     "named": true,
     "fields": {}
   },
   {
-    "type": "source_file",
+    "type": "root",
     "named": true,
     "fields": {},
     "children": {
@@ -162,6 +192,10 @@
   },
   {
     "type": "'",
+    "named": false
+  },
+  {
+    "type": "-",
     "named": false
   },
   {

@@ -81,7 +81,7 @@ module.exports = grammar({
   conflicts: ($) => [[$.float_literal]],
 
   rules: {
-    source_file: ($) => repeat($._item),
+    root: ($) => repeat($._item),
 
     _item: ($) => choice($.expression),
 

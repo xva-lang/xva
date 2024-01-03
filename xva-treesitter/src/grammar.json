@@ -1,7 +1,7 @@
 {
   "name": "xva",
   "rules": {
-    "source_file": {
+    "root": {
       "type": "REPEAT",
       "content": {
         "type": "SYMBOL",
@@ -34,6 +34,53 @@
           "name": "literal"
         }
       ]
+    },
+    "unary_expression": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "negation_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "not_expression"
+        }
+      ]
+    },
+    "negation_expression": {
+      "type": "PREC",
+      "value": 12,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "-"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "expression"
+          }
+        ]
+      }
+    },
+    "not_expression": {
+      "type": "PREC",
+      "value": 12,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "-"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "expression"
+          }
+        ]
+      }
     },
     "literal": {
       "type": "CHOICE",

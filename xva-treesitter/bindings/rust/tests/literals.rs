@@ -172,7 +172,7 @@ fn binary_literal_zero() {
     check(
         "0b0",
         expect![[r#"
-source_file @0:0..0:3
+root @0:0..0:3
   expression @0:0..0:3
     literal @0:0..0:3
       integer_literal @0:0..0:3
@@ -185,7 +185,7 @@ fn binary_literal_one() {
     check(
         "0b1",
         expect![[r#"
-source_file @0:0..0:3
+root @0:0..0:3
   expression @0:0..0:3
     literal @0:0..0:3
       integer_literal @0:0..0:3
@@ -198,7 +198,7 @@ fn binary_literal() {
     check(
         "0b1100",
         expect![[r#"
-source_file @0:0..0:6
+root @0:0..0:6
   expression @0:0..0:6
     literal @0:0..0:6
       integer_literal @0:0..0:6
@@ -212,7 +212,7 @@ fn binary_literal_with_underscore() {
     check(
         "0b100_100",
         expect![[r#"
-source_file @0:0..0:9
+root @0:0..0:9
   expression @0:0..0:9
     literal @0:0..0:9
       integer_literal @0:0..0:9
@@ -226,7 +226,7 @@ fn binary_literal_with_trailing_underscore() {
     check(
         "0b100_100_",
         expect![[r#"
-source_file @0:0..0:10
+root @0:0..0:10
   expression @0:0..0:10
     literal @0:0..0:10
       integer_literal @0:0..0:10
