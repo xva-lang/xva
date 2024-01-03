@@ -377,24 +377,99 @@ root @0:0..0:3
 }
 
 #[test]
-fn ascii_literals() {
-    assert_char_literal(r#"'\x69'"#);
-    assert_char_literal(r#"'\r'"#);
-    assert_char_literal(r#"'\n'"#);
-    assert_char_literal(r#"'\t'"#);
-    assert_char_literal(r#"'\0'"#);
-    assert_char_literal(r#"'\\'"#);
+fn ascii_literal() {
+    test_tree(
+        r"'\x69'",
+        expect![[r#"
+root @0:0..0:6
+  expression @0:0..0:6
+    literal @0:0..0:6
+      character_literal @0:0..0:6 "'\x69'""#]],
+    );
 }
 
 #[test]
-fn quote_escape_literals() {
-    assert_char_literal(r#"'\''"#);
-    assert_char_literal(r#"'\"'"#)
+fn char_ascii_carriage_return() {
+    test_tree(
+        r"'\r'",
+        expect![[r#"
+root @0:0..0:4
+  expression @0:0..0:4
+    literal @0:0..0:4
+      character_literal @0:0..0:4 "'\r'""#]],
+    );
+}
+
+#[test]
+fn char_ascii_new_line() {
+    test_tree(
+        r"'\n'",
+        expect![[r#"
+root @0:0..0:4
+  expression @0:0..0:4
+    literal @0:0..0:4
+      character_literal @0:0..0:4 "'\n'""#]],
+    );
+}
+
+#[test]
+fn char_ascii_tab() {
+    test_tree(
+        r"'\t'",
+        expect![[r#"
+root @0:0..0:4
+  expression @0:0..0:4
+    literal @0:0..0:4
+      character_literal @0:0..0:4 "'\t'""#]],
+    );
+}
+
+#[test]
+fn char_ascii_null() {
+    test_tree(
+        r"'\0'",
+        expect![[r#"
+root @0:0..0:4
+  expression @0:0..0:4
+    literal @0:0..0:4
+      character_literal @0:0..0:4 "'\0'""#]],
+    );
+}
+
+#[test]
+fn char_ascii_literal_slash() {
+    test_tree(
+        r"'\\'",
+        expect![[r#"
+root @0:0..0:4
+  expression @0:0..0:4
+    literal @0:0..0:4
+      character_literal @0:0..0:4 "'\\'""#]],
+    );
+}
+
+#[test]
+fn char_single_quote_escape() {
+    test_tree(
+        r"'\''",
+        expect![[r#"
+root @0:0..0:4
+  expression @0:0..0:4
+    literal @0:0..0:4
+      character_literal @0:0..0:4 "'\''""#]],
+    );
 }
 
 #[test]
 fn unicode_literal() {
-    assert_char_literal(r"'\u211B'");
+    test_tree(
+        r"'\u211B'",
+        expect![[r#"
+root @0:0..0:8
+  expression @0:0..0:8
+    literal @0:0..0:8
+      character_literal @0:0..0:8 "'\u211B'""#]],
+    );
 }
 
 #[test]
