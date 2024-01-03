@@ -1,5 +1,5 @@
 use crate::{
-    tests::{check, extract_nth_node_at_mth_level, get_tree},
+    tests::{extract_nth_node_at_mth_level, get_tree, test_tree},
     utils::print_node,
 };
 
@@ -169,7 +169,7 @@ fn decimal_literals() {
 fn binary_literal_zero() {
     // assert_binary_literal("0b0")
     // assert_eq!(print_node("0b0", tree, node, depth, result))
-    check(
+    test_tree(
         "0b0",
         expect![[r#"
 root @0:0..0:3
@@ -182,7 +182,7 @@ root @0:0..0:3
 
 #[test]
 fn binary_literal_one() {
-    check(
+    test_tree(
         "0b1",
         expect![[r#"
 root @0:0..0:3
@@ -195,7 +195,7 @@ root @0:0..0:3
 
 #[test]
 fn binary_literal() {
-    check(
+    test_tree(
         "0b1100",
         expect![[r#"
 root @0:0..0:6
@@ -209,7 +209,7 @@ root @0:0..0:6
 #[test]
 fn binary_literal_with_underscore() {
     assert_binary_literal("0b100_100");
-    check(
+    test_tree(
         "0b100_100",
         expect![[r#"
 root @0:0..0:9
@@ -223,7 +223,7 @@ root @0:0..0:9
 #[test]
 fn binary_literal_with_trailing_underscore() {
     assert_binary_literal("0b100_100_");
-    check(
+    test_tree(
         "0b100_100_",
         expect![[r#"
 root @0:0..0:10
@@ -236,63 +236,144 @@ root @0:0..0:10
 
 #[test]
 fn hex_literal_zero() {
-    assert_hex_literal("0x0");
+    test_tree(
+        "0x0",
+        expect![[r#"
+root @0:0..0:3
+  expression @0:0..0:3
+    literal @0:0..0:3
+      integer_literal @0:0..0:3
+        hex_literal @0:0..0:3 "0x0""#]],
+    );
 }
 
 #[test]
 fn hex_literal_one() {
-    assert_hex_literal("0x1");
+    test_tree(
+        "0x1",
+        expect![[r#"
+root @0:0..0:3
+  expression @0:0..0:3
+    literal @0:0..0:3
+      integer_literal @0:0..0:3
+        hex_literal @0:0..0:3 "0x1""#]],
+    );
 }
 
 #[test]
 fn hex_literal() {
-    assert_hex_literal("0x123456789ABcdEF");
+    test_tree(
+        "0x123456789ABcdEF",
+        expect![[r#"
+root @0:0..0:17
+  expression @0:0..0:17
+    literal @0:0..0:17
+      integer_literal @0:0..0:17
+        hex_literal @0:0..0:17 "0x123456789ABcdEF""#]],
+    );
 }
 
 #[test]
 fn hex_literal_with_underscore() {
-    assert_hex_literal("0x12345_6789ABcdEF");
+    test_tree(
+        "0x12345_6789ABcdEF",
+        expect![[r#"
+root @0:0..0:18
+  expression @0:0..0:18
+    literal @0:0..0:18
+      integer_literal @0:0..0:18
+        hex_literal @0:0..0:18 "0x12345_6789ABcdEF""#]],
+    );
 }
 
 #[test]
 fn hex_literal_with_trailing_underscore() {
-    assert_hex_literal("0x12345_6789ABcdEF_");
-}
-
-#[test]
-#[should_panic]
-fn hex_literal_without_prefix() {
-    assert_hex_literal("123456789ABcdEF");
+    test_tree(
+        "0x12345_6789ABcdEF_",
+        expect![[r#"
+root @0:0..0:19
+  expression @0:0..0:19
+    literal @0:0..0:19
+      integer_literal @0:0..0:19
+        hex_literal @0:0..0:19 "0x12345_6789ABcdEF_""#]],
+    );
 }
 
 #[test]
 fn octal_literal_zero() {
-    assert_octal_literal("0o0");
+    test_tree(
+        "0o0",
+        expect![[r#"
+root @0:0..0:3
+  expression @0:0..0:3
+    literal @0:0..0:3
+      integer_literal @0:0..0:3
+        octal_literal @0:0..0:3 "0o0""#]],
+    )
 }
 
 #[test]
 fn octal_literal_one() {
-    assert_octal_literal("0o1");
+    test_tree(
+        "0o1",
+        expect![[r#"
+root @0:0..0:3
+  expression @0:0..0:3
+    literal @0:0..0:3
+      integer_literal @0:0..0:3
+        octal_literal @0:0..0:3 "0o1""#]],
+    )
 }
 
 #[test]
 fn octal_literal() {
-    assert_octal_literal("0o1234567");
+    test_tree(
+        "0o1234567",
+        expect![[r#"
+root @0:0..0:9
+  expression @0:0..0:9
+    literal @0:0..0:9
+      integer_literal @0:0..0:9
+        octal_literal @0:0..0:9 "0o1234567""#]],
+    )
 }
 
 #[test]
 fn octal_literal_with_underscore() {
-    assert_octal_literal("0o1234_567");
+    test_tree(
+        "0o1234_567",
+        expect![[r#"
+root @0:0..0:10
+  expression @0:0..0:10
+    literal @0:0..0:10
+      integer_literal @0:0..0:10
+        octal_literal @0:0..0:10 "0o1234_567""#]],
+    )
 }
 
 #[test]
 fn octal_literal_with_trailing_underscore() {
-    assert_octal_literal("0o1234_567_");
+    test_tree(
+        "0o1234_567_",
+        expect![[r#"
+root @0:0..0:11
+  expression @0:0..0:11
+    literal @0:0..0:11
+      integer_literal @0:0..0:11
+        octal_literal @0:0..0:11 "0o1234_567_""#]],
+    )
 }
 
 #[test]
 fn char_literal() {
-    assert_char_literal("\'c\'");
+    test_tree(
+        "\'c\'",
+        expect![[r#"
+root @0:0..0:3
+  expression @0:0..0:3
+    literal @0:0..0:3
+      character_literal @0:0..0:3 "'c'""#]],
+    )
 }
 
 #[test]

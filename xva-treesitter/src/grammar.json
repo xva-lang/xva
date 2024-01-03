@@ -150,38 +150,67 @@
       "value": "0x([0-9a-fA-F]|_)*[0-9a-fA-F]([0-9a-fA-F]|_)*"
     },
     "character_literal": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "'"
-        },
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "PATTERN",
-              "value": "[^\\'\\\\(\\\\n)(\\\\r)(\\\\t)]"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "quote_escape"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "ascii_escape"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "unicode_escape"
-            }
-          ]
-        },
-        {
-          "type": "STRING",
-          "value": "'"
-        }
-      ]
+      "type": "TOKEN",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "'"
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SEQ",
+                    "members": [
+                      {
+                        "type": "STRING",
+                        "value": "\\"
+                      },
+                      {
+                        "type": "CHOICE",
+                        "members": [
+                          {
+                            "type": "PATTERN",
+                            "value": "[^xu]"
+                          },
+                          {
+                            "type": "PATTERN",
+                            "value": "u[0-9a-fA-F]{4}"
+                          },
+                          {
+                            "type": "PATTERN",
+                            "value": "u{[0-9a-fA-F]+}"
+                          },
+                          {
+                            "type": "PATTERN",
+                            "value": "x[0-9a-fA-F]{2}"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "PATTERN",
+                    "value": "[^\\\\']"
+                  }
+                ]
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          },
+          {
+            "type": "STRING",
+            "value": "'"
+          }
+        ]
+      }
     },
     "quote_escape": {
       "type": "CHOICE",

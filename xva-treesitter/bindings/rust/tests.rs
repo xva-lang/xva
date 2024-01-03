@@ -47,9 +47,10 @@ fn get_tree(input: &str) -> Tree {
     parser.parse(input, None).expect("Failed to parse")
 }
 
-pub(self) fn check(input: &str, expected_tree: expect_test::Expect) {
+pub(self) fn test_tree(input: &str, expected_tree: expect_test::Expect) {
     let mut result = String::new();
     let tree = get_tree(input);
+    println!("sexp: {}", tree.root_node().to_sexp());
     let mut depth = 0;
     print_node(input, &tree, tree.root_node(), &mut depth, &mut result);
 

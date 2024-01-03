@@ -125,17 +125,28 @@ module.exports = grammar({
     hex_literal: ($) => /0x([0-9a-fA-F]|_)*[0-9a-fA-F]([0-9a-fA-F]|_)*/,
 
     // Character literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#character-literals
-    character_literal: ($) =>
-      seq(
-        SYMBOLS.SINGLE_QUOTE,
-        choice(
-          /[^\'\\(\\n)(\\r)(\\t)]/,
-          $.quote_escape,
-          $.ascii_escape,
-          $.unicode_escape
-        ),
-        SYMBOLS.SINGLE_QUOTE
+    character_literal: (_) =>
+      token(
+        seq(
+          SYMBOLS.SINGLE_QUOTE,
+          optional(
+            choice(
+              seq(
+                "\\",
+                choice(
+                  /[^xu]/,
+                  /u[0-9a-fA-F]{4}/,
+                  /u{[0-9a-fA-F]+}/,
+                  /x[0-9a-fA-F]{2}/
+                )
+              ),
+              /[^\\']/
+            )
+          ),
+          SYMBOLS.SINGLE_QUOTE
+        )
       ),
+
     quote_escape: ($) => choice("\\'", '\\"'),
     ascii_escape: ($) =>
       choice(
