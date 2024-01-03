@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod literals;
 
+#[cfg(test)]
+mod expressions;
+
 use tree_sitter::{Node, Parser, Tree};
 
 #[test]

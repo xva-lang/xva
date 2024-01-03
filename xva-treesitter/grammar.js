@@ -31,25 +31,25 @@ const SYMBOLS = {
   DOT: ".",
 };
 
+// Borrowed from Rust
 const PRECEDENCE = {
-  ASSIGNMENT: 1,
-  LAMBDA: 2,
-  TERNARY: 3,
-  OR: 4,
-  AND: 5,
-  NOT: 6,
-  COMPARISION: 7,
-  BIT_OR: 8,
-  BIT_XOR: 9,
-  BIT_AND: 10,
-  BIT_SHIFT: 11,
-  ADD_SUB: 12,
-  MUL_DIV_MOD: 13,
-  NEGATE: 14,
-  EXPONENT: 15,
-  AWAIT: 16,
-  CALL: 17,
-  PARENTHESISED: 18,
+  CLOSURE: -1,
+  ASSIGN: 0,
+  RANGE: 1,
+  OR: 2,
+  AND: 3,
+  COMPARATIVE: 4,
+  BITWISE_OR: 5,
+  BITWISE_XOR: 6,
+  BITWISE_AND: 7,
+  SHIFT: 8,
+  ADDITIVE: 9,
+  MULTIPLICATIVE: 10,
+  CAST: 11,
+  UNARY: 12,
+  TRY: 13,
+  FIELD: 14,
+  CALL: 15,
 };
 
 const BUILT_IN_TYPES = [
@@ -87,8 +87,14 @@ module.exports = grammar({
 
     expression: ($) => choice($._primary_expression),
 
-    /************** Primary expressions *************/
+    /************** Expressions *************/
     _primary_expression: ($) => choice($.literal),
+
+    unary_expression: ($) => choice($.negation_expression, $.not_expression),
+    negation_expression: ($) =>
+      prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
+    not_expression: ($) =>
+      prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
 
     literal: ($) =>
       choice(

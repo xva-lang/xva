@@ -1,5 +1,6 @@
 use std::{error::Error, io::Read, path::PathBuf};
 
+use tree_sitter::{Node, Tree};
 use xva_ast::{Brick, Item};
 
 #[derive(Debug)]
@@ -53,21 +54,21 @@ impl<'parse> Parser<'parse> {
     pub fn items(&self) -> Vec<Item> {
         vec![]
     }
+
+    pub(crate) fn tree(&self) -> &Tree {
+        &self.cst
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::{
-        error::Error,
-        path::{Path, PathBuf},
-    };
-
-    use super::Parser;
-
-    #[test]
-    fn test() -> Result<(), Box<dyn Error>> {
-        let parser = Parser::new_from_str("true")?;
-        println!("{:#?}", parser);
-        Ok(())
-    }
+pub fn print_node(node: &Node<'_>) -> String {
+    let start = node.start_position();
+    let end = node.end_position();
+    format!(
+        "{}@{}:{}..{}:{}",
+        node.kind(),
+        start.row,
+        start.column,
+        end.row,
+        end.column
+    )
 }
