@@ -42,3 +42,4 @@ pub const NODE_TYPES: &'static str = include_str!("../../src/node-types.json");
 
 #[cfg(test)]
 mod tests;
+pub mod utils;
