@@ -1,19 +1,33 @@
 use std::{error::Error, io::Read, path::PathBuf};
 
 use tree_sitter::{Node, Tree};
-use xva_ast::{Brick, Item};
+use xva_ast::{
+    ast::Brick,
+    ast::{Item, ItemKind, Module},
+    node_id::NodeId,
+};
+use xva_span::SourceLocation;
 
-#[derive(Debug)]
-pub struct Parser<'parse> {
+use self::error::ParserResult;
+
+mod error;
+mod expression;
+
+// #[derive(Debug)]
+pub struct Parser {
     cst: tree_sitter::Tree,
     current_source: String,
-    current_cst_node: Option<&'parse tree_sitter::Node<'parse>>,
+    current_node_id: NodeId,
 }
 
-impl<'parse> Parser<'parse> {
+// lazy_static! {
+//     // static ref NODE_ID_GEN: Arc<NodeId> = Arc::new(NodeId(0));
+// }
+
+impl Parser {
     // pub fn brick(&self) -> Brick {}
 
-    pub fn new_from_file(path: PathBuf) -> Result<Parser<'parse>, Box<dyn Error>> {
+    pub fn new_from_file(path: PathBuf) -> Result<Parser, Box<dyn Error>> {
         let mut f = std::fs::File::open(path)?;
         let mut source = String::new();
         f.read_to_string(&mut source)?;
@@ -22,11 +36,11 @@ impl<'parse> Parser<'parse> {
         parser.set_language(xva_treesitter::language())?;
 
         let tree = parser.parse(source.as_str(), None).unwrap();
-        let root = (&tree).root_node().clone();
+
         let result = Parser {
             current_source: source,
             cst: tree,
-            current_cst_node: None,
+            current_node_id: 0.into(),
         };
 
         Ok(result)
@@ -40,23 +54,60 @@ impl<'parse> Parser<'parse> {
         let result = Parser {
             current_source: input.to_string(), // expensive
             cst: tree,
-            current_cst_node: None,
+            current_node_id: 0.into(),
         };
 
         Ok(result)
     }
 
-    pub fn brick(&self) -> Brick {
-        let items = self.items();
-        Brick::new_from_items(items)
+    pub(crate) fn brick(&mut self) -> ParserResult<Brick> {
+        let module = self.brick_module()?;
+        Ok(Brick {
+            items: vec![Item {
+                id: 0.into(),
+                kind: ItemKind::Module(module),
+                span: SourceLocation::new(
+                    self.tree().root_node().start_position().into(),
+                    self.tree().root_node().end_position().into(),
+                ),
+            }],
+        })
     }
 
-    pub fn items(&self) -> Vec<Item> {
-        vec![]
+    fn brick_module(&self) -> ParserResult<Module> {
+        let mut cursor = self.cst.root_node().walk();
+        let mut items = vec![];
+
+        for node in cursor.node().children(&mut cursor) {
+            match node.kind() {
+                "expression" => items.push(self.expression(node)?),
+                _ => panic!("unknown node '{}'", node.kind()),
+            }
+        }
+
+        Ok(Module { items })
     }
 
     pub(crate) fn tree(&self) -> &Tree {
         &self.cst
+    }
+
+    pub(crate) fn node_id(&mut self) -> NodeId {
+        let result = self.current_node_id;
+        self.current_node_id += 1;
+        result
+    }
+
+    pub(crate) fn gen_node_ids(&mut self, items: Vec<Item>) -> Vec<Item> {
+        // for mut item in items {
+        //     item.id = self.node_id();
+        //     match item.kind {
+        //         ItemKind::Expression(expr) => todo!(),
+        //         ItemKind::Module(modd) => todo!(),
+        //     }
+        // }
+
+        items
     }
 }
 
@@ -71,4 +122,30 @@ pub fn print_node(node: &Node<'_>) -> String {
         end.row,
         end.column
     )
+}
+
+// pub(crate) fn next_node_id() -> NodeId {
+//     let current = NODE_ID_GEN.borrow_mut();
+//     current.0 += 1;
+
+//     *NODE_ID_GEN.clone()
+// }
+
+#[cfg(test)]
+mod tests {
+    use super::Parser;
+
+    #[test]
+    fn parse() {
+        let mut parser = Parser::new_from_str(
+            r"
+1
+0b1
+0o1
+0x1",
+        )
+        .unwrap();
+        let brick = parser.brick();
+        println!("{brick:#?}")
+    }
 }
