@@ -59,8 +59,8 @@
         "type": "SEQ",
         "members": [
           {
-            "type": "STRING",
-            "value": "-"
+            "type": "SYMBOL",
+            "name": "_minus_operator"
           },
           {
             "type": "SYMBOL",
@@ -69,6 +69,10 @@
         ]
       }
     },
+    "_minus_operator": {
+      "type": "STRING",
+      "value": "-"
+    },
     "not_expression": {
       "type": "PREC",
       "value": 12,
@@ -76,8 +80,8 @@
         "type": "SEQ",
         "members": [
           {
-            "type": "STRING",
-            "value": "not"
+            "type": "SYMBOL",
+            "name": "_not_keyword"
           },
           {
             "type": "SYMBOL",
@@ -85,6 +89,10 @@
           }
         ]
       }
+    },
+    "_not_keyword": {
+      "type": "STRING",
+      "value": "not"
     },
     "literal": {
       "type": "CHOICE",

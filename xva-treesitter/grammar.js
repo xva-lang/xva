@@ -90,15 +90,18 @@ module.exports = grammar({
     /************** Expressions *************/
     _primary_expression: ($) => choice($.literal),
 
-    // Unary expressions: `-expr`, `not expr`
+    /************** Unary expressions: `-expr`, `not expr` *************/
     unary_expression: ($) => choice($.negation_expression, $.not_expression),
 
     negation_expression: ($) =>
-      prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
+      prec(PRECEDENCE.UNARY, seq($._minus_operator, $.expression)),
+    _minus_operator: (_) => SYMBOLS.MINUS,
 
     not_expression: ($) =>
-      prec(PRECEDENCE.UNARY, seq(KEYWORDS.NOT, $.expression)),
+      prec(PRECEDENCE.UNARY, seq($._not_keyword, $.expression)),
+    _not_keyword: (_) => KEYWORDS.NOT,
 
+    /*********** Literals ************/
     literal: ($) =>
       choice(
         $.integer_literal,
@@ -110,7 +113,6 @@ module.exports = grammar({
 
     // TODO: byte literals, byte string literals, raw string literals
 
-    /*********** Literals ************/
     // Integer literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#integer-literals
     integer_literal: ($) =>
       seq(
