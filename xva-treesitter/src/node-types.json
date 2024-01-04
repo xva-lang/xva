@@ -20,6 +20,10 @@
         {
           "type": "literal",
           "named": true
+        },
+        {
+          "type": "unary_expression",
+          "named": true
         }
       ]
     }
@@ -159,6 +163,25 @@
     }
   },
   {
+    "type": "unary_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "negation_expression",
+          "named": true
+        },
+        {
+          "type": "not_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "-",
     "named": false
   },
@@ -213,6 +236,10 @@
   {
     "type": "hex_literal",
     "named": true
+  },
+  {
+    "type": "not",
+    "named": false
   },
   {
     "type": "octal_literal",

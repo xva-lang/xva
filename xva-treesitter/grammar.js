@@ -85,16 +85,19 @@ module.exports = grammar({
 
     _item: ($) => choice($.expression),
 
-    expression: ($) => choice($._primary_expression),
+    expression: ($) => choice($._primary_expression, $.unary_expression),
 
     /************** Expressions *************/
     _primary_expression: ($) => choice($.literal),
 
+    // Unary expressions: `-expr`, `not expr`
     unary_expression: ($) => choice($.negation_expression, $.not_expression),
+
     negation_expression: ($) =>
       prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
+
     not_expression: ($) =>
-      prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
+      prec(PRECEDENCE.UNARY, seq(KEYWORDS.NOT, $.expression)),
 
     literal: ($) =>
       choice(
