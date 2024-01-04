@@ -275,8 +275,8 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "STRING",
-          "value": "\""
+          "type": "SYMBOL",
+          "name": "_string_sigil"
         },
         {
           "type": "REPEAT",
@@ -284,33 +284,67 @@
             "type": "CHOICE",
             "members": [
               {
+                "type": "SYMBOL",
+                "name": "escape_sequence"
+              },
+              {
                 "type": "PATTERN",
                 "value": "[^\\\"\\\\\\n]"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "_quote_escape"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "_ascii_escape"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "_unicode_escape"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "_string_continuation"
               }
             ]
           }
         },
         {
-          "type": "STRING",
-          "value": "\""
+          "type": "SYMBOL",
+          "name": "_string_sigil"
         }
       ]
+    },
+    "_string_sigil": {
+      "type": "STRING",
+      "value": "\""
+    },
+    "escape_sequence": {
+      "type": "IMMEDIATE_TOKEN",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "\\"
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "PATTERN",
+                "value": "[^xu]"
+              },
+              {
+                "type": "PATTERN",
+                "value": "u[0-9a-fA-F]{1,6}"
+              },
+              {
+                "type": "PATTERN",
+                "value": "x[0-9a-fA-F]{2}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "string_content": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PATTERN",
+          "value": "[^\\\"\\\\\\n]"
+        }
+      ]
+    },
+    "_string_continuation": {
+      "type": "PATTERN",
+      "value": "\\\\\\n"
     },
     "_quote_escape": {
       "type": "CHOICE",
@@ -370,10 +404,6 @@
     "_unicode_escape": {
       "type": "PATTERN",
       "value": "\\\\u([0-9a-fA-F]|_*){1,6}"
-    },
-    "_string_continuation": {
-      "type": "PATTERN",
-      "value": "\\\\\\n"
     },
     "boolean_literal": {
       "type": "CHOICE",

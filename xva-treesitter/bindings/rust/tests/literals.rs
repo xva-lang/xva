@@ -474,7 +474,15 @@ root @0:0..0:8
 
 #[test]
 fn strings() {
-    assert_string_literal(r#""abcdef\0\r\n\t\x39\u211B\"\'\"""#)
+    // assert_string_literal(r#""abcdef\0\r\n\t\x39\u211B\"\'\"""#)
+    test_tree(
+        r#""abcdef\0\r\n\t\x39\u211B\"\'\"""#,
+        expect![[r#"
+root @0:0..0:32
+  expression @0:0..0:32
+    literal @0:0..0:32
+      string_literal @0:0..0:32 ""abcdef\0\r\n\t\x39\u211B\"\'\"""#]],
+    );
 }
 
 #[test]

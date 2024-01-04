@@ -159,21 +159,38 @@ module.exports = grammar({
       ),
     unicode_escape: ($) => /\\u([0-9a-fA-F]|_*){1,6}/,
 
-    // String literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#string-literals
+    // String literals, borrowed from Rust: https://github.com/tree-sitter/tree-sitter-rust/blob/master/grammar.js
     string_literal: ($) =>
+      // token(
       seq(
-        SYMBOLS.DOUBLE_QUOTE,
-        repeat(
-          choice(
-            /[^\"\\\n]/,
-            $._quote_escape,
-            $._ascii_escape,
-            $._unicode_escape,
-            $._string_continuation
-          )
-        ),
-        SYMBOLS.DOUBLE_QUOTE
+        // TODO: binary and/or C strings?:  alias(/[bc]?"/, '"'),
+        // /[^\"\\\n]/,
+        // $._quote_escape,
+        // $._ascii_escape,
+        // $._unicode_escape,
+        // $._string_continuation
+        $._string_sigil,
+        repeat(choice($.escape_sequence, /[^\"\\\n]/)),
+        $._string_sigil
       ),
+
+    _string_sigil: (_) => SYMBOLS.DOUBLE_QUOTE,
+    // ),
+    escape_sequence: (_) =>
+      token.immediate(
+        seq(
+          "\\",
+          choice(
+            /[^xu]/,
+            /u[0-9a-fA-F]{1,6}/,
+            // /u{[0-9a-fA-F]+}/,
+            /x[0-9a-fA-F]{2}/
+          )
+        )
+      ),
+
+    string_content: (_) => choice(/[^\"\\\n]/),
+    _string_continuation: ($) => /\\\n/,
 
     // Hidden versions of the esacapes:
     _quote_escape: ($) => choice("\\'", '\\"'),
@@ -187,8 +204,6 @@ module.exports = grammar({
         "\\0"
       ),
     _unicode_escape: ($) => /\\u([0-9a-fA-F]|_*){1,6}/,
-
-    _string_continuation: ($) => /\\\n/,
 
     boolean_literal: ($) => choice("true", "false"),
 

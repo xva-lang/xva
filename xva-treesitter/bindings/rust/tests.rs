@@ -42,7 +42,7 @@ fn extract_nth_node_at_mth_level<'root>(root: &'root Node, n: usize, level: usiz
     node.unwrap()
 }
 
-fn get_tree(input: &str) -> Tree {
+pub(crate) fn get_tree(input: &str) -> Tree {
     let mut parser = get_parser();
     parser.parse(input, None).expect("Failed to parse")
 }
@@ -52,7 +52,14 @@ pub(self) fn test_tree(input: &str, expected_tree: expect_test::Expect) {
     let tree = get_tree(input);
     println!("sexp: {}", tree.root_node().to_sexp());
     let mut depth = 0;
-    print_node(input, &tree, tree.root_node(), &mut depth, &mut result);
+    print_node(
+        input,
+        &tree,
+        tree.root_node(),
+        &mut depth,
+        &mut result,
+        true,
+    );
 
     expected_tree.assert_eq(&result);
 }

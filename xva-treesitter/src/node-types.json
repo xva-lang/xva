@@ -146,11 +146,17 @@
   {
     "type": "string_literal",
     "named": true,
-    "fields": {}
-  },
-  {
-    "type": "\"",
-    "named": false
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "escape_sequence",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "-",
@@ -198,6 +204,10 @@
   },
   {
     "type": "character_literal",
+    "named": true
+  },
+  {
+    "type": "escape_sequence",
     "named": true
   },
   {
