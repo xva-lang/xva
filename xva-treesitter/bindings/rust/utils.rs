@@ -1,45 +1,5 @@
 use tree_sitter::{Node, Tree};
 
-/// Helper type for iterating over a [`Node`]'s siblings
-pub(crate) struct NodeSiblingsIterator<'a> {
-    node: Node<'a>,
-    sibling_index: usize,
-}
-
-impl<'a> NodeSiblingsIterator<'a> {
-    pub(crate) fn new(first: Node<'a>) -> Self {
-        Self {
-            node: first,
-            sibling_index: 0,
-        }
-    }
-}
-
-impl<'a> Iterator for NodeSiblingsIterator<'a> {
-    type Item = Node<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.sibling_index == 0 {
-            let item = self.node.next_sibling();
-            self.sibling_index += 1;
-            item
-        } else {
-            let mut temp_node: Option<Node<'_>> = Some(self.node);
-            for _ in (0..self.sibling_index) {
-                match temp_node.as_ref() {
-                    Some(tn) => match tn.next_sibling() {
-                        Some(sib) => temp_node = Some(sib),
-                        None => temp_node = None,
-                    },
-                    None => temp_node = None,
-                }
-            }
-
-            temp_node
-        }
-    }
-}
-
 /// Formats a node and all its children and places the result in a buffer, according to the following format:
 ///
 /// ```ignore

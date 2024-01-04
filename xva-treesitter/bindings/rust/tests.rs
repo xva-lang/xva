@@ -1,7 +1,7 @@
 mod expressions;
 mod literals;
 
-use tree_sitter::{Node, Parser, Tree};
+use tree_sitter::{Parser, Tree};
 
 use crate::utils::print_node;
 
@@ -19,27 +19,6 @@ fn get_parser() -> Parser {
         .set_language(super::language())
         .expect("Error loading Xva language");
     parser
-}
-
-/// Extracts nth sibling node at the mth level descendant from the root
-///
-/// `n = 0` is the level immediately descendant of the root.
-fn extract_nth_node_at_mth_level<'root>(root: &'root Node, n: usize, level: usize) -> Node<'root> {
-    let mut node: Option<Node<'root>> = None;
-
-    for i in 0..=level {
-        if i == 0 {
-            node = root.child(0)
-        } else {
-            if i == level {
-                node = node.unwrap().child(n)
-            } else {
-                node = node.unwrap().child(0)
-            }
-        }
-    }
-
-    node.unwrap()
 }
 
 pub(crate) fn get_tree(input: &str) -> Tree {

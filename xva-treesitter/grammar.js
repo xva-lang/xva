@@ -174,8 +174,9 @@ module.exports = grammar({
         $._string_sigil
       ),
 
+    // Hidden quote mark rule to prevent the dot showing as an explicit child of string_literal
     _string_sigil: (_) => SYMBOLS.DOUBLE_QUOTE,
-    // ),
+
     escape_sequence: (_) =>
       token.immediate(
         seq(
@@ -205,7 +206,12 @@ module.exports = grammar({
       ),
     _unicode_escape: ($) => /\\u([0-9a-fA-F]|_*){1,6}/,
 
-    boolean_literal: ($) => choice("true", "false"),
+    // Boolean literals
+    boolean_literal: ($) => choice($._boolean_true, $._boolean_false),
+
+    // Prevent an explicit "true"/"false" showing as a child of boolean_literal
+    _boolean_true: (_) => "true",
+    _boolean_false: (_) => "false",
 
     // Float literals
     // Hidden version of decimal_literal for use in parsing floats
@@ -214,14 +220,17 @@ module.exports = grammar({
     float_exponent: ($) => /[eE][+-]?([0-9]|_)*[0-9]([0-9]|_)*/,
     float_literal: ($) =>
       choice(
-        seq($._decimal_literal, SYMBOLS.DOT),
-        seq($._decimal_literal, SYMBOLS.DOT, $._decimal_literal),
+        seq($._decimal_literal, $._float_decimal_point),
+        seq($._decimal_literal, $._float_decimal_point, $._decimal_literal),
         seq(
           $._decimal_literal,
-          SYMBOLS.DOT,
+          $._float_decimal_point,
           optional($._decimal_literal),
           field("exponent", $.float_exponent)
         )
       ),
+
+    // Hidden "." rule to prevent the dot showing as an explicit child of float_literal
+    _float_decimal_point: (_) => SYMBOLS.DOT,
   },
 });

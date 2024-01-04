@@ -38,10 +38,10 @@ enum {
   sym__string_sigil = 19,
   sym_escape_sequence = 20,
   sym__string_continuation = 21,
-  anon_sym_true = 22,
-  anon_sym_false = 23,
+  sym__boolean_true = 22,
+  sym__boolean_false = 23,
   sym_float_exponent = 24,
-  anon_sym_DOT = 25,
+  sym__float_decimal_point = 25,
   sym_root = 26,
   sym__item = 27,
   sym_expression = 28,
@@ -80,10 +80,10 @@ static const char * const ts_symbol_names[] = {
   [sym__string_sigil] = "_string_sigil",
   [sym_escape_sequence] = "escape_sequence",
   [sym__string_continuation] = "_string_continuation",
-  [anon_sym_true] = "true",
-  [anon_sym_false] = "false",
+  [sym__boolean_true] = "_boolean_true",
+  [sym__boolean_false] = "_boolean_false",
   [sym_float_exponent] = "float_exponent",
-  [anon_sym_DOT] = ".",
+  [sym__float_decimal_point] = "_float_decimal_point",
   [sym_root] = "root",
   [sym__item] = "_item",
   [sym_expression] = "expression",
@@ -122,10 +122,10 @@ static const TSSymbol ts_symbol_map[] = {
   [sym__string_sigil] = sym__string_sigil,
   [sym_escape_sequence] = sym_escape_sequence,
   [sym__string_continuation] = sym__string_continuation,
-  [anon_sym_true] = anon_sym_true,
-  [anon_sym_false] = anon_sym_false,
+  [sym__boolean_true] = sym__boolean_true,
+  [sym__boolean_false] = sym__boolean_false,
   [sym_float_exponent] = sym_float_exponent,
-  [anon_sym_DOT] = anon_sym_DOT,
+  [sym__float_decimal_point] = sym__float_decimal_point,
   [sym_root] = sym_root,
   [sym__item] = sym__item,
   [sym_expression] = sym_expression,
@@ -230,21 +230,21 @@ static const TSSymbolMetadata ts_symbol_metadata[] = {
     .visible = false,
     .named = true,
   },
-  [anon_sym_true] = {
-    .visible = true,
-    .named = false,
+  [sym__boolean_true] = {
+    .visible = false,
+    .named = true,
   },
-  [anon_sym_false] = {
-    .visible = true,
-    .named = false,
+  [sym__boolean_false] = {
+    .visible = false,
+    .named = true,
   },
   [sym_float_exponent] = {
     .visible = true,
     .named = true,
   },
-  [anon_sym_DOT] = {
-    .visible = true,
-    .named = false,
+  [sym__float_decimal_point] = {
+    .visible = false,
+    .named = true,
   },
   [sym_root] = {
     .visible = true,
@@ -757,10 +757,10 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       ACCEPT_TOKEN(sym__string_continuation);
       END_STATE();
     case 73:
-      ACCEPT_TOKEN(anon_sym_true);
+      ACCEPT_TOKEN(sym__boolean_true);
       END_STATE();
     case 74:
-      ACCEPT_TOKEN(anon_sym_false);
+      ACCEPT_TOKEN(sym__boolean_false);
       END_STATE();
     case 75:
       ACCEPT_TOKEN(sym_float_exponent);
@@ -768,7 +768,7 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       if (('0' <= lookahead && lookahead <= '9')) ADVANCE(75);
       END_STATE();
     case 76:
-      ACCEPT_TOKEN(anon_sym_DOT);
+      ACCEPT_TOKEN(sym__float_decimal_point);
       END_STATE();
     default:
       return false;
@@ -819,10 +819,10 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [aux_sym_unicode_escape_token1] = ACTIONS(1),
     [sym__string_sigil] = ACTIONS(1),
     [sym__string_continuation] = ACTIONS(1),
-    [anon_sym_true] = ACTIONS(1),
-    [anon_sym_false] = ACTIONS(1),
+    [sym__boolean_true] = ACTIONS(1),
+    [sym__boolean_false] = ACTIONS(1),
     [sym_float_exponent] = ACTIONS(1),
-    [anon_sym_DOT] = ACTIONS(1),
+    [sym__float_decimal_point] = ACTIONS(1),
   },
   [1] = {
     [sym_root] = STATE(18),
@@ -844,8 +844,8 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [sym_hex_literal] = ACTIONS(7),
     [sym_character_literal] = ACTIONS(9),
     [sym__string_sigil] = ACTIONS(11),
-    [anon_sym_true] = ACTIONS(13),
-    [anon_sym_false] = ACTIONS(13),
+    [sym__boolean_true] = ACTIONS(13),
+    [sym__boolean_false] = ACTIONS(13),
   },
   [2] = {
     [sym__item] = STATE(3),
@@ -866,8 +866,8 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [sym_hex_literal] = ACTIONS(7),
     [sym_character_literal] = ACTIONS(9),
     [sym__string_sigil] = ACTIONS(11),
-    [anon_sym_true] = ACTIONS(13),
-    [anon_sym_false] = ACTIONS(13),
+    [sym__boolean_true] = ACTIONS(13),
+    [sym__boolean_false] = ACTIONS(13),
   },
   [3] = {
     [sym__item] = STATE(3),
@@ -888,8 +888,8 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [sym_hex_literal] = ACTIONS(22),
     [sym_character_literal] = ACTIONS(25),
     [sym__string_sigil] = ACTIONS(28),
-    [anon_sym_true] = ACTIONS(31),
-    [anon_sym_false] = ACTIONS(31),
+    [sym__boolean_true] = ACTIONS(31),
+    [sym__boolean_false] = ACTIONS(31),
   },
 };
 
@@ -908,13 +908,13 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [20] = 3,
     ACTIONS(43), 1,
       aux_sym_decimal_literal_token1,
     ACTIONS(45), 1,
-      anon_sym_DOT,
+      sym__float_decimal_point,
     ACTIONS(41), 8,
       ts_builtin_sym_end,
       sym_binary_literal,
@@ -922,8 +922,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [37] = 3,
     ACTIONS(49), 1,
       aux_sym_decimal_literal_token1,
@@ -936,8 +936,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [54] = 2,
     ACTIONS(55), 1,
       aux_sym_decimal_literal_token1,
@@ -948,8 +948,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [68] = 2,
     ACTIONS(59), 1,
       aux_sym_decimal_literal_token1,
@@ -960,8 +960,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [82] = 2,
     ACTIONS(63), 1,
       aux_sym_decimal_literal_token1,
@@ -972,8 +972,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [96] = 2,
     ACTIONS(67), 1,
       aux_sym_decimal_literal_token1,
@@ -984,8 +984,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [110] = 2,
     ACTIONS(71), 1,
       aux_sym_decimal_literal_token1,
@@ -996,8 +996,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [124] = 2,
     ACTIONS(75), 1,
       aux_sym_decimal_literal_token1,
@@ -1008,8 +1008,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [138] = 2,
     ACTIONS(79), 1,
       aux_sym_decimal_literal_token1,
@@ -1020,8 +1020,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [152] = 2,
     ACTIONS(83), 1,
       aux_sym_decimal_literal_token1,
@@ -1032,8 +1032,8 @@ static const uint16_t ts_small_parse_table[] = {
       sym_hex_literal,
       sym_character_literal,
       sym__string_sigil,
-      anon_sym_true,
-      anon_sym_false,
+      sym__boolean_true,
+      sym__boolean_false,
   [166] = 3,
     ACTIONS(87), 1,
       sym__string_sigil,
@@ -1063,7 +1063,7 @@ static const uint16_t ts_small_parse_table[] = {
       ts_builtin_sym_end,
   [203] = 1,
     ACTIONS(100), 1,
-      anon_sym_DOT,
+      sym__float_decimal_point,
 };
 
 static const uint32_t ts_small_parse_table_map[] = {

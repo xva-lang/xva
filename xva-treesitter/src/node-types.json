@@ -163,10 +163,6 @@
     "named": false
   },
   {
-    "type": ".",
-    "named": false
-  },
-  {
     "type": "\\\"",
     "named": false
   },
@@ -211,10 +207,6 @@
     "named": true
   },
   {
-    "type": "false",
-    "named": false
-  },
-  {
     "type": "float_exponent",
     "named": true
   },
@@ -225,9 +217,5 @@
   {
     "type": "octal_literal",
     "named": true
-  },
-  {
-    "type": "true",
-    "named": false
   }
 ]
