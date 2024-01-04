@@ -2,7 +2,7 @@ use tree_sitter::{Node, Tree};
 
 /// Formats a node and all its children and places the result in a buffer, according to the following format:
 ///
-/// ```ignore
+/// ```text
 /// parent_kind @start_row:start_col..end_row:end_col
 ///   child1_kind @start_row:start_col..end_row:end_col
 ///   ..
