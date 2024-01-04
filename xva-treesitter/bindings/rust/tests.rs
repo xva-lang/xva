@@ -52,14 +52,7 @@ pub(self) fn test_tree(input: &str, expected_tree: expect_test::Expect) {
     let tree = get_tree(input);
     println!("sexp: {}", tree.root_node().to_sexp());
     let mut depth = 0;
-    print_node(
-        input,
-        &tree,
-        tree.root_node(),
-        &mut depth,
-        &mut result,
-        true,
-    );
+    print_node(input, &tree, tree.root_node(), &mut depth, &mut result);
 
     expected_tree.assert_eq(&result);
 }

@@ -56,7 +56,6 @@ pub fn print_node<'a>(
     node: Node,
     depth: &'a mut usize,
     result: &mut String,
-    recurse_siblings: bool,
 ) {
     let mut cursor = tree.walk();
     result.push_str(&format!(
@@ -74,7 +73,7 @@ pub fn print_node<'a>(
         result.push_str("\n");
         for child in node.children(&mut cursor) {
             *depth += 1;
-            print_node(source.as_ref(), &tree, child, depth, result, true);
+            print_node(source.as_ref(), &tree, child, depth, result);
             if child.next_sibling().is_none() && depth.clone() > 0 {
                 *depth -= 1;
             }
@@ -93,14 +92,7 @@ mod tests {
         let mut result = String::new();
         let tree = get_tree(input);
         let mut depth = 0;
-        print_node(
-            input,
-            &tree,
-            tree.root_node(),
-            &mut depth,
-            &mut result,
-            true,
-        );
+        print_node(input, &tree, tree.root_node(), &mut depth, &mut result);
 
         println!("{result}")
     }
