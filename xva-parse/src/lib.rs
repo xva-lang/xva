@@ -26,6 +26,7 @@ mod tests {
             parser.tree().root_node(),
             &mut depth,
             &mut result,
+            None,
         );
         result
     }

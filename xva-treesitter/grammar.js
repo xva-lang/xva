@@ -106,12 +106,12 @@ module.exports = grammar({
     unary_expression: ($) => choice($.negation_expression, $.not_expression),
 
     negation_expression: ($) =>
-      prec(PRECEDENCE.UNARY, seq($._minus_operator, $.expression)),
-    _minus_operator: (_) => SYMBOLS.MINUS,
+      prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
+    // _minus_operator: (_) => SYMBOLS.MINUS,
 
     not_expression: ($) =>
-      prec(PRECEDENCE.UNARY, seq($._not_keyword, $.expression)),
-    _not_keyword: (_) => KEYWORDS.NOT,
+      prec(PRECEDENCE.UNARY, seq(KEYWORDS.NOT, $.expression)),
+    // _not_keyword: (_) => KEYWORDS.NOT,
 
     /*********** Binary expressions ************/
     binary_expression: ($) => {

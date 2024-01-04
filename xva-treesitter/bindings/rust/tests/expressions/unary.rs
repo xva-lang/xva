@@ -1,4 +1,4 @@
-use crate::tests::test_tree;
+use crate::utils::test_tree;
 use expect_test::expect;
 
 #[test]
@@ -10,6 +10,7 @@ root @0:0..0:2 "-5"
   expression @0:0..0:2 "-5"
     unary_expression @0:0..0:2 "-5"
       negation_expression @0:0..0:2 "-5"
+        - @0:0..0:1
         expression @0:1..0:2 "5"
           literal @0:1..0:2 "5"
             integer_literal @0:1..0:2 "5"
@@ -26,6 +27,7 @@ root @0:0..0:9 "not false"
   expression @0:0..0:9 "not false"
     unary_expression @0:0..0:9 "not false"
       not_expression @0:0..0:9 "not false"
+        not @0:0..0:3
         expression @0:4..0:9 "false"
           literal @0:4..0:9 "false"
             boolean_literal @0:4..0:9 "false""#]],

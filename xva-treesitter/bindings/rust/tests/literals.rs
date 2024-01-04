@@ -1,6 +1,6 @@
 use expect_test::expect;
 
-use crate::tests::test_tree;
+use crate::utils::test_tree;
 
 #[test]
 fn boolean_literal_true() {

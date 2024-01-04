@@ -414,6 +414,10 @@
     "named": true
   },
   {
+    "type": "not",
+    "named": false
+  },
+  {
     "type": "octal_literal",
     "named": true
   },
