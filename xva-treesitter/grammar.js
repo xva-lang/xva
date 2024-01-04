@@ -31,25 +31,25 @@ const SYMBOLS = {
   DOT: ".",
 };
 
+// Borrowed from Rust
 const PRECEDENCE = {
-  ASSIGNMENT: 1,
-  LAMBDA: 2,
-  TERNARY: 3,
-  OR: 4,
-  AND: 5,
-  NOT: 6,
-  COMPARISION: 7,
-  BIT_OR: 8,
-  BIT_XOR: 9,
-  BIT_AND: 10,
-  BIT_SHIFT: 11,
-  ADD_SUB: 12,
-  MUL_DIV_MOD: 13,
-  NEGATE: 14,
-  EXPONENT: 15,
-  AWAIT: 16,
-  CALL: 17,
-  PARENTHESISED: 18,
+  CLOSURE: -1,
+  ASSIGN: 0,
+  RANGE: 1,
+  OR: 2,
+  AND: 3,
+  COMPARATIVE: 4,
+  BITWISE_OR: 5,
+  BITWISE_XOR: 6,
+  BITWISE_AND: 7,
+  SHIFT: 8,
+  ADDITIVE: 9,
+  MULTIPLICATIVE: 10,
+  CAST: 11,
+  UNARY: 12,
+  TRY: 13,
+  FIELD: 14,
+  CALL: 15,
 };
 
 const BUILT_IN_TYPES = [
@@ -81,14 +81,20 @@ module.exports = grammar({
   conflicts: ($) => [[$.float_literal]],
 
   rules: {
-    source_file: ($) => repeat($._item),
+    root: ($) => repeat($._item),
 
     _item: ($) => choice($.expression),
 
     expression: ($) => choice($._primary_expression),
 
-    /************** Primary expressions *************/
+    /************** Expressions *************/
     _primary_expression: ($) => choice($.literal),
+
+    unary_expression: ($) => choice($.negation_expression, $.not_expression),
+    negation_expression: ($) =>
+      prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
+    not_expression: ($) =>
+      prec(PRECEDENCE.UNARY, seq(SYMBOLS.MINUS, $.expression)),
 
     literal: ($) =>
       choice(
@@ -119,17 +125,28 @@ module.exports = grammar({
     hex_literal: ($) => /0x([0-9a-fA-F]|_)*[0-9a-fA-F]([0-9a-fA-F]|_)*/,
 
     // Character literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#character-literals
-    character_literal: ($) =>
-      seq(
-        SYMBOLS.SINGLE_QUOTE,
-        choice(
-          /[^\'\\(\\n)(\\r)(\\t)]/,
-          $.quote_escape,
-          $.ascii_escape,
-          $.unicode_escape
-        ),
-        SYMBOLS.SINGLE_QUOTE
+    character_literal: (_) =>
+      token(
+        seq(
+          SYMBOLS.SINGLE_QUOTE,
+          optional(
+            choice(
+              seq(
+                "\\",
+                choice(
+                  /[^xu]/,
+                  /u[0-9a-fA-F]{4}/,
+                  /u{[0-9a-fA-F]+}/,
+                  /x[0-9a-fA-F]{2}/
+                )
+              ),
+              /[^\\']/
+            )
+          ),
+          SYMBOLS.SINGLE_QUOTE
+        )
       ),
+
     quote_escape: ($) => choice("\\'", '\\"'),
     ascii_escape: ($) =>
       choice(
@@ -142,21 +159,39 @@ module.exports = grammar({
       ),
     unicode_escape: ($) => /\\u([0-9a-fA-F]|_*){1,6}/,
 
-    // String literals, borrowed from Rust: https://doc.rust-lang.org/reference/tokens.html#string-literals
+    // String literals, borrowed from Rust: https://github.com/tree-sitter/tree-sitter-rust/blob/master/grammar.js
     string_literal: ($) =>
+      // token(
       seq(
-        SYMBOLS.DOUBLE_QUOTE,
-        repeat(
-          choice(
-            /[^\"\\\n]/,
-            $._quote_escape,
-            $._ascii_escape,
-            $._unicode_escape,
-            $._string_continuation
-          )
-        ),
-        SYMBOLS.DOUBLE_QUOTE
+        // TODO: binary and/or C strings?:  alias(/[bc]?"/, '"'),
+        // /[^\"\\\n]/,
+        // $._quote_escape,
+        // $._ascii_escape,
+        // $._unicode_escape,
+        // $._string_continuation
+        $._string_sigil,
+        repeat(choice($.escape_sequence, /[^\"\\\n]/)),
+        $._string_sigil
       ),
+
+    // Hidden quote mark rule to prevent the dot showing as an explicit child of string_literal
+    _string_sigil: (_) => SYMBOLS.DOUBLE_QUOTE,
+
+    escape_sequence: (_) =>
+      token.immediate(
+        seq(
+          "\\",
+          choice(
+            /[^xu]/,
+            /u[0-9a-fA-F]{1,6}/,
+            // /u{[0-9a-fA-F]+}/,
+            /x[0-9a-fA-F]{2}/
+          )
+        )
+      ),
+
+    string_content: (_) => choice(/[^\"\\\n]/),
+    _string_continuation: ($) => /\\\n/,
 
     // Hidden versions of the esacapes:
     _quote_escape: ($) => choice("\\'", '\\"'),
@@ -171,9 +206,12 @@ module.exports = grammar({
       ),
     _unicode_escape: ($) => /\\u([0-9a-fA-F]|_*){1,6}/,
 
-    _string_continuation: ($) => /\\\n/,
+    // Boolean literals
+    boolean_literal: ($) => choice($._boolean_true, $._boolean_false),
 
-    boolean_literal: ($) => choice("true", "false"),
+    // Prevent an explicit "true"/"false" showing as a child of boolean_literal
+    _boolean_true: (_) => "true",
+    _boolean_false: (_) => "false",
 
     // Float literals
     // Hidden version of decimal_literal for use in parsing floats
@@ -182,14 +220,17 @@ module.exports = grammar({
     float_exponent: ($) => /[eE][+-]?([0-9]|_)*[0-9]([0-9]|_)*/,
     float_literal: ($) =>
       choice(
-        seq($._decimal_literal, SYMBOLS.DOT),
-        seq($._decimal_literal, SYMBOLS.DOT, $._decimal_literal),
+        seq($._decimal_literal, $._float_decimal_point),
+        seq($._decimal_literal, $._float_decimal_point, $._decimal_literal),
         seq(
           $._decimal_literal,
-          SYMBOLS.DOT,
+          $._float_decimal_point,
           optional($._decimal_literal),
           field("exponent", $.float_exponent)
         )
       ),
+
+    // Hidden "." rule to prevent the dot showing as an explicit child of float_literal
+    _float_decimal_point: (_) => SYMBOLS.DOT,
   },
 });
