@@ -6,6 +6,8 @@ const KEYWORDS = {
   FALSE: "false",
   NOT: "not",
   MUTABLE: "mutable",
+  AND: "and",
+  OR: "or",
 };
 
 const SYMBOLS = {
@@ -29,6 +31,15 @@ const SYMBOLS = {
   INCREMENT: "++",
   DECREMENT: "--",
   DOT: ".",
+  AMPERSAND: "&",
+  PIPE: "|",
+  CARET: "^",
+  DOUBLE_RIGHT_ANGLE: ">>",
+  DOUBLE_LEFT_ANGLE: "<<",
+  GREATER_THAN_EQUALS: ">=",
+  LESS_THAN_EQUALS: "<=",
+  DOUBLE_EQUALS: "==",
+  NOT_EQUALS: "!=",
 };
 
 // Borrowed from Rust
@@ -85,7 +96,8 @@ module.exports = grammar({
 
     _item: ($) => choice($.expression),
 
-    expression: ($) => choice($._primary_expression, $.unary_expression),
+    expression: ($) =>
+      choice($._primary_expression, $.unary_expression, $.binary_expression),
 
     /************** Expressions *************/
     _primary_expression: ($) => choice($.literal),
@@ -100,6 +112,58 @@ module.exports = grammar({
     not_expression: ($) =>
       prec(PRECEDENCE.UNARY, seq($._not_keyword, $.expression)),
     _not_keyword: (_) => KEYWORDS.NOT,
+
+    /*********** Binary expressions ************/
+    binary_expression: ($) => {
+      const prec_op_map = [
+        [PRECEDENCE.AND, KEYWORDS.AND],
+        [PRECEDENCE.OR, KEYWORDS.OR],
+        [PRECEDENCE.BITWISE_AND, SYMBOLS.AMPERSAND],
+        [PRECEDENCE.BITWISE_OR, SYMBOLS.PIPE],
+        [PRECEDENCE.BITWISE_XOR, SYMBOLS.CARET],
+        [PRECEDENCE.ADDITIVE, choice(SYMBOLS.PLUS, SYMBOLS.MINUS)],
+
+        [
+          PRECEDENCE.MULTIPLICATIVE,
+          choice(
+            SYMBOLS.STAR,
+            SYMBOLS.SLASH,
+            SYMBOLS.DOUBLE_STAR,
+            SYMBOLS.PERCENT
+          ),
+        ],
+
+        [
+          PRECEDENCE.SHIFT,
+          choice(SYMBOLS.DOUBLE_RIGHT_ANGLE, SYMBOLS.DOUBLE_LEFT_ANGLE),
+        ],
+
+        [
+          PRECEDENCE.COMPARATIVE,
+          choice(
+            SYMBOLS.LEFT_ANGLE,
+            SYMBOLS.RIGHT_ANGLE,
+            SYMBOLS.DOUBLE_EQUALS,
+            SYMBOLS.NOT_EQUALS,
+            SYMBOLS.GREATER_THAN_EQUALS,
+            SYMBOLS.LESS_THAN_EQUALS
+          ),
+        ],
+      ];
+
+      return choice(
+        ...prec_op_map.map(([precedence, operator]) =>
+          prec.left(
+            precedence,
+            seq(
+              field("left", $.expression),
+              field("operator", operator),
+              field("right", $.expression)
+            )
+          )
+        )
+      );
+    },
 
     /*********** Literals ************/
     literal: ($) =>
