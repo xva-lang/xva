@@ -65,6 +65,7 @@ impl Parser {
                     x => panic!("Unknown integer literal variant: {x}"),
                 }
             }
+
             x => panic!("Unknown literal variant: {x}"),
         }
     }
@@ -119,4 +120,34 @@ fn node_text_into_radix_literal(
     };
 
     Ok(LiteralKind::Integer(integer, LiteralIntegerKind::Signed))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::Parser;
+
+    fn no_errors(input: &str) {
+        let mut parser = Parser::new_from_str(input).unwrap();
+        let _ = parser.brick().unwrap();
+    }
+
+    #[test]
+    fn decimal_literal() {
+        no_errors("123")
+    }
+
+    #[test]
+    fn binary_literal() {
+        no_errors("0b1011")
+    }
+
+    #[test]
+    fn octal_literal() {
+        no_errors("0o123456")
+    }
+
+    #[test]
+    fn hex_literal() {
+        no_errors("0x12AB")
+    }
 }

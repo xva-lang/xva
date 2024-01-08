@@ -1,4 +1,4 @@
-use crate::{ast::Expression, ast::Item, node_id::NodeId};
+use crate::node_id::NodeId;
 
 /// Trait for marking AST items that have a [`NodeId`] on them, and providing functionalty to retrieve
 /// the `NodeId`.

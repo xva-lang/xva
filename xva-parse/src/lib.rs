@@ -1,19 +1,18 @@
-use std::{
-    io::{self, Read, Seek},
-    path::PathBuf,
-};
-
 use parser::Parser;
 
-mod parser;
-mod session;
+use crate::parser::error::ParserResult;
 
+mod parser;
+
+pub fn new_parser_from_str(input: &str) -> ParserResult<Parser> {
+    Parser::new_from_str(input)
+}
 #[cfg(test)]
 mod tests {
-
-    use super::Parser;
     use std::error::Error;
     use xva_treesitter::utils::print_node;
+
+    use crate::parser::Parser;
 
     fn check(input: &str) -> String {
         let mut result = String::new();
