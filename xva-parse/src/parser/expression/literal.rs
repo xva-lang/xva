@@ -10,10 +10,18 @@ use super::Parser;
 
 strings! {
     LIT_KIND_INTEGER = "integer_literal"
+    LIT_KIND_BOOLEAN  = "boolean_literal"
+    LIT_KIND_FLOAT = "float_literal"
+    LIT_KIND_CHAR = "character_literal"
+    LIT_KIND_STRING = "string_literal"
+
     LIT_KIND_INTEGER_DECIMAL = "decimal_literal"
     LIT_KIND_INTEGER_BINARY = "binary_literal"
     LIT_KIND_INTEGER_OCTAL = "octal_literal"
     LIT_KIND_INTEGER_HEX = "hex_literal"
+
+    LIT_TRUE = "true"
+    LIT_FALSE = "false"
 
     PREFIX_BINARY = "0b"
     PREFIX_OCTAL = "0o"
@@ -31,43 +39,50 @@ impl Parser {
         match cursor.node().kind() {
             LIT_KIND_INTEGER => {
                 cursor.goto_first_child();
-                match cursor.node().kind() {
+                let node_kind = cursor.node().kind();
+                match node_kind {
                     LIT_KIND_INTEGER_DECIMAL => Ok(Expression {
-                        id: (cursor.node().id() as u32).into(),
+                        id: self.cursor_node_id(&cursor),
                         kind: ExpressionKind::Literal(node_text_into_decimal_literal(
                             self.current_source.as_bytes(),
                             cursor.node(),
                         )?),
                     }),
 
-                    LIT_KIND_INTEGER_BINARY => Ok(Expression {
-                        id: (cursor.node().id() as u32).into(),
-                        kind: ExpressionKind::Literal(node_text_into_radix_literal(
-                            self.current_source.as_bytes(),
-                            cursor.node(),
-                            RADIX_BINARY,
-                        )?),
-                    }),
-
-                    LIT_KIND_INTEGER_OCTAL => Ok(Expression {
-                        id: (cursor.node().id() as u32).into(),
-                        kind: ExpressionKind::Literal(node_text_into_radix_literal(
-                            self.current_source.as_bytes(),
-                            cursor.node(),
-                            RADIX_OCTAL,
-                        )?),
-                    }),
-
-                    LIT_KIND_INTEGER_HEX => Ok(Expression {
-                        id: (cursor.node().id() as u32).into(),
-                        kind: ExpressionKind::Literal(node_text_into_radix_literal(
-                            self.current_source.as_bytes(),
-                            cursor.node(),
-                            RADIX_HEX,
-                        )?),
-                    }),
+                    LIT_KIND_INTEGER_BINARY | LIT_KIND_INTEGER_OCTAL | LIT_KIND_INTEGER_HEX => {
+                        Ok(Expression {
+                            id: self.cursor_node_id(&cursor),
+                            kind: ExpressionKind::Literal(node_text_into_radix_literal(
+                                self.current_source.as_bytes(),
+                                cursor.node(),
+                                match node_kind {
+                                    LIT_KIND_INTEGER_BINARY => RADIX_BINARY,
+                                    LIT_KIND_INTEGER_OCTAL => RADIX_OCTAL,
+                                    LIT_KIND_INTEGER_HEX => RADIX_HEX,
+                                    _ => unreachable!(),
+                                },
+                            )?),
+                        })
+                    }
 
                     x => panic!("Unknown integer literal variant: {x}"),
+                }
+            }
+
+            LIT_KIND_BOOLEAN => {
+                cursor.goto_first_child();
+                match cursor.node().utf8_text(self.current_source.as_ref()) {
+                    Ok(t) => match t {
+                        LIT_TRUE | LIT_FALSE => Ok(Expression {
+                            id: self.cursor_node_id(&cursor),
+                            kind: ExpressionKind::Literal(node_text_into_boolean_literal(
+                                self.current_source.as_bytes(),
+                                cursor.node(),
+                            )?),
+                        }),
+                        _ => unreachable!(),
+                    },
+                    Err(e) => return Err(ParserError::Utf8Error(e)),
                 }
             }
 
@@ -127,6 +142,19 @@ fn node_text_into_radix_literal(
     Ok(LiteralKind::Integer(integer, LiteralIntegerKind::Signed))
 }
 
+fn node_text_into_boolean_literal(src: &[u8], node: Node<'_>) -> ParserResult<LiteralKind> {
+    let text = match node.utf8_text(src) {
+        Ok(r) => r,
+        Err(e) => return Err(ParserError::Utf8Error(e)),
+    };
+
+    match text {
+        LIT_TRUE => Ok(LiteralKind::Boolean(true)),
+        LIT_FALSE => Ok(LiteralKind::Boolean(false)),
+        _ => unreachable!(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::parser::Parser;
@@ -154,5 +182,12 @@ mod tests {
     #[test]
     fn hex_literal() {
         no_errors("0x12AB")
+    }
+
+    #[test]
+    fn bool_literal() {
+        let mut parser = Parser::new_from_str("true").unwrap();
+        let brick = parser.brick().unwrap();
+        println!("{brick:#?}")
     }
 }

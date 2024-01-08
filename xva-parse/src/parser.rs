@@ -1,10 +1,11 @@
 pub mod error;
 mod expression;
 
-use tree_sitter::Tree;
+use tree_sitter::{Tree, TreeCursor};
 use xva_ast::{
     ast::Brick,
     ast::{Item, ItemKind, Module},
+    node_id::NodeId,
 };
 use xva_span::SourceLocation;
 
@@ -66,6 +67,10 @@ impl Parser {
 
     pub(crate) fn tree(&self) -> &Tree {
         &self.cst
+    }
+
+    pub(crate) fn cursor_node_id(&self, cursor: &TreeCursor) -> NodeId {
+        (cursor.node().id() as u32).into()
     }
 }
 
