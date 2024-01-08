@@ -1,19 +1,24 @@
 use tree_sitter::Node;
 use xva_ast::ast::{Expression, ExpressionKind, LiteralIntegerKind, LiteralKind};
 
-use crate::parser::error::{ParserError, ParserResult, TextParseError};
+use crate::{
+    parser::error::{ParserError, ParserResult, TextParseError},
+    strings,
+};
 
 use super::Parser;
 
-const LIT_KIND_INTEGER: &str = "integer_literal";
-const LIT_KIND_INTEGER_DECIMAL: &str = "decimal_literal";
-const LIT_KIND_INTEGER_BINARY: &str = "binary_literal";
-const LIT_KIND_INTEGER_OCTAL: &str = "octal_literal";
-const LIT_KIND_INTEGER_HEX: &str = "hex_literal";
+strings! {
+    LIT_KIND_INTEGER = "integer_literal"
+    LIT_KIND_INTEGER_DECIMAL = "decimal_literal"
+    LIT_KIND_INTEGER_BINARY = "binary_literal"
+    LIT_KIND_INTEGER_OCTAL = "octal_literal"
+    LIT_KIND_INTEGER_HEX = "hex_literal"
 
-const PREFIX_BINARY: &str = "0b";
-const PREFIX_OCTAL: &str = "0o";
-const PREFIX_HEX: &str = "0x";
+    PREFIX_BINARY = "0b"
+    PREFIX_OCTAL = "0o"
+    PREFIX_HEX = "0x"
+}
 
 const RADIX_BINARY: u32 = 2;
 const RADIX_OCTAL: u32 = 8;

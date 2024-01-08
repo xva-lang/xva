@@ -11,3 +11,4 @@ tree-sitter = "0.20.10"
 xva-ast = { path = "../xva-ast" }
 xva-treesitter = { path = "../xva-treesitter" }
 xva-span = { path = "../xva-span" }
+xva-macros = { path = "../xva-macros" }

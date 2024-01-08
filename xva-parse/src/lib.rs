@@ -2,6 +2,7 @@ use parser::Parser;
 
 use crate::parser::error::ParserResult;
 
+pub(crate) mod macros;
 mod parser;
 
 pub fn new_parser_from_str(input: &str) -> ParserResult<Parser> {
