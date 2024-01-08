@@ -44,6 +44,7 @@ pub struct Module {
 pub struct Expression {
     pub id: NodeId,
     pub kind: ExpressionKind,
+    pub span: SourceLocation,
 }
 
 #[derive(Debug)]

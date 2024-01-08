@@ -4,6 +4,7 @@ use crate::parser::error::ParserResult;
 
 pub(crate) mod macros;
 mod parser;
+pub(crate) mod traits;
 
 pub fn new_parser_from_str(input: &str) -> ParserResult<Parser> {
     Parser::new_from_str(input)

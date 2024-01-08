@@ -4,6 +4,7 @@ use xva_ast::ast::{Expression, ExpressionKind, LiteralIntegerKind, LiteralKind};
 use crate::{
     parser::error::{ParserError, ParserResult, TextParseError},
     strings,
+    traits::{TSIdentifyable, TSLocatable},
 };
 
 use super::Parser;
@@ -40,18 +41,20 @@ impl Parser {
             LIT_KIND_INTEGER => {
                 cursor.goto_first_child();
                 let node_kind = cursor.node().kind();
+
                 match node_kind {
                     LIT_KIND_INTEGER_DECIMAL => Ok(Expression {
-                        id: self.cursor_node_id(&cursor),
+                        id: cursor.node_id(),
                         kind: ExpressionKind::Literal(node_text_into_decimal_literal(
                             self.current_source.as_bytes(),
                             cursor.node(),
                         )?),
+                        span: cursor.span(),
                     }),
 
                     LIT_KIND_INTEGER_BINARY | LIT_KIND_INTEGER_OCTAL | LIT_KIND_INTEGER_HEX => {
                         Ok(Expression {
-                            id: self.cursor_node_id(&cursor),
+                            id: cursor.node_id(),
                             kind: ExpressionKind::Literal(node_text_into_radix_literal(
                                 self.current_source.as_bytes(),
                                 cursor.node(),
@@ -62,6 +65,7 @@ impl Parser {
                                     _ => unreachable!(),
                                 },
                             )?),
+                            span: cursor.span(),
                         })
                     }
 
@@ -74,11 +78,12 @@ impl Parser {
                 match cursor.node().utf8_text(self.current_source.as_ref()) {
                     Ok(t) => match t {
                         LIT_TRUE | LIT_FALSE => Ok(Expression {
-                            id: self.cursor_node_id(&cursor),
+                            id: cursor.node_id(),
                             kind: ExpressionKind::Literal(node_text_into_boolean_literal(
                                 self.current_source.as_bytes(),
                                 cursor.node(),
                             )?),
+                            span: cursor.span(),
                         }),
                         _ => unreachable!(),
                     },
@@ -185,9 +190,12 @@ mod tests {
     }
 
     #[test]
-    fn bool_literal() {
-        let mut parser = Parser::new_from_str("true").unwrap();
-        let brick = parser.brick().unwrap();
-        println!("{brick:#?}")
+    fn true_literal() {
+        no_errors("true")
+    }
+
+    #[test]
+    fn false_literal() {
+        no_errors("false")
     }
 }

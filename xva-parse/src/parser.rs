@@ -68,10 +68,6 @@ impl Parser {
     pub(crate) fn tree(&self) -> &Tree {
         &self.cst
     }
-
-    pub(crate) fn cursor_node_id(&self, cursor: &TreeCursor) -> NodeId {
-        (cursor.node().id() as u32).into()
-    }
 }
 
 #[cfg(test)]
