@@ -99,25 +99,23 @@ impl SourceMap {
     const FIRST_SRC_ID: SrcId = SrcId(0);
 
     /// Loads a real file into the source map.
-    pub fn load(&mut self, path: PathBuf) -> std::io::Result<()> {
+    pub fn load(&mut self, path: PathBuf) -> std::io::Result<SrcId> {
         let name = path.clone().into_os_string().into_string().unwrap();
 
         let mut buf = String::new();
         let mut file = std::fs::OpenOptions::new().read(true).open(&path)?;
         file.read_to_string(&mut buf)?;
 
-        self.new_file(name, SourceFilePath::Real(path.canonicalize()?), buf);
-
-        Ok(())
+        Ok(self.new_file(name, SourceFilePath::Real(path.canonicalize()?), buf))
     }
 
     /// Loads a virtual file into the source map. A virtual file is just a named string of text.
-    pub fn load_virtual(&mut self, name: String, src: String) {
+    pub fn load_virtual(&mut self, name: String, src: String) -> SrcId {
         let virtual_file_name = name.clone();
         self.new_file(name, SourceFilePath::Virtual(virtual_file_name), src)
     }
 
-    fn new_file(&mut self, name: String, path: SourceFilePath, src: String) {
+    fn new_file(&mut self, name: String, path: SourceFilePath, src: String) -> SrcId {
         let mut files = match self.files.write() {
             Ok(l) => l,
             Err(e) => panic!("Source map lock is poisoned: {e}"),
@@ -125,7 +123,9 @@ impl SourceMap {
 
         let arc = Arc::new(SourceFile::new(name, path, src));
         files.push(arc.clone());
-        self.map.insert(self.next_id(), arc.clone());
+        let id = self.next_id();
+        self.map.insert(id.clone(), arc.clone());
+        id
     }
 
     fn next_id(&self) -> SrcId {
