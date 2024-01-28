@@ -1,5 +1,7 @@
 use std::{fmt::Debug, ops::Range};
 
+pub(crate) mod monotonic;
+pub mod source;
 /// Represents a section of the original source code.
 ///
 /// Can also be used to represent generic "slices" of "things" with an explicit start and end.
@@ -15,6 +17,13 @@ impl From<Range<u32>> for Span {
     fn from(value: Range<u32>) -> Self {
         let (start, end) = (value.start, value.end);
         Self { start, end }
+    }
+}
+
+impl From<Span> for Range<usize> {
+    fn from(value: Span) -> Self {
+        let Span { start, end } = value;
+        start as usize..end as usize
     }
 }
 
@@ -88,6 +97,13 @@ pub struct SourceLocation {
 impl SourceLocation {
     pub fn new(start: SourcePoint, end: SourcePoint) -> Self {
         Self { start, end }
+    }
+
+    pub fn as_char_offset(&self, _src: &str) -> Span {
+        // TODO this doesn't actually use lines
+        let SourcePoint(_, start_col) = self.start;
+        let SourcePoint(_, end_col) = self.end;
+        (start_col..end_col).into()
     }
 }
 
