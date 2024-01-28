@@ -50,6 +50,10 @@ impl SourceFile {
             .map(|h| format!("{h:02x}"))
             .collect::<String>()
     }
+
+    pub fn content(&self) -> Arc<String> {
+        self.src.clone()
+    }
 }
 
 impl std::fmt::Debug for SourceFile {
