@@ -9,6 +9,7 @@ pub(crate) mod traits;
 pub fn new_parser_from_str(input: &str) -> ParserResult<Parser> {
     Parser::new_from_str(input)
 }
+
 #[cfg(test)]
 mod tests {
     use std::error::Error;

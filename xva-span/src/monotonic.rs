@@ -6,6 +6,7 @@ use std::ops::Deref;
 ///
 /// This implementation was borrowed from the
 /// [Rust compiler](https://github.com/rust-lang/rust/blob/master/compiler/rustc_span/src/source_map.rs).
+#[derive(Debug)]
 pub(crate) struct MonotonicVec<T>(Vec<T>);
 impl<T> MonotonicVec<T> {
     pub(super) fn push(&mut self, val: T) {

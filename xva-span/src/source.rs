@@ -2,11 +2,27 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     io::Read,
+    marker::PhantomData,
+    ops::Range,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
 
 use crate::monotonic::MonotonicVec;
+
+mod codespan;
+
+#[derive(Debug)]
+pub enum LineEnding {
+    /// LF, or `\n`
+    Unix,
+
+    /// CRLF, or `\r\n`
+    Windows,
+
+    /// The file only has one line
+    OneLine,
+}
 
 #[derive(Debug)]
 pub enum SourceFilePath {
@@ -40,10 +56,58 @@ pub struct SourceFile {
     pub hash: [u8; 32],
 
     /// The original content of the file.
-    pub src: Arc<String>,
+    // pub src: String,
+    pub src: Arc<str>,
+    line_ending: LineEnding,
+    line_ranges: HashMap<Range<usize>, usize>,
 }
 
 impl SourceFile {
+    pub fn new(name: String, path: SourceFilePath, src: String) -> Self {
+        let line_ending = get_line_ending(src.as_bytes());
+        let mut current_line = 0usize;
+        let mut current_byte = 0usize;
+        let mut line_start_byte = 0usize;
+
+        let line_ranges = match line_ending {
+            LineEnding::Unix => {
+                let mut temp = HashMap::new();
+
+                for b in src.as_bytes() {
+                    if *b == '\n' as u8 {
+                        temp.insert(line_start_byte..current_byte, current_line);
+
+                        line_start_byte = current_byte + 1;
+                        current_line += 1;
+                    }
+
+                    current_byte += 1;
+                }
+
+                temp
+            }
+            LineEnding::Windows => todo!(),
+            LineEnding::OneLine => HashMap::from([(0..src.as_bytes().len(), 0)]),
+        };
+
+        Self {
+            path,
+            name,
+            hash: {
+                let mut hasher: Sha256 = Sha256::new();
+                hasher.update(src.as_bytes());
+                hasher
+                    .finalize()
+                    .as_slice()
+                    .try_into()
+                    .expect("Wrong length")
+            },
+            src: Arc::from(src.as_str()),
+            line_ranges,
+            line_ending,
+        }
+    }
+
     fn hash_as_hex(&self) -> String {
         self.hash
             .iter()
@@ -51,8 +115,12 @@ impl SourceFile {
             .collect::<String>()
     }
 
-    pub fn content(&self) -> Arc<String> {
+    pub fn content(&self) -> Arc<str> {
         self.src.clone()
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        self.src.as_ref().as_bytes()
     }
 }
 
@@ -66,22 +134,17 @@ impl std::fmt::Debug for SourceFile {
             .finish()
     }
 }
-impl SourceFile {
-    pub fn new(name: String, path: SourceFilePath, src: String) -> Self {
-        Self {
-            path,
-            name,
-            hash: {
-                let mut hasher: Sha256 = Sha256::new();
-                hasher.update(src.as_bytes());
-                hasher
-                    .finalize()
-                    .as_slice()
-                    .try_into()
-                    .expect("Wrong length")
-            },
-            src: Arc::new(src),
+
+fn get_line_ending(src: &[u8]) -> LineEnding {
+    match src.iter().enumerate().find(|(_, b)| **b == '\n' as u8) {
+        Some((index, _)) => {
+            if src[index - 1] == '\r' as u8 {
+                LineEnding::Windows
+            } else {
+                LineEnding::Unix
+            }
         }
+        None => LineEnding::OneLine,
     }
 }
 
@@ -94,12 +157,14 @@ impl From<u32> for SrcId {
     }
 }
 
-pub struct SourceMap {
+#[derive(Debug)]
+pub struct SourceMap<'map> {
     files: RwLock<MonotonicVec<Arc<SourceFile>>>,
     map: HashMap<SrcId, Arc<SourceFile>>,
+    _phantom_lt: PhantomData<&'map ()>,
 }
 
-impl SourceMap {
+impl SourceMap<'_> {
     const FIRST_SRC_ID: SrcId = SrcId(0);
 
     /// Loads a real file into the source map.
@@ -148,11 +213,12 @@ impl SourceMap {
     }
 }
 
-impl Default for SourceMap {
+impl Default for SourceMap<'_> {
     fn default() -> Self {
         Self {
             files: Default::default(),
             map: Default::default(),
+            _phantom_lt: Default::default(),
         }
     }
 }

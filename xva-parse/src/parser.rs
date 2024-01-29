@@ -1,27 +1,57 @@
 pub mod error;
 mod expression;
 
-use tree_sitter::{Tree, TreeCursor};
+use codespan_reporting::{
+    diagnostic::{Diagnostic, Label},
+    files::{Files, SimpleFiles},
+    term::{
+        self,
+        termcolor::{ColorChoice, StandardStream},
+    },
+};
+use error::ParserResult;
+use std::{collections::HashMap, ops::Range, sync::Arc};
+use tree_sitter::{Node, Tree};
 use xva_ast::{
     ast::Brick,
     ast::{Item, ItemKind, Module},
-    node_id::NodeId,
 };
-use xva_span::SourceLocation;
+use xva_span::{
+    source::{SourceFile, SourceMap, SrcId},
+    SourceLocation,
+};
 
-use error::ParserResult;
+use crate::traits::TSLocatable;
+
+// pub struct FileCache {
+//     files: HashMap<PathBuf, Source>,
+// }
+
+// impl Cache<Path> for FileCache {
+//     type Storage = String;
+
+//     fn fetch(&mut self, path: &Path) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
+//         Ok(match self.files.entry(path.to_path_buf()) { // TODO: Don't allocate here
+//             Entry::Occupied(entry) => entry.into_mut(),
+//             Entry::Vacant(entry) => entry.insert(Source::from(fs::read_to_string(path).map_err(|e| Box::new(e) as _)?)),
+//         })
+//     }
+//     fn display<'a>(&self, path: &'a Path) -> Option<Box<dyn fmt::Display + 'a>> { Some(Box::new(path.display())) }
+// }
 
 // #[derive(Debug)]
-pub struct Parser {
+pub struct Parser<'p> {
     cst: tree_sitter::Tree,
-    current_source: String,
+    current_file: SrcId,
+    // sources: SourceCache,
+    sources: SourceMap<'p>,
 }
 
 // lazy_static! {
 //     // static ref NODE_ID_GEN: Arc<NodeId> = Arc::new(NodeId(0));
 // }
 
-impl Parser {
+impl<'p> Parser<'p> {
     pub(crate) fn new_from_str(input: &str) -> ParserResult<Self> {
         let mut parser = tree_sitter::Parser::new();
         if let Err(e) = parser.set_language(xva_treesitter::language()) {
@@ -29,9 +59,15 @@ impl Parser {
         };
 
         let tree = parser.parse(input, None).unwrap();
+
+        let mut sources = SourceMap::default();
+        // let current_file = sources.add("<input>".into(), input.into());
+        let current_file = sources.load_virtual("<input>".into(), input.into());
+
         let result = Parser {
-            current_source: input.to_string(), // expensive
             cst: tree,
+            current_file,
+            sources,
         };
 
         Ok(result)
@@ -39,6 +75,7 @@ impl Parser {
 
     pub fn brick(&mut self) -> ParserResult<Brick> {
         let module = self.brick_module()?;
+
         Ok(Brick {
             items: vec![Item {
                 id: 0.into(),
@@ -51,14 +88,31 @@ impl Parser {
         })
     }
 
-    fn brick_module(&self) -> ParserResult<Module> {
+    fn brick_module(&mut self) -> ParserResult<Module> {
         let mut cursor = self.cst.root_node().walk();
         let mut items = vec![];
 
         for node in cursor.node().children(&mut cursor) {
             match node.kind() {
                 "expression" => items.push(self.expression(node)?),
-                _ => panic!("unknown node '{}'", node.kind()),
+                _ => {
+                    let file_id = self.current_file;
+                    let range = node.start_byte()..node.end_byte();
+                    println!("range: {range:#?}");
+
+                    let diagnostic: Diagnostic<SrcId> = Diagnostic::error()
+                        .with_message(format!(
+                            "Expected an expression, but found `{}`",
+                            node.utf8_text(self.source().unwrap().content().as_bytes())
+                                .unwrap()
+                        ))
+                        .with_labels(vec![Label::primary(file_id, range)
+                            .with_message("Expected an expression here".to_string())]);
+
+                    let writer = StandardStream::stderr(ColorChoice::Always);
+                    let config = codespan_reporting::term::Config::default();
+                    term::emit(&mut writer.lock(), &config, &self.sources, &diagnostic).unwrap();
+                }
             }
         }
 
@@ -68,10 +122,19 @@ impl Parser {
     pub(crate) fn tree(&self) -> &Tree {
         &self.cst
     }
+
+    fn source(&self) -> Option<Arc<SourceFile>> {
+        println!("in Parser::source(): {:#?}", self.sources);
+        match self.sources.get(self.current_file) {
+            Some(a) => Some(a.clone()),
+            None => None,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::Parser;
 
     #[test]
@@ -86,5 +149,12 @@ mod tests {
         .unwrap();
         let brick = parser.brick();
         println!("{brick:#?}")
+    }
+
+    #[test]
+    fn invalid() {
+        let mut parser = Parser::new_from_str("something_that_ain't an expression").unwrap();
+
+        let brick = parser.brick();
     }
 }

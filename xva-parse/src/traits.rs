@@ -4,7 +4,7 @@ use xva_span::SourceLocation;
 /// Convenience trait marking an item exported by TreeSitter as having some location in the source text,
 /// that can be safely represented as a [`SourceLocation`].
 pub(crate) trait TSLocatable {
-    fn span(&self) -> SourceLocation;
+    fn ts_span(&self) -> SourceLocation;
 }
 
 /// Convenience trait marking an item exported by TreeSitter as having some unique identifier in the tree,
@@ -15,7 +15,7 @@ pub(crate) trait TSIdentifyable {
 
 impl TSLocatable for tree_sitter::TreeCursor<'_> {
     /// Returns the span of the cursor's current node, as a [`SourceLocation`]
-    fn span(&self) -> SourceLocation {
+    fn ts_span(&self) -> SourceLocation {
         SourceLocation::new(
             self.node().start_position().into(),
             self.node().end_position().into(),
@@ -32,7 +32,7 @@ impl TSIdentifyable for tree_sitter::TreeCursor<'_> {
 
 impl TSLocatable for tree_sitter::Node<'_> {
     /// Returns the span of the node, as a [`SourceLocation`]
-    fn span(&self) -> SourceLocation {
+    fn ts_span(&self) -> SourceLocation {
         SourceLocation::new(self.start_position().into(), self.end_position().into())
     }
 }

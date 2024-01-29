@@ -8,7 +8,7 @@ mod literal;
 
 const EXPR_KIND_LITERAL: &str = "literal";
 
-impl Parser {
+impl<'p> Parser<'p> {
     pub(crate) fn expression(&self, root: Node<'_>) -> ParserResult<Item> {
         let mut cursor = root.walk();
         cursor.goto_first_child();

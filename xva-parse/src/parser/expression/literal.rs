@@ -33,10 +33,13 @@ const RADIX_BINARY: u32 = 2;
 const RADIX_OCTAL: u32 = 8;
 const RADIX_HEX: u32 = 16;
 
-impl Parser {
+impl<'p> Parser<'p> {
     pub(crate) fn literal(&self, root: Node<'_>) -> ParserResult<Expression> {
+        let source = self.source().unwrap();
+        let source_bytes = source.bytes();
         let mut cursor = root.walk();
         cursor.goto_first_child();
+
         match cursor.node().kind() {
             LIT_KIND_INTEGER => {
                 cursor.goto_first_child();
@@ -46,17 +49,17 @@ impl Parser {
                     LIT_KIND_INTEGER_DECIMAL => Ok(Expression {
                         id: cursor.node_id(),
                         kind: ExpressionKind::Literal(node_text_into_decimal_literal(
-                            self.current_source.as_bytes(),
+                            source_bytes,
                             cursor.node(),
                         )?),
-                        span: cursor.span(),
+                        span: cursor.ts_span(),
                     }),
 
                     LIT_KIND_INTEGER_BINARY | LIT_KIND_INTEGER_OCTAL | LIT_KIND_INTEGER_HEX => {
                         Ok(Expression {
                             id: cursor.node_id(),
                             kind: ExpressionKind::Literal(node_text_into_radix_literal(
-                                self.current_source.as_bytes(),
+                                source_bytes,
                                 cursor.node(),
                                 match node_kind {
                                     LIT_KIND_INTEGER_BINARY => RADIX_BINARY,
@@ -65,7 +68,7 @@ impl Parser {
                                     _ => unreachable!(),
                                 },
                             )?),
-                            span: cursor.span(),
+                            span: cursor.ts_span(),
                         })
                     }
 
@@ -75,15 +78,15 @@ impl Parser {
 
             LIT_KIND_BOOLEAN => {
                 cursor.goto_first_child();
-                match cursor.node().utf8_text(self.current_source.as_ref()) {
+                match cursor.node().utf8_text(source_bytes) {
                     Ok(t) => match t {
                         LIT_TRUE | LIT_FALSE => Ok(Expression {
                             id: cursor.node_id(),
                             kind: ExpressionKind::Literal(node_text_into_boolean_literal(
-                                self.current_source.as_bytes(),
+                                source_bytes,
                                 cursor.node(),
                             )?),
-                            span: cursor.span(),
+                            span: cursor.ts_span(),
                         }),
                         _ => unreachable!(),
                     },
@@ -197,5 +200,11 @@ mod tests {
     #[test]
     fn false_literal() {
         no_errors("false")
+    }
+
+    #[test]
+    fn errors() {
+        let mut parser = Parser::new_from_str(r"\u5FFF").unwrap();
+        let _ = parser.brick().unwrap();
     }
 }
