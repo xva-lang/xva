@@ -58,8 +58,12 @@ pub struct SourceFile {
     /// The original content of the file.
     // pub src: String,
     pub src: Arc<str>,
-    line_ending: LineEnding,
+
+    /// Cached byte ranges of each line
     line_ranges: HashMap<Range<usize>, usize>,
+
+    /// The line ending sequence of the file
+    _eol: LineEnding,
 }
 
 impl SourceFile {
@@ -104,7 +108,7 @@ impl SourceFile {
             },
             src: Arc::from(src.as_str()),
             line_ranges,
-            line_ending,
+            _eol: line_ending,
         }
     }
 
@@ -138,10 +142,14 @@ impl std::fmt::Debug for SourceFile {
 fn get_line_ending(src: &[u8]) -> LineEnding {
     match src.iter().enumerate().find(|(_, b)| **b == '\n' as u8) {
         Some((index, _)) => {
-            if src[index - 1] == '\r' as u8 {
-                LineEnding::Windows
-            } else {
+            if index == 0 {
                 LineEnding::Unix
+            } else {
+                if src[index - 1] == '\r' as u8 {
+                    LineEnding::Windows
+                } else {
+                    LineEnding::Unix
+                }
             }
         }
         None => LineEnding::OneLine,

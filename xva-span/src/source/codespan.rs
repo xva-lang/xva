@@ -1,6 +1,5 @@
-use std::{borrow::Borrow, sync::Arc};
-
-use super::{LineEnding, SourceFile, SourceMap, SrcId};
+use super::{SourceMap, SrcId};
+use std::sync::Arc;
 
 impl<'map> codespan_reporting::files::Files<'map> for SourceMap<'map> {
     type FileId = SrcId;
@@ -30,13 +29,22 @@ impl<'map> codespan_reporting::files::Files<'map> for SourceMap<'map> {
         byte_index: usize,
     ) -> Result<usize, codespan_reporting::files::Error> {
         match self.get(id) {
-            Some(f) => match f.line_ranges.keys().find(|x| x.contains(&byte_index)) {
-                Some(m) => match f.line_ranges.get(m) {
-                    Some(l) => Ok(*l),
-                    None => unreachable!(),
-                },
-                None => unreachable!(),
-            },
+            Some(f) => {
+                match f.line_ranges.keys().find(|r| r.contains(&byte_index)) {
+                    Some(range) => match f.line_ranges.get(range) {
+                        Some(v) => Ok(*v),
+                        None => unreachable!("Range was not found but range was found in keys()"),
+                    },
+                    None => {
+                        // If the requested index is the last byte in the file, return the last line range
+                        if byte_index == f.src.len() {
+                            Ok(*(f.line_ranges.values().last().unwrap()))
+                        } else {
+                            unreachable!("Line range was not found but requested byte position is not the last byte")
+                        }
+                    }
+                }
+            }
 
             None => Err(codespan_reporting::files::Error::FileMissing),
         }

@@ -98,7 +98,6 @@ impl<'p> Parser<'p> {
                 _ => {
                     let file_id = self.current_file;
                     let range = node.start_byte()..node.end_byte();
-                    println!("range: {range:#?}");
 
                     let diagnostic: Diagnostic<SrcId> = Diagnostic::error()
                         .with_message(format!(
@@ -124,7 +123,6 @@ impl<'p> Parser<'p> {
     }
 
     fn source(&self) -> Option<Arc<SourceFile>> {
-        println!("in Parser::source(): {:#?}", self.sources);
         match self.sources.get(self.current_file) {
             Some(a) => Some(a.clone()),
             None => None,
@@ -154,7 +152,6 @@ mod tests {
     #[test]
     fn invalid() {
         let mut parser = Parser::new_from_str("something_that_ain't an expression").unwrap();
-
-        let brick = parser.brick();
+        parser.brick().unwrap();
     }
 }
