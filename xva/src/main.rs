@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 
 mod opts;
 
@@ -11,13 +11,14 @@ fn main() -> Result<(), std::io::Error> {
     println!("{BUILD_INFO}");
 
     let opts = Options::parse();
-    run_repl(&opts);
+    run_repl(&opts)?;
 
     Ok(())
 }
 
-fn run_repl(opts: &Options) {
+fn run_repl(opts: &Options) -> std::io::Result<()> {
     let stdin = std::io::stdin();
+    let mut stdout = std::io::stdout();
     let pretty_ast =
         if let Some((_, val)) = opts.unstable_options.iter().find(|(k, _)| k == "pretty") {
             if let UnstableOptionKind::WithValue(pretty) = val {
@@ -34,7 +35,11 @@ fn run_repl(opts: &Options) {
         };
 
     loop {
-        let line = stdin.lock().lines().next().unwrap().unwrap();
+        let _stdout_lock = stdout.lock();
+        stdout.write_all("> ".as_bytes())?;
+        stdout.flush()?;
+
+        let line = stdin.lock().lines().next().unwrap()?;
 
         let items = xva_parse::Parser::new_from_str(line.as_str())
             .unwrap()
