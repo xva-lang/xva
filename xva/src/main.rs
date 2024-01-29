@@ -1,6 +1,9 @@
-use std::{fs::File, io::Read};
+use std::{
+    fs::File,
+    io::{BufRead, Read},
+};
 
-use clap::{Arg, Command};
+use clap::{Arg, Args, Parser};
 use xva_buildinfo::get_build_info;
 use xva_compiler::CompilerOptions;
 
@@ -10,44 +13,65 @@ const PACKAGE_VERSION: &str = std::env!("CARGO_PKG_VERSION");
 
 const ARG_UNSTABLE_COMPILER_OPTION: &str = "unstable_compiler_option";
 const ARG_INPUT_FILE: &str = "input_file";
+use std::error::Error;
+
+fn parse_unstable_option<K>(
+    s: &str,
+) -> Result<(K, UnstableOptionKind), Box<dyn Error + Send + Sync + 'static>>
+where
+    K: std::str::FromStr,
+    K::Err: Error + Send + Sync + 'static,
+{
+    if s.contains('=') {
+        let pos = s
+            .find('=')
+            .ok_or_else(|| format!("Invalid KEY=value: no `=` found in `{}`", s))?;
+        Ok((
+            s[..pos].parse()?,
+            UnstableOptionKind::WithValue(s[pos + 1..].parse()?),
+        ))
+    } else {
+        Ok((s.parse()?, UnstableOptionKind::NoValue))
+    }
+}
+
+#[derive(Debug, Clone)]
+enum UnstableOptionKind {
+    NoValue,
+    WithValue(String),
+}
+
+#[derive(Parser, Debug)]
+struct Options {
+    /// Specify unstable compiler options
+    #[arg(short = 'Z', value_parser = parse_unstable_option::<String>)]
+    unstable_options: Vec<(String, UnstableOptionKind)>,
+}
+
 fn main() -> Result<(), std::io::Error> {
     println!("Xva {} {}", PACKAGE_VERSION, get_build_info());
 
-    let command = Command::new("Xva")
-        .author("Xva Language Team <info@xva-lang.org>")
-        .arg(
-            Arg::new(ARG_INPUT_FILE)
-                .required(false)
-                .help("Run the specified Xva source file"),
-        )
-        .arg(
-            Arg::new(ARG_UNSTABLE_COMPILER_OPTION)
-                .short('Z')
-                .help("Specify unstable compiler options"),
-        );
+    let opts = Options::parse();
+    run_repl(&opts);
 
-    let matches = command.get_matches();
+    Ok(())
+}
 
-    let input_file = matches.get_one::<String>(ARG_INPUT_FILE);
+fn run_repl(opts: &Options) {
+    let stdin = std::io::stdin();
+    loop {
+        let line = stdin.lock().lines().next().unwrap().unwrap();
 
-    let mut compiler_options = CompilerOptions::default();
+        let tree = xva_parse::Parser::new_from_str(line.as_str())
+            .unwrap()
+            .items();
 
-    if let Some(zflags) = matches.get_many::<String>(ARG_UNSTABLE_COMPILER_OPTION) {
-        for flag in zflags {
-            if flag == "print-cst" {
-                compiler_options.print_cst = true
+        if let Some((key, val)) = opts.unstable_options.iter().find(|(k, _)| k == "pretty") {
+            if let UnstableOptionKind::WithValue(pretty) = val {
+                if pretty == "ast" {
+                    println!("{tree:#?}");
+                }
             }
         }
     }
-
-    if let Some(file_name) = input_file {
-        let mut buffer = String::new();
-        File::open(file_name)?.read_to_string(&mut buffer)?;
-
-        if compiler_options.print_cst {
-            // xva_syntax::print_cst(buffer);
-        }
-    }
-
-    Ok(())
 }

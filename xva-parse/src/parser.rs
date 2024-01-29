@@ -49,7 +49,7 @@ pub struct Parser<'p> {
 // }
 
 impl<'p> Parser<'p> {
-    pub(crate) fn new_from_str(input: &str) -> ParserResult<Self> {
+    pub fn new_from_str(input: &str) -> ParserResult<Self> {
         let mut parser = tree_sitter::Parser::new();
         if let Err(e) = parser.set_language(xva_treesitter::language()) {
             return Err(error::ParserError::TSLanguageError(e));
