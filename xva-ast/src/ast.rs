@@ -47,6 +47,7 @@ pub struct Expression {
 pub enum ExpressionKind {
     Literal(LiteralKind),
     Unary(UnaryOperator, Box<Expression>),
+    Binary(BinaryOperator, Box<Expression>, Box<Expression>),
 }
 
 #[derive(Debug)]
@@ -62,6 +63,29 @@ pub enum LiteralKind {
 pub enum UnaryOperator {
     Negation,
     Not,
+}
+
+#[derive(Debug)]
+pub enum BinaryOperator {
+    LogicalAnd,
+    LogicalOr,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulo,
+    Power,
+    LeftShift,
+    RightShift,
+    LessThan,
+    GreaterThan,
+    Equal,
+    NotEqual,
+    GreaterThanEqual,
+    LessThanEqual,
 }
 
 #[derive(Debug)]

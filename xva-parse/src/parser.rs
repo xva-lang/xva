@@ -83,6 +83,23 @@ impl<'p> Parser<'p> {
     }
 
     fn brick_module(&mut self) -> ParserResult<Module> {
+        Ok(Module {
+            items: self.items()?,
+        })
+    }
+
+    pub(crate) fn tree(&self) -> &Tree {
+        &self.cst
+    }
+
+    fn source(&self) -> Option<Arc<SourceFile>> {
+        match self.sources.get(self.current_file) {
+            Some(a) => Some(a.clone()),
+            None => None,
+        }
+    }
+
+    pub fn items(&mut self) -> ParserResult<Vec<Item>> {
         let mut cursor = self.cst.root_node().walk();
         let mut items = vec![];
 
@@ -117,18 +134,7 @@ impl<'p> Parser<'p> {
             }
         }
 
-        Ok(Module { items })
-    }
-
-    pub(crate) fn tree(&self) -> &Tree {
-        &self.cst
-    }
-
-    fn source(&self) -> Option<Arc<SourceFile>> {
-        match self.sources.get(self.current_file) {
-            Some(a) => Some(a.clone()),
-            None => None,
-        }
+        Ok(items)
     }
 }
 
