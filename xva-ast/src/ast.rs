@@ -61,6 +61,7 @@ pub enum LiteralKind {
 #[derive(Debug)]
 pub enum UnaryOperator {
     Negation,
+    Not,
 }
 
 #[derive(Debug)]
