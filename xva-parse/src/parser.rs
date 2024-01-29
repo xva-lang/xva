@@ -21,7 +21,7 @@ use xva_span::{
     SourceLocation,
 };
 
-use crate::traits::TSLocatable;
+use crate::traits::{TSIdentifyable, TSLocatable};
 
 // pub struct FileCache {
 //     files: HashMap<PathBuf, Source>,
@@ -94,7 +94,14 @@ impl<'p> Parser<'p> {
 
         for node in cursor.node().children(&mut cursor) {
             match node.kind() {
-                "expression" => items.push(self.expression(node)?),
+                "expression" => {
+                    let expr = self.expression(node)?;
+                    items.push(Item {
+                        id: node.node_id(),
+                        kind: ItemKind::Expression(expr),
+                        span: node.ts_span(),
+                    })
+                }
                 _ => {
                     let file_id = self.current_file;
                     let range = node.start_byte()..node.end_byte();

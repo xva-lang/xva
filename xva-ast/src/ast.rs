@@ -50,6 +50,7 @@ pub struct Expression {
 #[derive(Debug)]
 pub enum ExpressionKind {
     Literal(LiteralKind),
+    Unary(UnaryOperator, Box<Expression>),
 }
 
 #[derive(Debug)]
@@ -59,6 +60,11 @@ pub enum LiteralKind {
     Char(char),
     Float(f64),
     String(String), // TODO PLEASE change this to interned strings bruh
+}
+
+#[derive(Debug)]
+pub enum UnaryOperator {
+    Negation,
 }
 
 #[derive(Debug)]

@@ -1,26 +1,26 @@
 use tree_sitter::Node;
-use xva_ast::ast::{Item, ItemKind};
+use xva_ast::ast::{Expression, Item, ItemKind};
 use xva_span::SourceLocation;
+
+use crate::{strings, traits::TSIdentifyable};
 
 use super::{error::ParserResult, Parser};
 
 mod literal;
+mod unary;
 
-const EXPR_KIND_LITERAL: &str = "literal";
+strings! {
+    EXPR_KIND_LITERAL = "literal"
+    EXPR_KIND_UNARY = "unary_expression"
+}
 
 impl<'p> Parser<'p> {
-    pub(crate) fn expression(&self, root: Node<'_>) -> ParserResult<Item> {
+    pub(crate) fn expression(&self, root: Node<'_>) -> ParserResult<Expression> {
         let mut cursor = root.walk();
         cursor.goto_first_child();
         match cursor.node().kind() {
-            EXPR_KIND_LITERAL => Ok(Item {
-                id: (cursor.node().id() as u32).into(),
-                kind: ItemKind::Expression(self.literal(cursor.node())?),
-                span: SourceLocation::new(
-                    cursor.node().start_position().into(),
-                    cursor.node().end_position().into(),
-                ),
-            }),
+            EXPR_KIND_LITERAL => Ok(self.literal(cursor.node())?),
+            EXPR_KIND_UNARY => Ok(self.unary(cursor.node())?),
             x => panic!("Unknown expression variant: {x}"),
         }
     }
