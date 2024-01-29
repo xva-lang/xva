@@ -4,7 +4,7 @@ use xva_ast::ast::{Expression, ExpressionKind, LiteralIntegerKind, LiteralKind};
 use crate::{
     parser::error::{ParserError, ParserResult, TextParseError},
     strings,
-    traits::{TSIdentifyable, TSLocatable},
+    traits::TSIdentifyable,
 };
 
 use super::Parser;
@@ -52,7 +52,7 @@ impl<'p> Parser<'p> {
                             source_bytes,
                             cursor.node(),
                         )?),
-                        span: cursor.ts_span(),
+                        span: cursor.node().byte_range(),
                     }),
 
                     LIT_KIND_INTEGER_BINARY | LIT_KIND_INTEGER_OCTAL | LIT_KIND_INTEGER_HEX => {
@@ -68,7 +68,7 @@ impl<'p> Parser<'p> {
                                     _ => unreachable!(),
                                 },
                             )?),
-                            span: cursor.ts_span(),
+                            span: cursor.node().byte_range(),
                         })
                     }
 
@@ -86,7 +86,7 @@ impl<'p> Parser<'p> {
                                 source_bytes,
                                 cursor.node(),
                             )?),
-                            span: cursor.ts_span(),
+                            span: cursor.node().byte_range(),
                         }),
                         _ => unreachable!(),
                     },

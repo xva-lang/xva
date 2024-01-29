@@ -1,11 +1,10 @@
 use tree_sitter::Node;
 use xva_ast::ast::{Expression, ExpressionKind, Item, ItemKind, UnaryOperator};
-use xva_span::SourceLocation;
 
 use crate::{
     parser::{error::ParserResult, Parser},
     strings,
-    traits::{TSIdentifyable, TSLocatable},
+    traits::TSIdentifyable,
 };
 
 strings! {
@@ -29,13 +28,11 @@ impl<'p> Parser<'p> {
                 cursor.goto_next_sibling();
 
                 let expr = self.expression(cursor.node())?;
-                let SourceLocation { start, .. } = negation_node.ts_span();
-                let SourceLocation { end, .. } = expr.span.clone();
 
                 Ok(Expression {
                     id: negation_node.node_id(),
                     kind: ExpressionKind::Unary(UnaryOperator::Negation, expr.into()),
-                    span: SourceLocation::new(start, end),
+                    span: negation_node.byte_range(),
                 })
             }
             x => unreachable!("Unknown unary expression variant: {x}"),
@@ -50,6 +47,12 @@ mod tests {
     #[test]
     fn unary() {
         let mut parser = Parser::new_from_str("-1").unwrap();
+        println!("{:#?}", parser.brick());
+    }
+
+    #[test]
+    fn negation_without_expr() {
+        let mut parser = Parser::new_from_str("-").unwrap();
         println!("{:#?}", parser.brick());
     }
 }

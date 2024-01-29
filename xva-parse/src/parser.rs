@@ -16,12 +16,9 @@ use xva_ast::{
     ast::Brick,
     ast::{Item, ItemKind, Module},
 };
-use xva_span::{
-    source::{SourceFile, SourceMap, SrcId},
-    SourceLocation,
-};
+use xva_span::source::{SourceFile, SourceMap, SrcId};
 
-use crate::traits::{TSIdentifyable, TSLocatable};
+use crate::traits::TSIdentifyable;
 
 // pub struct FileCache {
 //     files: HashMap<PathBuf, Source>,
@@ -80,10 +77,7 @@ impl<'p> Parser<'p> {
             items: vec![Item {
                 id: 0.into(),
                 kind: ItemKind::Module(module),
-                span: SourceLocation::new(
-                    self.tree().root_node().start_position().into(),
-                    self.tree().root_node().end_position().into(),
-                ),
+                range: self.tree().root_node().byte_range(),
             }],
         })
     }
@@ -99,10 +93,10 @@ impl<'p> Parser<'p> {
                     items.push(Item {
                         id: node.node_id(),
                         kind: ItemKind::Expression(expr),
-                        span: node.ts_span(),
+                        range: node.byte_range(),
                     })
                 }
-                _ => {
+                "ERROR" => {
                     let file_id = self.current_file;
                     let range = node.start_byte()..node.end_byte();
 
@@ -119,6 +113,7 @@ impl<'p> Parser<'p> {
                     let config = codespan_reporting::term::Config::default();
                     term::emit(&mut writer.lock(), &config, &self.sources, &diagnostic).unwrap();
                 }
+                e => unreachable!("Unhandled node kind from tree-sitter: {e}"),
             }
         }
 

@@ -1,8 +1,7 @@
 use tree_sitter::Node;
-use xva_ast::ast::{Expression, Item, ItemKind};
-use xva_span::SourceLocation;
+use xva_ast::ast::Expression;
 
-use crate::{strings, traits::TSIdentifyable};
+use crate::strings;
 
 use super::{error::ParserResult, Parser};
 

@@ -1,8 +1,8 @@
-use xva_span::SourceLocation;
-
 use crate::has_node_id;
 use crate::node_id::NodeId;
 use crate::traits::HasNodeId;
+
+use std::ops::Range;
 
 #[derive(Debug)]
 pub struct Brick {
@@ -20,13 +20,9 @@ pub struct Item {
     pub id: NodeId,
     pub kind: ItemKind,
 
-    /// The item's location in the source text.
-    /// - The offsets are zero-based.
-    /// - The end line is **inclusive**, but,
-    /// - The end column is **exclusive**
-    ///
-    /// This is because TreeSitter reports node spans as such.
-    pub span: SourceLocation,
+    /// The item's start (inclusive) and end (exclusive) range, in byte offsets
+    /// from the source text.
+    pub range: Range<usize>,
 }
 
 #[derive(Debug)]
@@ -44,7 +40,7 @@ pub struct Module {
 pub struct Expression {
     pub id: NodeId,
     pub kind: ExpressionKind,
-    pub span: SourceLocation,
+    pub span: Range<usize>,
 }
 
 #[derive(Debug)]
