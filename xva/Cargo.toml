@@ -7,6 +7,12 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.3", features = ["derive", "cargo"] }
-xva-buildinfo = { path = "../xva-buildinfo" }
 xva-compiler = { path = "../xva-compiler" }
 xva-parse = { path = "../xva-parse" }
+
+[build-dependencies]
+time = { version = "0.3.31", features = [
+    "formatting",
+    "local-offset",
+    "macros",
+] }
