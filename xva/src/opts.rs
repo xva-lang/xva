@@ -68,7 +68,7 @@ impl Options {
     }
 
     pub(crate) fn unstable_option_is(&self, key: &str, check: Option<&str>) -> bool {
-        match self.unstable_options.iter().find(|x| x.key == key) {
+        match self.unstable_options.iter().find(|x| x.key.as_str() == key) {
             Some(ref opt) => match &opt.value {
                 UnstableOptionValue::None => check.is_none(),
                 UnstableOptionValue::Single(v) => match check {
@@ -82,8 +82,10 @@ impl Options {
     }
 
     pub(crate) fn unstable_option_contains(&self, key: &str, check: &str) -> bool {
-        match self.unstable_options.iter().find(|x| x.key == key) {
+        // println!("opts: {:#?}", self.unstable_options);
+        match self.unstable_options.iter().find(|x| x.key.as_str() == key) {
             Some(ref opt) => match &opt.value {
+                UnstableOptionValue::Single(v) => v == check,
                 UnstableOptionValue::Multiple(v) => {
                     v.iter().map(|x| x.as_str()).find(|x| *x == check).is_some()
                 }
