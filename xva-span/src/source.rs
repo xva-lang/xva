@@ -10,7 +10,91 @@ use std::{
 
 use crate::monotonic::MonotonicVec;
 
-mod codespan;
+/// Alias for [`chumsky::span::SimpleSpan`]
+pub type TokenSpan = chumsky::span::SimpleSpan<usize>;
+
+/// An alternative to [`std::ops::Range`] that can be cheaply copied.
+#[derive(Clone, Copy)]
+pub struct CheapRange<Idx>(Idx, Idx);
+
+impl<Idx> CheapRange<Idx> {
+    pub const fn new(start: Idx, end: Idx) -> Self {
+        Self(start, end)
+    }
+}
+
+impl<Idx> From<Range<Idx>> for CheapRange<Idx> {
+    fn from(value: Range<Idx>) -> Self {
+        let Range { start, end } = value;
+        Self(start, end)
+    }
+}
+
+impl<Idx> PartialEq for CheapRange<Idx>
+where
+    Idx: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0 && self.1 == other.1
+    }
+}
+
+impl<Idx> Eq for CheapRange<Idx> where Idx: Eq {}
+
+impl<Idx> std::fmt::Debug for CheapRange<Idx>
+where
+    Idx: std::fmt::Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let CheapRange(start, end) = self;
+        write!(f, "{start}..{end}")
+    }
+}
+
+/// A unique identifier for a source file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SourceId(u32);
+
+impl From<u32> for SourceId {
+    fn from(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+/// Associates a range of source text with the source file that it came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceSpan {
+    src: SourceId,
+    range: CheapRange<usize>,
+}
+
+impl SourceSpan {
+    pub const fn new(src: SourceId, range: CheapRange<usize>) -> Self {
+        Self { src, range }
+    }
+
+    pub fn src(&self) -> SourceId {
+        self.src
+    }
+}
+
+impl ariadne::Span for SourceSpan {
+    type SourceId = SourceId;
+
+    fn source(&self) -> &Self::SourceId {
+        &self.src
+    }
+
+    fn start(&self) -> usize {
+        let CheapRange(start, _) = self.range;
+        start
+    }
+
+    fn end(&self) -> usize {
+        let CheapRange(_, end) = self.range;
+        end
+    }
+}
 
 #[derive(Debug)]
 pub enum LineEnding {
@@ -60,7 +144,7 @@ pub struct SourceFile {
     pub src: Arc<str>,
 
     /// Cached byte ranges of each line
-    line_ranges: HashMap<Range<usize>, usize>,
+    _line_ranges: HashMap<Range<usize>, usize>,
 
     /// The line ending sequence of the file
     _eol: LineEnding,
@@ -107,7 +191,7 @@ impl SourceFile {
                     .expect("Wrong length")
             },
             src: Arc::from(src.as_str()),
-            line_ranges,
+            _line_ranges: line_ranges,
             _eol: line_ending,
         }
     }
@@ -156,27 +240,18 @@ fn get_line_ending(src: &[u8]) -> LineEnding {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SrcId(u32);
-
-impl From<u32> for SrcId {
-    fn from(value: u32) -> Self {
-        Self(value)
-    }
-}
-
 #[derive(Debug)]
 pub struct SourceMap<'map> {
     files: RwLock<MonotonicVec<Arc<SourceFile>>>,
-    map: HashMap<SrcId, Arc<SourceFile>>,
+    map: HashMap<SourceId, Arc<SourceFile>>,
     _phantom_lt: PhantomData<&'map ()>,
 }
 
 impl SourceMap<'_> {
-    const FIRST_SRC_ID: SrcId = SrcId(0);
+    const FIRST_SRC_ID: SourceId = SourceId(0);
 
     /// Loads a real file into the source map.
-    pub fn load(&mut self, path: PathBuf) -> std::io::Result<SrcId> {
+    pub fn load(&mut self, path: PathBuf) -> std::io::Result<SourceId> {
         let name = path.clone().into_os_string().into_string().unwrap();
 
         let mut buf = String::new();
@@ -187,12 +262,12 @@ impl SourceMap<'_> {
     }
 
     /// Loads a virtual file into the source map. A virtual file is just a named string of text.
-    pub fn load_virtual(&mut self, name: String, src: String) -> SrcId {
+    pub fn load_virtual(&mut self, name: String, src: String) -> SourceId {
         let virtual_file_name = name.clone();
         self.new_file(name, SourceFilePath::Virtual(virtual_file_name), src)
     }
 
-    fn new_file(&mut self, name: String, path: SourceFilePath, src: String) -> SrcId {
+    fn new_file(&mut self, name: String, path: SourceFilePath, src: String) -> SourceId {
         let mut files = match self.files.write() {
             Ok(l) => l,
             Err(e) => panic!("Source map lock is poisoned: {e}"),
@@ -205,7 +280,7 @@ impl SourceMap<'_> {
         id
     }
 
-    fn next_id(&self) -> SrcId {
+    fn next_id(&self) -> SourceId {
         self.map
             .iter()
             .last()
@@ -213,7 +288,7 @@ impl SourceMap<'_> {
     }
 
     /// Locates a file in the source map and returns an `Arc` to it, if it has previously been loaded.
-    pub fn get<I: Into<SrcId>>(&self, id: I) -> Option<Arc<SourceFile>> {
+    pub fn get<I: Into<SourceId>>(&self, id: I) -> Option<Arc<SourceFile>> {
         match self.map.get(&id.into()) {
             Some(v) => Some(v.clone()),
             None => None,

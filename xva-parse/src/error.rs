@@ -5,7 +5,7 @@ use chumsky::{
 };
 use std::io::Write;
 
-use xva_span::{source::SrcId, CheapRange, SourceId, SourceSpan, TokenSpan};
+use xva_span::{CheapRange, SourceId, SourceSpan, TokenSpan};
 
 use crate::token::{Token, TokenKind};
 
