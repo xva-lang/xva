@@ -3,7 +3,7 @@ use std::io::{BufRead, Write};
 
 mod opts;
 
-use opts::{Options, UnstableOptionKind};
+use opts::Options;
 
 const BUILD_INFO: &str = include_str!("../.buildinfo");
 
