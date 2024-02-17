@@ -61,6 +61,13 @@ impl From<u32> for SourceId {
     }
 }
 
+impl std::fmt::Display for SourceId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self(value) = self;
+        write!(f, "{value}")
+    }
+}
+
 /// Associates a range of source text with the source file that it came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SourceSpan {
@@ -242,8 +249,11 @@ fn get_line_ending(src: &[u8]) -> LineEnding {
 
 #[derive(Debug)]
 pub struct SourceMap {
-    files: RwLock<MonotonicVec<Arc<ariadne::Source<String>>>>,
-    map: HashMap<SourceId, Arc<ariadne::Source<String>>>,
+    /// The raw sources - for getting the entire content of the file
+    raws: RwLock<HashMap<SourceId, Arc<str>>>,
+
+    /// The cache map for Ariadne - for getting file content wrapped in an [`ariadne::Source`]
+    ariadne_map: HashMap<SourceId, ariadne::Source<Arc<str>>>,
     // _phantom_lt: PhantomData<&'map ()>,
 }
 
@@ -268,28 +278,52 @@ impl SourceMap {
     }
 
     fn new_file(&mut self, name: String, path: SourceFilePath, src: String) -> SourceId {
-        let mut files = match self.files.write() {
+        // Generating the next source ID needs to happen before gaining write access to the map, because
+        // generating source IDs itself needs read access to the map. It'll deadlock if we do it after gaining
+        // write access.
+
+        let src_id = self.next_id();
+
+        // For the rest of lifetime of this function, writing to both the raw files and the ariadne map is safe,
+        // because the writability into the lock is dropped at the end of this function.
+        let mut raw_files = match self.raws.write() {
             Ok(l) => l,
             Err(e) => panic!("Source map lock is poisoned: {e}"),
         };
 
-        let arc = Arc::new(ariadne::Source::from(src));
-        files.push(arc.clone());
-        let id = self.next_id();
-        self.map.insert(id.clone(), arc.clone());
-        id
+        let arc: Arc<str> = Arc::from(src.as_str());
+
+        // Insert an Arc to the file content into the raw map
+        raw_files.insert(src_id.clone(), arc.clone());
+
+        // Insert an Arc to the file content, wrapped in an ariadne Source, into the ariadne map.
+        self.ariadne_map
+            .insert(src_id.clone(), ariadne::Source::from(arc.clone()));
+
+        src_id
     }
 
+    /// Retrieves the next ID for a source file. If the map is being written to, the thread will wait until
+    /// it can get read access.
     fn next_id(&self) -> SourceId {
-        self.map
-            .iter()
+        let map = match self.raws.read() {
+            Ok(m) => m,
+            Err(e) => panic!("Source map lock is poisoned: {e}"),
+        };
+
+        map.iter()
             .last()
             .map_or_else(|| Self::FIRST_SRC_ID, |(k, _)| *k)
     }
 
     /// Locates a file in the source map and returns an `Arc` to it, if it has previously been loaded.
-    pub fn get<I: Into<SourceId>>(&self, id: I) -> Option<Arc<ariadne::Source>> {
-        match self.map.get(&id.into()) {
+    pub fn get_raw<I: Into<SourceId>>(&self, id: I) -> Option<Arc<str>> {
+        let map = match self.raws.read() {
+            Ok(m) => m,
+            Err(e) => panic!("Source map lock is poisoned: {e}"),
+        };
+
+        match map.get(&id.into()) {
             Some(v) => Some(v.clone()),
             None => None,
         }
@@ -299,10 +333,27 @@ impl SourceMap {
 impl Default for SourceMap {
     fn default() -> Self {
         Self {
-            files: Default::default(),
-            map: Default::default(),
-            // _phantom_lt: Default::default(),
+            raws: Default::default(),
+            ariadne_map: Default::default(), // _phantom_lt: Default::default(),
         }
+    }
+}
+
+impl ariadne::Cache<SourceId> for SourceMap {
+    type Storage = Arc<str>;
+
+    fn fetch(
+        &mut self,
+        id: &SourceId,
+    ) -> Result<&ariadne::Source<Self::Storage>, Box<dyn std::fmt::Debug + '_>> {
+        Ok(match self.ariadne_map.get(id) {
+            Some(f) => f,
+            None => panic!("This is real bad: the source for the following SourceId was not found in the map.\n{id:?}"),
+        })
+    }
+
+    fn display<'a>(&self, id: &'a SourceId) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        Some(Box::new(id))
     }
 }
 
@@ -314,7 +365,7 @@ mod tests {
     fn can_load_real_source_file() {
         let mut map = SourceMap::default();
         map.load("../xva-treesitter/main.xva".into()).unwrap();
-        println!("{:#?}", map.get(0))
+        println!("{:#?}", map.get_raw(0))
     }
 
     #[test]
