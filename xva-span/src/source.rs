@@ -241,13 +241,13 @@ fn get_line_ending(src: &[u8]) -> LineEnding {
 }
 
 #[derive(Debug)]
-pub struct SourceMap<'map> {
-    files: RwLock<MonotonicVec<Arc<SourceFile>>>,
-    map: HashMap<SourceId, Arc<SourceFile>>,
-    _phantom_lt: PhantomData<&'map ()>,
+pub struct SourceMap {
+    files: RwLock<MonotonicVec<Arc<ariadne::Source<String>>>>,
+    map: HashMap<SourceId, Arc<ariadne::Source<String>>>,
+    // _phantom_lt: PhantomData<&'map ()>,
 }
 
-impl SourceMap<'_> {
+impl SourceMap {
     const FIRST_SRC_ID: SourceId = SourceId(0);
 
     /// Loads a real file into the source map.
@@ -273,7 +273,7 @@ impl SourceMap<'_> {
             Err(e) => panic!("Source map lock is poisoned: {e}"),
         };
 
-        let arc = Arc::new(SourceFile::new(name, path, src));
+        let arc = Arc::new(ariadne::Source::from(src));
         files.push(arc.clone());
         let id = self.next_id();
         self.map.insert(id.clone(), arc.clone());
@@ -288,7 +288,7 @@ impl SourceMap<'_> {
     }
 
     /// Locates a file in the source map and returns an `Arc` to it, if it has previously been loaded.
-    pub fn get<I: Into<SourceId>>(&self, id: I) -> Option<Arc<SourceFile>> {
+    pub fn get<I: Into<SourceId>>(&self, id: I) -> Option<Arc<ariadne::Source>> {
         match self.map.get(&id.into()) {
             Some(v) => Some(v.clone()),
             None => None,
@@ -296,12 +296,12 @@ impl SourceMap<'_> {
     }
 }
 
-impl Default for SourceMap<'_> {
+impl Default for SourceMap {
     fn default() -> Self {
         Self {
             files: Default::default(),
             map: Default::default(),
-            _phantom_lt: Default::default(),
+            // _phantom_lt: Default::default(),
         }
     }
 }
