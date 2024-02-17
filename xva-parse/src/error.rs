@@ -69,8 +69,6 @@ impl<'a> SyntaxError<'a> {
     }
 }
 
-type ParserErrorInput<'tok, 'src> = &'tok [Token<'src>];
-
 // Lexer error implementation: the input type is &'src str
 impl<'src> chumsky::error::Error<'src, &'src str> for SyntaxError<'src> {
     /// `&'a str`'s implementation of [`chumsky::input::Input`] has the following associated types:
@@ -80,7 +78,7 @@ impl<'src> chumsky::error::Error<'src, &'src str> for SyntaxError<'src> {
     /// type Span = SimpleSpan<usize>;
     /// ```
     fn expected_found<Iter: IntoIterator<Item = Option<MaybeRef<'src, char>>>>(
-        expected: Iter,
+        _expected: Iter,
         found: Option<MaybeRef<'src, char>>,
         span: TokenSpan,
     ) -> Self {
