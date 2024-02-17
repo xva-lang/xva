@@ -1,9 +1,11 @@
 pub(crate) mod macros;
 // pub mod parserx;
-pub mod parser;
-pub(crate) mod traits;
-
+pub(crate) mod error;
 pub(crate) mod lexer;
+pub mod parser;
+pub mod token;
+
+pub(crate) mod traits;
 
 // pub use parserx::Parser;
 

@@ -13,6 +13,7 @@ xva-treesitter = { path = "../xva-treesitter" }
 xva-span = { path = "../xva-span" }
 codespan-reporting = "0.11.1"
 chumsky = "1.0.0-alpha.6"
+ariadne = "0.4.0"
 
 [features]
 lexer_debugging = []
