@@ -1,5 +1,5 @@
 use std::ops::Range;
-use xva_span::SourceSpan;
+use xva_span::TokenSpan;
 
 use crate::has_node_id;
 use crate::node_id::{NodeId, ERROR_NODE_ID};
@@ -23,7 +23,7 @@ pub struct Item {
 
     /// The item's start (inclusive) and end (exclusive) range, in byte offsets
     /// from the source text.
-    pub span: SourceSpan,
+    pub span: TokenSpan,
 }
 
 impl Item {
@@ -51,7 +51,7 @@ pub struct Module {
 pub struct Expression {
     pub id: NodeId,
     pub kind: ExpressionKind,
-    pub span: SourceSpan,
+    pub span: TokenSpan,
 }
 
 #[derive(Debug)]

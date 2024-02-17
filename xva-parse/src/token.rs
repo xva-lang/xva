@@ -1,4 +1,4 @@
-use xva_span::SourceSpan;
+use xva_span::TokenSpan;
 
 /// A single token produced by the lexer.
 ///
@@ -7,7 +7,7 @@ use xva_span::SourceSpan;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token<'src> {
     pub kind: TokenKind<'src>,
-    pub span: SourceSpan,
+    pub span: TokenSpan,
     pub original: &'src str,
 }
 
@@ -18,7 +18,7 @@ impl std::fmt::Display for Token<'_> {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug)] // Manual PartialEq impl
 pub enum TokenKind<'src> {
     // Literals
     Boolean(bool),
@@ -125,6 +125,25 @@ impl<'src> std::fmt::Display for TokenKind<'src> {
             TokenKind::Identifier(i) => write!(f, "'{i}"),
             TokenKind::CharError(err) => write!(f, "'{err}'"),
             TokenKind::Error(err) => write!(f, "'{err}'"),
+        }
+    }
+}
+
+// Manual implementation of PartialEq because of floats
+impl PartialEq for TokenKind<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Float(f_self), Self::Float(f_other)) => f_self.to_bits() == f_other.to_bits(),
+            (Self::Boolean(l0), Self::Boolean(r0)) => l0 == r0,
+            (Self::Char(l0), Self::Char(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
+            (Self::Comment(l0), Self::Comment(r0)) => l0 == r0,
+            (Self::DocComment(l0), Self::DocComment(r0)) => l0 == r0,
+            (Self::Identifier(l0), Self::Identifier(r0)) => l0 == r0,
+            (Self::CharError(l0), Self::CharError(r0)) => l0 == r0,
+            (Self::Error(l0), Self::Error(r0)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
 }

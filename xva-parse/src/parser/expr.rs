@@ -2,12 +2,15 @@ use chumsky::{prelude::*, primitive::select};
 use xva_ast::ast::{Expression, ExpressionKind, Item, ItemKind, LiteralKind};
 
 use super::{next_node_id, ParseExtra, ParseInput};
-use crate::token::{Token, TokenKind};
+use crate::{
+    error::SyntaxError,
+    token::{Token, TokenKind},
+};
 
-pub(crate) fn literal<'tok, 'src>(
-) -> impl Parser<'tok, ParseInput<'tok, 'src>, Item, ParseExtra<'tok, 'src>>
-where
-    'src: 'tok,
+pub(crate) fn literal<'src>(
+) -> impl Parser<'src, &'src [Token<'src>], Item, extra::Err<SyntaxError<'src>>>
+// where
+//     'src: 'tok,
 {
     select(move |token: Token<'_>, _| match token.kind {
         TokenKind::Boolean(b) => Some((LiteralKind::Boolean(b), token.span)),

@@ -1,5 +1,5 @@
 use chumsky::{input::Emitter, prelude::*};
-use xva_span::SourceSpan;
+use xva_span::TokenSpan;
 mod comment;
 mod ident;
 mod literals;
@@ -29,10 +29,10 @@ where
 
 pub(crate) type LexerError<'a> = extra::Err<Rich<'a, char, SimpleSpan<usize>>>;
 //Vec<chumsky::extra::Full<chumsky::error::Rich<'src, _, _, &'static _>, (), ()>
-pub(crate) type FullLexerError<'a> = chumsky::error::Rich<'a, char, SourceSpan>;
+pub(crate) type FullLexerError<'a> = chumsky::error::Rich<'a, char, TokenSpan>;
 
 pub(crate) type LexerInput<'a> = &'a str;
-pub(crate) type LexerOutput<'a> = (TokenKind<'a>, SourceSpan);
+pub(crate) type LexerOutput<'a> = (TokenKind<'a>, TokenSpan);
 pub(crate) type LexerOutputStream<'a> = Vec<Token<'a>>;
 // pub(crate) type LexerOutputStream<'a> = Vec<Token<'a>>;
 pub(crate) fn lexer<'src>(
