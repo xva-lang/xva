@@ -103,6 +103,35 @@ impl ariadne::Span for SourceSpan {
     }
 }
 
+impl chumsky::span::Span for SourceSpan {
+    type Context = SourceId;
+    type Offset = usize;
+
+    fn new(context: Self::Context, range: Range<Self::Offset>) -> Self {
+        Self {
+            src: context,
+            range: {
+                let Range { start, end } = range;
+                CheapRange(start, end)
+            },
+        }
+    }
+
+    fn context(&self) -> Self::Context {
+        self.src.clone()
+    }
+
+    fn start(&self) -> Self::Offset {
+        let CheapRange(start, _) = self.range;
+        start
+    }
+
+    fn end(&self) -> Self::Offset {
+        let CheapRange(_, end) = self.range;
+        end
+    }
+}
+
 #[derive(Debug)]
 pub enum LineEnding {
     /// LF, or `\n`
