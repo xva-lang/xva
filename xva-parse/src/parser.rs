@@ -1,165 +1,160 @@
-pub mod error;
-mod expression;
-
-use codespan_reporting::{
-    diagnostic::{Diagnostic, Label},
-    files::{Files, SimpleFiles},
-    term::{
-        self,
-        termcolor::{ColorChoice, StandardStream},
-    },
+use chumsky::{input::Stream, prelude::*};
+use std::{
+    ops::Range,
+    sync::atomic::{AtomicI64, Ordering},
 };
-use error::ParserResult;
-use std::{collections::HashMap, ops::Range, sync::Arc};
-use tree_sitter::{Node, Tree};
+
 use xva_ast::{
-    ast::Brick,
-    ast::{Item, ItemKind, Module},
+    ast::{Expression, ExpressionKind, Item, ItemKind, LiteralKind, Module},
+    node_id::{NodeId, ERROR_NODE_ID},
 };
-use xva_span::source::{SourceFile, SourceMap, SrcId};
+use xva_span::SourceSpan;
 
-use crate::traits::TSIdentifyable;
+use crate::lexer::{lex, LexerOutputStream, Token, TokenKind};
 
-// pub struct FileCache {
-//     files: HashMap<PathBuf, Source>,
-// }
-
-// impl Cache<Path> for FileCache {
-//     type Storage = String;
-
-//     fn fetch(&mut self, path: &Path) -> Result<&Source, Box<dyn fmt::Debug + '_>> {
-//         Ok(match self.files.entry(path.to_path_buf()) { // TODO: Don't allocate here
-//             Entry::Occupied(entry) => entry.into_mut(),
-//             Entry::Vacant(entry) => entry.insert(Source::from(fs::read_to_string(path).map_err(|e| Box::new(e) as _)?)),
-//         })
-//     }
-//     fn display<'a>(&self, path: &'a Path) -> Option<Box<dyn fmt::Display + 'a>> { Some(Box::new(path.display())) }
-// }
-
-// #[derive(Debug)]
-pub struct Parser<'p> {
-    cst: tree_sitter::Tree,
-    current_file: SrcId,
-    // sources: SourceCache,
-    sources: SourceMap<'p>,
+pub(self) static NODE_ID_SEED: AtomicI64 = AtomicI64::new(0);
+pub(self) fn next_node_id() -> NodeId {
+    NODE_ID_SEED.fetch_add(1, Ordering::SeqCst).into()
 }
 
-// lazy_static! {
-//     // static ref NODE_ID_GEN: Arc<NodeId> = Arc::new(NodeId(0));
+pub(crate) type ParseInput<'tokens, 'src> = chumsky::input::SpannedInput<
+    TokenKind<'src>,
+    SourceSpan,
+    &'tokens [(TokenKind<'src>, SourceSpan)],
+>;
+
+// pub(crate) type ParseInput<'tokens, 'src> = &'tokens [(TokenKind<'src>, )]
+
+pub(crate) type ParseOutput = Item;
+pub(crate) type ParseError<'tokens, 'src> = Rich<'tokens, TokenKind<'src>, SourceSpan>;
+pub(crate) type ParseExtra<'tokens, 'src> = extra::Err<ParseError<'tokens, 'src>>;
+
+// pub(crate) fn error<'tokens, 'src>(
+// ) -> impl Parser<'tokens, ParseInput<'tokens, 'src>, Item, ParseExtra<'tokens, 'src>> + Clone
+// where
+//     'src: 'tokens,
+// {
+//     let str_err_token = chumsky::primitive::select(|token, _| match token {
+//         TokenKind::Error(s) => Some(s.to_string()),
+//         _ => None,
+//     });
+//     str_err_token.map_with(|err, extra| Item::error(extra.span(), err))
 // }
 
-impl<'p> Parser<'p> {
-    pub fn new_from_str(input: &str) -> ParserResult<Self> {
-        let mut parser = tree_sitter::Parser::new();
-        if let Err(e) = parser.set_language(xva_treesitter::language()) {
-            return Err(error::ParserError::TSLanguageError(e));
-        };
+pub fn parser<'tokens, 'src>(
+) -> impl Parser<'tokens, ParseInput<'tokens, 'src>, Vec<Item>, ParseExtra<'tokens, 'src>>
+where
+    'src: 'tokens,
+{
+    let error_kind = chumsky::primitive::select(|token, _| {
+        if let TokenKind::Error(s) = token {
+            Some(s)
+        } else {
+            None
+        }
+    });
 
-        let tree = parser.parse(input, None).unwrap();
+    let error = error_kind.map_with(|err, extra| Item::error(extra.span(), err.into()));
 
-        let mut sources = SourceMap::default();
-        // let current_file = sources.add("<input>".into(), input.into());
-        let current_file = sources.load_virtual("<input>".into(), input.into());
+    let expr = choice((literals(), identifier())).or(error);
 
-        let result = Parser {
-            cst: tree,
-            current_file,
-            sources,
-        };
+    expr.repeated().collect()
+}
 
-        Ok(result)
+pub fn literals<'tokens, 'src>(
+) -> impl Parser<'tokens, ParseInput<'tokens, 'src>, Item, ParseExtra<'tokens, 'src>>
+where
+    'src: 'tokens,
+{
+    let x = chumsky::primitive::select(move |token, extra| match token {
+        TokenKind::Boolean(b) => Some((LiteralKind::Boolean(b), extra.span())),
+        TokenKind::Char(c) => Some((LiteralKind::Char(c), extra.span())),
+        TokenKind::Integer(i) => Some((LiteralKind::Integer(i), extra.span())),
+        TokenKind::Float(f) => Some((LiteralKind::Float(f), extra.span())),
+        _ => None,
+    })
+    .map(|(x, span)| Item {
+        id: next_node_id(),
+        kind: ItemKind::Expression(Expression {
+            id: next_node_id(),
+            kind: ExpressionKind::Literal(x),
+            span,
+        }),
+        span,
+    });
+    x
+}
+
+pub fn identifier<'tokens, 'src>(
+) -> impl Parser<'tokens, ParseInput<'tokens, 'src>, Item, ParseExtra<'tokens, 'src>>
+where
+    'src: 'tokens,
+{
+    chumsky::primitive::select(move |kind, extra| {
+        if let TokenKind::Identifier(s) = kind {
+            Some((s, extra.span()))
+        } else {
+            None
+        }
+    })
+    .map(|(ident, span)| Item {
+        id: next_node_id(),
+        kind: ItemKind::Expression(Expression {
+            id: next_node_id(),
+            kind: ExpressionKind::Identifier(ident.into()),
+            span,
+        }),
+        span,
+    })
+}
+
+pub fn parse<'tokens, 'src>(input: &'src str, debug_lexer: bool) -> Vec<Item> {
+    let (tokens, lex_errors) = lex(input, debug_lexer);
+    let eoi = SourceSpan::new(0, input.bytes().len());
+    let (tree, parse_errors) = parser()
+        .parse(tokens.as_slice().spanned(eoi))
+        .into_output_errors();
+    #[cfg(debug_assertions)]
+    {
+        println!("tree: {tree:#?}");
     }
-
-    pub fn brick(&mut self) -> ParserResult<Brick> {
-        let module = self.brick_module()?;
-
-        Ok(Brick {
-            items: vec![Item {
-                id: 0.into(),
-                kind: ItemKind::Module(module),
-                range: self.tree().root_node().byte_range(),
-            }],
-        })
-    }
-
-    fn brick_module(&mut self) -> ParserResult<Module> {
-        Ok(Module {
-            items: self.items()?,
-        })
-    }
-
-    pub(crate) fn tree(&self) -> &Tree {
-        &self.cst
-    }
-
-    fn source(&self) -> Option<Arc<SourceFile>> {
-        match self.sources.get(self.current_file) {
-            Some(a) => Some(a.clone()),
-            None => None,
+    if lex_errors.len() != 0 {
+        for error in lex_errors {
+            println!("error: {error}");
         }
     }
 
-    pub fn items(&mut self) -> ParserResult<Vec<Item>> {
-        let mut cursor = self.cst.root_node().walk();
-        let mut items = vec![];
-
-        for node in cursor.node().children(&mut cursor) {
-            match node.kind() {
-                "expression" => {
-                    let expr = self.expression(node)?;
-                    items.push(Item {
-                        id: node.node_id(),
-                        kind: ItemKind::Expression(expr),
-                        range: node.byte_range(),
-                    })
-                }
-                "ERROR" => {
-                    let file_id = self.current_file;
-                    let range = node.start_byte()..node.end_byte();
-
-                    let diagnostic: Diagnostic<SrcId> = Diagnostic::error()
-                        .with_message(format!(
-                            "Expected an expression, but found `{}`",
-                            node.utf8_text(self.source().unwrap().content().as_bytes())
-                                .unwrap()
-                        ))
-                        .with_labels(vec![Label::primary(file_id, range)
-                            .with_message("Expected an expression here".to_string())]);
-
-                    let writer = StandardStream::stderr(ColorChoice::Always);
-                    let config = codespan_reporting::term::Config::default();
-                    term::emit(&mut writer.lock(), &config, &self.sources, &diagnostic).unwrap();
-                }
-                e => unreachable!("Unhandled node kind from tree-sitter: {e}"),
-            }
+    if parse_errors.len() != 0 {
+        for error in parse_errors {
+            println!("error: {error}");
         }
-
-        Ok(items)
     }
+
+    // SAFETY: the parser is infallible - it will always produce a tree, even if the tree is empty.
+    // (tree.unwrap(), errors)
+    tree.unwrap()
 }
 
 #[cfg(test)]
 mod tests {
+    use chumsky::{input::Input, Parser};
+    use xva_span::SourceSpan;
 
-    use super::Parser;
-
-    #[test]
-    fn parse() {
-        let mut parser = Parser::new_from_str(
-            r"
-1
-0b1
-0o1
-0x1",
-        )
-        .unwrap();
-        let brick = parser.brick();
-        println!("{brick:#?}")
-    }
+    use crate::{lexer::lex, parser::parser};
 
     #[test]
-    fn invalid() {
-        let mut parser = Parser::new_from_str("something_that_ain't an expression").unwrap();
-        parser.brick().unwrap();
+    fn tree() {
+        let input = "keyword";
+
+        let len = input.bytes().len();
+        let eoi = SourceSpan::new(0, len);
+        let (tokens, lex_errors) = lex(input, false);
+
+        let (ast, parse_errs) = parser()
+            .map_with(|ast, e| (ast, e.span()))
+            .parse(tokens.as_slice().spanned((input.len()..input.len()).into()))
+            .into_output_errors();
+
+        println!("tree: {:#?}", ast);
     }
 }

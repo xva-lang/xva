@@ -19,20 +19,8 @@ fn main() -> Result<(), std::io::Error> {
 fn run_repl(opts: &Options) -> std::io::Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
-    let pretty_ast =
-        if let Some((_, val)) = opts.unstable_options.iter().find(|(k, _)| k == "pretty") {
-            if let UnstableOptionKind::WithValue(pretty) = val {
-                if pretty == "ast" {
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        } else {
-            false
-        };
+    let pretty_lex = opts.unstable_option_contains("pretty", "lex");
+    let pretty_ast = opts.unstable_option_contains("pretty", "ast");
 
     loop {
         let _stdout_lock = stdout.lock();
@@ -41,13 +29,15 @@ fn run_repl(opts: &Options) -> std::io::Result<()> {
 
         let line = stdin.lock().lines().next().unwrap()?;
 
-        let items = xva_parse::Parser::new_from_str(line.as_str())
-            .unwrap()
-            .items()
-            .unwrap();
+        let tree = xva_parse::parser::parse(line.as_str(), pretty_lex);
+
+        // let items = xva_parse::Parser::new_from_str(line.as_str())
+        //     .unwrap()
+        //     .items()
+        //     .unwrap();
 
         if pretty_ast {
-            println!("{items:#?}")
+            println!("{tree:#?}")
         }
     }
 }

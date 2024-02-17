@@ -120,6 +120,8 @@ pub mod source;
 //     }
 // }
 
+pub type SourceSpan = chumsky::span::SimpleSpan<usize>;
+
 #[cfg(test)]
 mod tests {
     // #[test]

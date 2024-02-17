@@ -8,7 +8,7 @@ use std::ops::AddAssign;
 /// inner number, because otherwise the debug print of the entire AST has a **huge** amount of
 /// unnecessary indentation because of the default derivation of [`Debug`] for tuple structs.
 #[derive(Clone, Copy)]
-pub struct NodeId(pub u32);
+pub struct NodeId(pub i64);
 
 // Custom implementation of [`Debug`] instead of the derive macro
 // to reduce noisy indentation of AST debug prints.
@@ -30,16 +30,17 @@ impl PartialEq for NodeId {
 
 impl Eq for NodeId {}
 
-impl From<u32> for NodeId {
-    fn from(value: u32) -> Self {
+impl From<i64> for NodeId {
+    fn from(value: i64) -> Self {
         Self(value)
     }
 }
 
-impl AddAssign<u32> for NodeId {
-    fn add_assign(&mut self, rhs: u32) {
+impl AddAssign<i64> for NodeId {
+    fn add_assign(&mut self, rhs: i64) {
         self.0 += rhs
     }
 }
 
-pub const PLACEHOLDER_NODE_ID: NodeId = NodeId(u32::MAX);
+pub const PLACEHOLDER_NODE_ID: NodeId = NodeId(i64::MAX);
+pub const ERROR_NODE_ID: NodeId = NodeId(-1);
