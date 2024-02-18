@@ -20,7 +20,7 @@ impl Compiler {
     }
 
     pub fn get_file_content(&self, id: SourceId) -> Option<Arc<str>> {
-        self.source_map.get_raw(id)
+        self.source_map.get_raw(&id)
     }
 
     pub fn write_syntax_error(&self, error: SyntaxError, writer: impl Write) {
