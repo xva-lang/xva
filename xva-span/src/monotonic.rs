@@ -9,6 +9,7 @@ use std::ops::Deref;
 #[derive(Debug)]
 pub(crate) struct MonotonicVec<T>(Vec<T>);
 impl<T> MonotonicVec<T> {
+    #[allow(dead_code)]
     pub(super) fn push(&mut self, val: T) {
         self.0.push(val);
     }

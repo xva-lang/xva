@@ -2,13 +2,10 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     io::Read,
-    marker::PhantomData,
     ops::Range,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
-
-use crate::monotonic::MonotonicVec;
 
 /// Alias for [`chumsky::span::SimpleSpan`]
 pub type TokenSpan = chumsky::span::SimpleSpan<usize>;
@@ -308,7 +305,6 @@ impl SourceMap {
 
     /// Loads a virtual file into the source map. A virtual file is just a named string of text.
     pub fn load_virtual(&mut self, name: String, src: String) -> SourceId {
-        let virtual_file_name = name.clone();
         self.new_file(name, None, src)
     }
 
