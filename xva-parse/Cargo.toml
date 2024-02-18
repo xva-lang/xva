@@ -9,7 +9,6 @@ edition = "2021"
 lazy_static = "1.4.0"
 tree-sitter = "0.20.10"
 xva-ast = { path = "../xva-ast" }
-xva-treesitter = { path = "../xva-treesitter" }
 xva-span = { path = "../xva-span" }
 codespan-reporting = "0.11.1"
 chumsky = "1.0.0-alpha.6"

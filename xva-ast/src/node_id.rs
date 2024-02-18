@@ -2,8 +2,6 @@ use std::ops::AddAssign;
 
 /// A unique ID for every node in the AST.
 ///
-/// This is (usually) set directly to the node ID we receive from TreeSitter.
-///
 /// The [`Debug`] implementation is overridden with a custom version that just prints the
 /// inner number, because otherwise the debug print of the entire AST has a **huge** amount of
 /// unnecessary indentation because of the default derivation of [`Debug`] for tuple structs.

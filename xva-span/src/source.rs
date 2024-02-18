@@ -399,19 +399,4 @@ impl ariadne::Cache<SourceId> for &SourceMap {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::SourceMap;
-
-    #[test]
-    fn can_load_real_source_file() {
-        let mut map = SourceMap::default();
-        map.load("../xva-treesitter/main.xva".into()).unwrap();
-        println!("{:#?}", map.get_raw(&0u32.into()))
-    }
-
-    #[test]
-    fn source_map_returns_not_found() {
-        let mut map = SourceMap::default();
-        assert_eq!(map.load("nonexistent.txt".into()).is_err(), true)
-    }
-}
+mod tests {}
