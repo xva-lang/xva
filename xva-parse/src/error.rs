@@ -59,6 +59,7 @@ impl SyntaxError {
             .with_code(3)
             .with_message(msg)
             .with_label(
+                // BUG: labels attaches to both the text and trailing whitespace, instead of just the text
                 Label::new(self.span)
                     .with_message(match &self.kind {
                         SyntaxErrorKind::UnexpectedEnd => "End of input".to_string(),
