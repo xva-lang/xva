@@ -1,17 +1,15 @@
-use chumsky::{extra::ParserExtra, prelude::*};
+use chumsky::prelude::*;
+
 use std::sync::atomic::{AtomicI64, Ordering};
 
-use xva_ast::{
-    ast::{Expression, ExpressionKind, Item, ItemKind, LiteralKind},
-    node_id::NodeId,
-};
-use xva_span::TokenSpan;
+use xva_ast::{ast::Item, node_id::NodeId};
+use xva_span::SourceId;
 mod expr;
 
-use crate::token::{Token, TokenKind};
+use crate::token::Token;
 use crate::{
     error::{ErrorPattern, SyntaxErrorKind},
-    lexer::{emit_rich, lex},
+    lexer::lex,
 };
 
 use self::expr::literal;
@@ -21,26 +19,25 @@ pub(self) fn next_node_id() -> NodeId {
     NODE_ID_SEED.fetch_add(1, Ordering::SeqCst).into()
 }
 
-pub fn parse<'src>(input: &'src str, debug_lexer: bool) -> Vec<Item> {
-    let (tokens, lex_errors) = lex(input, debug_lexer);
-    let eoi = TokenSpan::new(0, input.bytes().len());
+pub fn parse<'src>(
+    input: &'src str,
+    src_id: SourceId,
+    debug_lexer: bool,
+) -> (Vec<SyntaxError<'src>>, Vec<Item>) {
+    let (tokens, lex_errors) = lex(input, src_id, debug_lexer);
+
     let (tree, parse_errors) = parser().parse(tokens.as_slice()).into_output_errors();
-
-    if lex_errors.len() != 0 {
-        for error in lex_errors {
-            println!("error: {error}");
-        }
-    }
-
-    if parse_errors.len() != 0 {
-        for error in parse_errors {
-            println!("error: {error:#?}");
-        }
-    }
 
     // SAFETY: the parser is infallible - it will always produce a tree, even if the tree is empty.
     // (tree.unwrap(), errors)
-    tree.unwrap()
+    // a.into_iter().chain(b.into_iter()).collect();
+    (
+        lex_errors
+            .into_iter()
+            .chain(parse_errors.into_iter())
+            .collect(),
+        tree.unwrap(),
+    )
 }
 
 pub(crate) type ParseInput<'tok, 'src> = &'tok [Token<'src>];
@@ -56,6 +53,14 @@ pub(crate) fn parser<'src>(
 {
     // any::<ParseInput<'tok, 'src>, ParseExtra<'tok, 'src>>()
     literal()
+        .or(any().validate(|tok: Token<'_>, _extra, emitter| {
+            emitter.emit(SyntaxError::new(
+                SyntaxErrorKind::UnexpectedPattern(ErrorPattern::Token(tok.kind)),
+                tok.span,
+            ));
+
+            Item::error(tok.span, tok.original.into())
+        }))
         // .or(any().validate(|x: Token<'src>, _, emitter| {
         //     // emit_rich(emitter, x.span, format!("Unexpected: {x}"));
         //     emitter.emit(SyntaxError::new(
@@ -75,8 +80,6 @@ pub(crate) fn parser<'src>(
 
 #[cfg(test)]
 mod tests {
-    use chumsky::{input::Input, Parser};
-    use xva_span::TokenSpan;
 
     // use crate::{lexer::lex, parser::parser};
 

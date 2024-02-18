@@ -1,7 +1,7 @@
 use chumsky::{prelude::*, Parser};
 use std::num::ParseIntError;
 
-use super::{emit_rich, LexerError, LexerInput, TokenKind};
+use super::{LexerError, LexerInput, TokenKind};
 
 fn hex_pattern<'src>() -> impl Parser<'src, LexerInput<'src>, &'src str, LexerError<'src>> {
     any() // Match any char
@@ -21,21 +21,21 @@ fn unicode_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, Lex
             Ok(uni) => match char::from_u32(uni) {
                 Some(c) => TokenKind::Char(c),
                 None => {
-                    emit_rich(
-                        emitter,
-                        extra.span(),
-                        format!("`\\u{val}` is an invalid Unicode scalar value."),
-                    );
+                    // emit_rich(
+                    //     emitter,
+                    //     extra.span(),
+                    //     format!("`\\u{val}` is an invalid Unicode scalar value."),
+                    // );
 
                     TokenKind::Error(extra.slice())
                 }
             },
             Err(_) => {
-                emit_rich(
-                    emitter,
-                    extra.span(),
-                    format!("`{val}` is an invalid integer representation."),
-                );
+                // emit_rich(
+                //     emitter,
+                //     extra.span(),
+                //     format!("`{val}` is an invalid integer representation."),
+                // );
                 TokenKind::Error(extra.slice())
             }
         });

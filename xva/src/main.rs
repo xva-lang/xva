@@ -1,5 +1,6 @@
 use clap::Parser;
 use std::io::{BufRead, Write};
+use xva_compiler::Compiler;
 
 mod opts;
 
@@ -16,6 +17,7 @@ fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
+const REPL_SOURCE_NAME: &str = "<repl>";
 fn run_repl(opts: &Options) -> std::io::Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
@@ -28,13 +30,14 @@ fn run_repl(opts: &Options) -> std::io::Result<()> {
         stdout.flush()?;
 
         let line = stdin.lock().lines().next().unwrap()?;
+        let mut compiler = Compiler::default();
+        let src_id = compiler.load_virtual_file(REPL_SOURCE_NAME.into(), line);
 
-        let tree = xva_parse::parser::parse(line.as_str(), pretty_lex);
-
-        // let items = xva_parse::Parser::new_from_str(line.as_str())
-        //     .unwrap()
-        //     .items()
-        //     .unwrap();
+        let tree = xva_parse::parser::parse(
+            compiler.get_file_content(src_id).unwrap().as_ref(),
+            src_id,
+            pretty_lex,
+        );
 
         if pretty_ast {
             println!("{tree:#?}")

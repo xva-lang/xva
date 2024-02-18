@@ -1,5 +1,4 @@
-use std::ops::Range;
-use xva_span::TokenSpan;
+use xva_span::SourceSpan;
 
 use crate::has_node_id;
 use crate::node_id::{NodeId, ERROR_NODE_ID};
@@ -23,11 +22,11 @@ pub struct Item {
 
     /// The item's start (inclusive) and end (exclusive) range, in byte offsets
     /// from the source text.
-    pub span: TokenSpan,
+    pub span: SourceSpan,
 }
 
 impl Item {
-    pub const fn error(span: chumsky::span::SimpleSpan<usize>, err: String) -> Self {
+    pub const fn error(span: SourceSpan, err: String) -> Self {
         Self {
             id: ERROR_NODE_ID,
             kind: ItemKind::Error(err),
@@ -51,7 +50,7 @@ pub struct Module {
 pub struct Expression {
     pub id: NodeId,
     pub kind: ExpressionKind,
-    pub span: TokenSpan,
+    pub span: SourceSpan,
 }
 
 #[derive(Debug)]

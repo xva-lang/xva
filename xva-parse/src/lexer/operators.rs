@@ -1,12 +1,13 @@
 use chumsky::prelude::*;
 
-use super::{Token, TokenKind, TokenSpan};
+use crate::error::SyntaxError;
+
+use super::{LexerError, Token, TokenKind, TokenSpan};
 
 const VALID_CONTROL_CHARS: &str = r#"(){}:,"#;
 const VALID_SINGLE_CHAR_OPERATORS: &str = r#"+-*%<>&|^"#;
 
-pub(crate) fn control<'src>(
-) -> impl Parser<'src, &'src str, TokenKind<'src>, extra::Err<Rich<'src, char, TokenSpan>>> {
+pub(crate) fn control<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
     one_of(VALID_CONTROL_CHARS).map(|c| match c {
         '(' => TokenKind::OpenParen,
         ')' => TokenKind::CloseParen,
@@ -21,8 +22,7 @@ pub(crate) fn control<'src>(
     })
 }
 
-pub(crate) fn operator<'src>(
-) -> impl Parser<'src, &'src str, TokenKind<'src>, extra::Err<Rich<'src, char, TokenSpan>>> {
+pub(crate) fn operator<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
     let single_char_op = one_of(VALID_SINGLE_CHAR_OPERATORS).map(|op| match op {
         '+' => TokenKind::Plus,
         '-' => TokenKind::Minus,

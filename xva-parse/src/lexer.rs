@@ -1,58 +1,45 @@
 use chumsky::{input::Emitter, prelude::*};
-use xva_span::TokenSpan;
+use xva_span::{CheapRange, SourceId, SourceSpan, TokenSpan};
 mod comment;
 mod ident;
 mod literals;
 mod operators;
-use crate::token::{Token, TokenKind};
+use crate::{
+    error::SyntaxError,
+    token::{Token, TokenKind},
+};
 
 use self::{comment::comment, ident::ident_or_keyword, literals::literal};
 
-#[derive(Debug)]
-pub(crate) enum ParseError {
-    // Unicode(literals::UnicodeError),
-}
-
-fn rich_error<'a, T, S, M>(span: S, message: M) -> Rich<'a, T, S>
-where
-    M: ToString,
-{
-    Rich::custom(span, message)
-}
-
-pub(crate) fn emit_rich<'a, T, S, M>(emitter: &mut Emitter<Rich<'a, T, S>>, span: S, msg: M)
-where
-    M: ToString,
-{
-    emitter.emit(rich_error(span, msg))
-}
-
-pub(crate) type LexerError<'a> = extra::Err<Rich<'a, char, SimpleSpan<usize>>>;
+pub(crate) type LexerError<'a> = extra::Err<SyntaxError<'a>>;
 //Vec<chumsky::extra::Full<chumsky::error::Rich<'src, _, _, &'static _>, (), ()>
-pub(crate) type FullLexerError<'a> = chumsky::error::Rich<'a, char, TokenSpan>;
+pub(crate) type FullLexerError<'a> = chumsky::error::Rich<'a, char, SourceSpan>;
 
 pub(crate) type LexerInput<'a> = &'a str;
 pub(crate) type LexerOutput<'a> = (TokenKind<'a>, TokenSpan);
 pub(crate) type LexerOutputStream<'a> = Vec<Token<'a>>;
+
 // pub(crate) type LexerOutputStream<'a> = Vec<Token<'a>>;
-pub(crate) fn lexer<'src>(
-) -> impl Parser<'src, LexerInput<'src>, LexerOutputStream<'src>, LexerError<'src>> {
+
+pub(crate) fn lexer<'src>(// src_id: SourceId,
+) -> impl Parser<'src, LexerInput<'src>, Vec<(TokenKind<'src>, TokenSpan, &'src str)>, LexerError<'src>>
+{
     let control = operators::control();
     let operator = operators::operator();
     let literal = literal();
     let comment = comment();
     let ident_or_keyword = ident_or_keyword();
 
-    let error = any()
+    let error = any::<'src, &'src str, LexerError<'src>>()
         .to_slice()
-        .map(TokenKind::Error)
-        .validate(|t, extra, emitter| {
-            emitter.emit(Rich::custom(
-                extra.span(),
-                format!("Unexpected token: '{t}'"),
-            ));
-            t
-        });
+        .map(TokenKind::Error);
+    // .validate(|t, extra, emitter| {
+    //     emitter.emit(Rich::custom(
+    //         extra.span(),
+    //         format!("Unexpected token: '{t}'"),
+    //     ));
+    //     t
+    // });
 
     let token_kind = choice((control, operator, literal, comment, ident_or_keyword, error));
     // let token = token_kind.padded().map_with(|kind, extra| Token {
@@ -60,22 +47,45 @@ pub(crate) fn lexer<'src>(
     //     span: extra.span(),
     //     original: extra.slice(),
     // });
-    let token = token_kind.padded().map_with(|kind, extra| Token {
-        kind,
-        span: extra.span(),
-        original: extra.slice(),
-    });
+    // let token = token_kind.padded().map_with(move |kind, extra| Token {
+    //     kind,
+    //     span: {
+    //         let TokenSpan { start, end, .. } = extra.span();
+    //         SourceSpan::new(src_id, CheapRange::new(start, end))
+    //     },
+    //     original: extra.slice(),
+    // });
     // .map_with(move |token, extra| (token, extra.span()));
     // .padded();
-
-    token.repeated().collect()
+    // let token = ;
+    token_kind
+        .padded()
+        .map_with(|kind, extra| (kind, extra.span(), extra.slice()))
+        .repeated()
+        .collect()
 }
 
-pub fn lex<'src>(input: &'src str, debug: bool) -> (Vec<Token<'src>>, Vec<FullLexerError<'src>>) {
+pub fn lex<'src>(
+    input: &'src str,
+    src_id: SourceId,
+    debug: bool,
+) -> (Vec<Token<'src>>, Vec<SyntaxError<'src>>) {
+    // let (tokens, errors) = lexer(src_id).parse(input).into_output_errors();
     let (tokens, errors) = lexer().parse(input).into_output_errors();
 
-    // SAFETY: the lexer is infallible - it will always produce a vector, but it may be empty.
-    let tokens = tokens.unwrap();
+    // SAFETY: the lexer is infallible, it will always a maybe-empty vector. This .unwrap() call is safe.
+    let tokens = tokens
+        .unwrap()
+        .into_iter()
+        .map(|(kind, span, original)| Token {
+            kind,
+            span: {
+                let TokenSpan { start, end, .. } = span;
+                SourceSpan::new(src_id, CheapRange::new(start, end))
+            },
+            original,
+        })
+        .collect();
 
     if debug {
         println!("tokens: {tokens:#?}");
@@ -94,7 +104,7 @@ pub(crate) mod tests {
         let result = lexer().parse(input);
         let result_has_errors = result.has_errors();
         let (tokens, errors) = result.into_output_errors();
-        let first = &tokens.unwrap_or_else(|| {
+        let (first, _, _) = &tokens.unwrap_or_else(|| {
             panic!(
                 r"Lexer test failed. Input did not produce tokens.
 Input: {input}
@@ -102,7 +112,7 @@ Errors: {errors:#?}"
             )
         })[0];
 
-        if result_has_errors || &first.kind != expected {
+        if result_has_errors || first != expected {
             panic!(
                 r"Lexer test failed.
 Input: {input}

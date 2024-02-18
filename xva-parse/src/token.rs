@@ -1,4 +1,4 @@
-use xva_span::TokenSpan;
+use xva_span::{SourceSpan, TokenSpan};
 
 /// A single token produced by the lexer.
 ///
@@ -7,7 +7,7 @@ use xva_span::TokenSpan;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token<'src> {
     pub kind: TokenKind<'src>,
-    pub span: TokenSpan,
+    pub span: SourceSpan,
     pub original: &'src str,
 }
 

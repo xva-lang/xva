@@ -1,11 +1,10 @@
-use super::{TokenKind, TokenSpan};
+use super::{LexerError, TokenKind, TokenSpan};
 use chumsky::prelude::*;
 
 const LINE_COMMENT_SYMBOL: &str = "//";
 const DOC_COMMENT_SYMBOL: &str = "///";
 
-pub(crate) fn comment<'src>(
-) -> impl Parser<'src, &'src str, TokenKind<'src>, extra::Err<Rich<'src, char, TokenSpan>>> {
+pub(crate) fn comment<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
     just(DOC_COMMENT_SYMBOL) // `///`, doc comment symbol has higher precedence
         .or(just(LINE_COMMENT_SYMBOL)) // `//`
         .then(any().and_is(just("\n").not()).repeated().to_slice()) // Then repeat until newline, into slice
