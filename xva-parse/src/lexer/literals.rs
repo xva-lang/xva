@@ -2,9 +2,9 @@ use chumsky::{prelude::*, Parser};
 use internment::Intern;
 use std::num::ParseIntError;
 
-use super::{LexerError, LexerInput, TokenKind};
+use super::{LexerError, TokenKind};
 
-fn hex_pattern<'src>() -> impl Parser<'src, LexerInput<'src>, &'src str, LexerError> {
+fn hex_pattern<'src>() -> impl Parser<'src, &'src str, &'src str, LexerError> {
     any() // Match any char
         .filter(|c| match *c {
             '0'..='9' | 'a'..='f' | 'A'..='F' => true, // Filter to only valid hexadecimal characters
