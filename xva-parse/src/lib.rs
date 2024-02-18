@@ -1,12 +1,12 @@
-pub(crate) mod macros;
-// pub mod parserx;
-pub(crate) mod error;
+pub mod error;
 pub(crate) mod lexer;
+pub(crate) mod macros;
 pub mod parser;
 pub mod token;
-
 pub(crate) mod traits;
+pub(crate) mod utils;
 
+pub use error::SyntaxError;
 // pub use parserx::Parser;
 
 #[cfg(test)]

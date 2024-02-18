@@ -33,7 +33,7 @@ fn run_repl(opts: &Options) -> std::io::Result<()> {
         let mut compiler = Compiler::default();
         let src_id = compiler.load_virtual_file(REPL_SOURCE_NAME.into(), line);
 
-        let tree = xva_parse::parser::parse(
+        let (tree, errors) = xva_parse::parser::parse(
             compiler.get_file_content(src_id).unwrap().as_ref(),
             src_id,
             pretty_lex,
@@ -41,6 +41,13 @@ fn run_repl(opts: &Options) -> std::io::Result<()> {
 
         if pretty_ast {
             println!("{tree:#?}")
+        }
+
+        if errors.len() != 0 {
+            for error in errors {
+                let writer = stdout.lock();
+                compiler.write_syntax_error(error, writer);
+            }
         }
     }
 }

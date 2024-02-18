@@ -1,4 +1,5 @@
-use chumsky::{input::Emitter, prelude::*};
+use chumsky::prelude::*;
+use internment::Intern;
 use xva_span::{CheapRange, SourceId, SourceSpan, TokenSpan};
 mod comment;
 mod ident;
@@ -11,28 +12,27 @@ use crate::{
 
 use self::{comment::comment, ident::ident_or_keyword, literals::literal};
 
-pub(crate) type LexerError<'a> = extra::Err<SyntaxError<'a>>;
+pub(crate) type LexerError = extra::Err<SyntaxError>;
 //Vec<chumsky::extra::Full<chumsky::error::Rich<'src, _, _, &'static _>, (), ()>
 pub(crate) type FullLexerError<'a> = chumsky::error::Rich<'a, char, SourceSpan>;
 
 pub(crate) type LexerInput<'a> = &'a str;
-pub(crate) type LexerOutput<'a> = (TokenKind<'a>, TokenSpan);
-pub(crate) type LexerOutputStream<'a> = Vec<Token<'a>>;
+pub(crate) type LexerOutput = (TokenKind, TokenSpan);
+pub(crate) type LexerOutputStream = Vec<Token>;
 
 // pub(crate) type LexerOutputStream<'a> = Vec<Token<'a>>;
 
 pub(crate) fn lexer<'src>(// src_id: SourceId,
-) -> impl Parser<'src, LexerInput<'src>, Vec<(TokenKind<'src>, TokenSpan, &'src str)>, LexerError<'src>>
-{
+) -> impl Parser<'src, LexerInput<'src>, Vec<(TokenKind, TokenSpan, &'src str)>, LexerError> {
     let control = operators::control();
     let operator = operators::operator();
     let literal = literal();
     let comment = comment();
     let ident_or_keyword = ident_or_keyword();
 
-    let error = any::<'src, &'src str, LexerError<'src>>()
+    let error = any::<'src, &'src str, LexerError>()
         .to_slice()
-        .map(TokenKind::Error);
+        .map(|err| TokenKind::Error(Intern::new(err.into())));
     // .validate(|t, extra, emitter| {
     //     emitter.emit(Rich::custom(
     //         extra.span(),
@@ -69,7 +69,7 @@ pub fn lex<'src>(
     input: &'src str,
     src_id: SourceId,
     debug: bool,
-) -> (Vec<Token<'src>>, Vec<SyntaxError<'src>>) {
+) -> (Vec<Token>, Vec<SyntaxError>) {
     // let (tokens, errors) = lexer(src_id).parse(input).into_output_errors();
     let (tokens, errors) = lexer().parse(input).into_output_errors();
 
@@ -83,7 +83,7 @@ pub fn lex<'src>(
                 let TokenSpan { start, end, .. } = span;
                 SourceSpan::new(src_id, CheapRange::new(start, end))
             },
-            original,
+            original: Intern::new(original.into()),
         })
         .collect();
 

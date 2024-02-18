@@ -23,37 +23,34 @@ pub fn parse<'src>(
     input: &'src str,
     src_id: SourceId,
     debug_lexer: bool,
-) -> (Vec<SyntaxError<'src>>, Vec<Item>) {
+) -> (Vec<Item>, Vec<SyntaxError>) {
     let (tokens, lex_errors) = lex(input, src_id, debug_lexer);
 
     let (tree, parse_errors) = parser().parse(tokens.as_slice()).into_output_errors();
 
     // SAFETY: the parser is infallible - it will always produce a tree, even if the tree is empty.
-    // (tree.unwrap(), errors)
-    // a.into_iter().chain(b.into_iter()).collect();
     (
+        tree.unwrap(),
         lex_errors
             .into_iter()
             .chain(parse_errors.into_iter())
             .collect(),
-        tree.unwrap(),
     )
 }
 
-pub(crate) type ParseInput<'tok, 'src> = &'tok [Token<'src>];
-pub(crate) type ParseError<'src> = SyntaxError<'src>;
+pub(crate) type ParseInput<'tok, 'src> = &'tok [Token];
+pub(crate) type ParseError<'src> = SyntaxError;
 
 use crate::error::SyntaxError;
 pub(crate) type ParseExtra<'src> = extra::Err<ParseError<'src>>;
 
-pub(crate) fn parser<'src>(
-) -> impl Parser<'src, &'src [Token<'src>], Vec<Item>, extra::Err<SyntaxError<'src>>>
+pub(crate) fn parser<'src>() -> impl Parser<'src, &'src [Token], Vec<Item>, extra::Err<SyntaxError>>
 // where
     // 'src: 'tok,
 {
     // any::<ParseInput<'tok, 'src>, ParseExtra<'tok, 'src>>()
     literal()
-        .or(any().validate(|tok: Token<'_>, _extra, emitter| {
+        .or(any().validate(|tok: Token, _extra, emitter| {
             emitter.emit(SyntaxError::new(
                 SyntaxErrorKind::UnexpectedPattern(ErrorPattern::Token(tok.kind)),
                 tok.span,
@@ -61,7 +58,7 @@ pub(crate) fn parser<'src>(
 
             Item::error(tok.span, tok.original.into())
         }))
-        // .or(any().validate(|x: Token<'src>, _, emitter| {
+        // .or(any().validate(|x: Token, _, emitter| {
         //     // emit_rich(emitter, x.span, format!("Unexpected: {x}"));
         //     emitter.emit(SyntaxError::new(
         //         SyntaxErrorKind::UnexpectedPattern(

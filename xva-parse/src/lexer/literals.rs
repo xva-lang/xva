@@ -1,9 +1,10 @@
 use chumsky::{prelude::*, Parser};
+use internment::Intern;
 use std::num::ParseIntError;
 
 use super::{LexerError, LexerInput, TokenKind};
 
-fn hex_pattern<'src>() -> impl Parser<'src, LexerInput<'src>, &'src str, LexerError<'src>> {
+fn hex_pattern<'src>() -> impl Parser<'src, LexerInput<'src>, &'src str, LexerError> {
     any() // Match any char
         .filter(|c| match *c {
             '0'..='9' | 'a'..='f' | 'A'..='F' => true, // Filter to only valid hexadecimal characters
@@ -13,11 +14,11 @@ fn hex_pattern<'src>() -> impl Parser<'src, LexerInput<'src>, &'src str, LexerEr
         .to_slice() // Collect (::<String> by inference)
 }
 
-fn unicode_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn unicode_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     let token = just('\\')
         .ignore_then(just('u'))
         .ignore_then(hex_pattern())
-        .validate(|val, extra, emitter| match u32::from_str_radix(&val, 16) {
+        .validate(|val, extra, _emitter| match u32::from_str_radix(&val, 16) {
             Ok(uni) => match char::from_u32(uni) {
                 Some(c) => TokenKind::Char(c),
                 None => {
@@ -27,7 +28,7 @@ fn unicode_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, Lex
                     //     format!("`\\u{val}` is an invalid Unicode scalar value."),
                     // );
 
-                    TokenKind::Error(extra.slice())
+                    TokenKind::Error(Intern::new(extra.slice().into()))
                 }
             },
             Err(_) => {
@@ -36,13 +37,13 @@ fn unicode_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, Lex
                 //     extra.span(),
                 //     format!("`{val}` is an invalid integer representation."),
                 // );
-                TokenKind::Error(extra.slice())
+                TokenKind::Error(Intern::new(extra.slice().into()))
             }
         });
     token
 }
 
-fn ascii_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn ascii_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     just('\\') // Escape backslash (ignored)
         .ignore_then(
             just('\\')
@@ -59,20 +60,20 @@ fn ascii_sequence<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, Lexer
 
 const BOOLEAN_TRUE: &str = "true";
 const BOOLEAN_FALSE: &str = "false";
-fn bool<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn bool<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     just(BOOLEAN_TRUE)
         .or(just(BOOLEAN_FALSE))
         .map(|w| TokenKind::Boolean(w == BOOLEAN_TRUE))
 }
 
-fn char<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn char<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     let normal_char = any().filter(|c: &char| c.is_ascii()).map(TokenKind::Char);
     just('\'')
         .ignore_then(choice((unicode_sequence(), ascii_sequence(), normal_char)))
         .then_ignore(just('\''))
 }
 
-fn int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn int<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     any()
         .filter(|c: &char| c.is_digit(10))
         .then(any().filter(|c: &char| c.is_digit(10)).repeated())
@@ -84,24 +85,24 @@ fn int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>
         .map(TokenKind::Integer)
 }
 
-fn digits1<'src>() -> impl Parser<'src, &'src str, &'src str, LexerError<'src>> {
+fn digits1<'src>() -> impl Parser<'src, &'src str, &'src str, LexerError> {
     chumsky::text::digits(10).at_least(1).to_slice()
 }
 
-fn dot<'src>() -> impl Parser<'src, &'src str, (), LexerError<'src>> {
+fn dot<'src>() -> impl Parser<'src, &'src str, (), LexerError> {
     just('.').ignored()
 }
 
-fn maybe_dot<'src>() -> impl Parser<'src, &'src str, bool, LexerError<'src>> {
+fn maybe_dot<'src>() -> impl Parser<'src, &'src str, bool, LexerError> {
     dot().or_not().map(|x| x.is_some())
 }
 
-fn maybe_digits1<'src>() -> impl Parser<'src, &'src str, Option<&'src str>, LexerError<'src>> {
+fn maybe_digits1<'src>() -> impl Parser<'src, &'src str, Option<&'src str>, LexerError> {
     digits1().or_not()
 }
 
 const HEX_PREFIX: &str = "0x";
-fn hex_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn hex_int<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     just(HEX_PREFIX)
         .ignore_then(hex_pattern())
         .map(|x| i128::from_str_radix(x, 16).unwrap())
@@ -109,7 +110,7 @@ fn hex_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'
 }
 
 const OCTAL_PREFIX: &str = "0o";
-fn octal_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn octal_int<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     let octal_pattern = any()
         .filter(|c| match *c {
             '0'..='7' => true,
@@ -125,7 +126,7 @@ fn octal_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError
 }
 
 const BINARY_PREFIX: &str = "0b";
-fn binary_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn binary_int<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     let binary_pattern = any()
         .filter(|c| *c == '0' || *c == '1')
         .repeated()
@@ -137,12 +138,11 @@ fn binary_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerErro
         .map(TokenKind::Integer)
 }
 
-fn hex_or_octal_or_binary_int<'src>(
-) -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn hex_or_octal_or_binary_int<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     choice((hex_int(), octal_int(), binary_int()))
 }
 
-fn float_or_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn float_or_int<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     digits1() // Any digit, at least 1
         .then(maybe_dot()) // Maybe a dot
         .then(maybe_digits1()) // Maybe any digit, at least 1
@@ -168,14 +168,14 @@ fn float_or_int<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerEr
         })
 }
 
-fn float_dot_only<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+fn float_dot_only<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     text::int(10)
         .then(just('.'))
         .map(|(text, _)| str::parse::<f64>(text).unwrap()) // `_` in closure param is the dot.
         .map(TokenKind::Float)
 }
 
-pub(crate) fn literal<'src>() -> impl Parser<'src, &'src str, TokenKind<'src>, LexerError<'src>> {
+pub(crate) fn literal<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
     choice((bool(), char(), hex_or_octal_or_binary_int(), float_or_int()))
 }
 

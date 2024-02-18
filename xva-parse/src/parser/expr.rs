@@ -1,18 +1,17 @@
 use chumsky::{prelude::*, primitive::select};
 use xva_ast::ast::{Expression, ExpressionKind, Item, ItemKind, LiteralKind};
 
-use super::{next_node_id, ParseExtra, ParseInput};
+use super::next_node_id;
 use crate::{
     error::SyntaxError,
     token::{Token, TokenKind},
 };
 
-pub(crate) fn literal<'src>(
-) -> impl Parser<'src, &'src [Token<'src>], Item, extra::Err<SyntaxError<'src>>>
+pub(crate) fn literal<'src>() -> impl Parser<'src, &'src [Token], Item, extra::Err<SyntaxError>>
 // where
 //     'src: 'tok,
 {
-    select(move |token: Token<'_>, _| match token.kind {
+    select(move |token: Token, _| match token.kind {
         TokenKind::Boolean(b) => Some((LiteralKind::Boolean(b), token.span)),
         TokenKind::Char(c) => Some((LiteralKind::Char(c), token.span)),
         TokenKind::Integer(i) => Some((LiteralKind::Integer(i), token.span)),

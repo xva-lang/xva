@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "Debug executable 'xva'",
       "preLaunchTask": "cargo build",
-      "args": ["-Zpretty=lex,ast"],
+      "args": [],
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/target/debug/xva",
       "windows": {

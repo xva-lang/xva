@@ -1,17 +1,18 @@
-use xva_span::{SourceSpan, TokenSpan};
+use internment::Intern;
+use xva_span::SourceSpan;
 
 /// A single token produced by the lexer.
 ///
 /// Contains a [`TokenKind`] as the variant, a [`SourceSpan`] indicating its span in the input text,
 /// and a reference to the original text, with full-fidelity.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token<'src> {
-    pub kind: TokenKind<'src>,
+pub struct Token {
+    pub kind: TokenKind,
     pub span: SourceSpan,
-    pub original: &'src str,
+    pub original: Intern<String>,
 }
 
-impl std::fmt::Display for Token<'_> {
+impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.kind)
     }
@@ -19,17 +20,17 @@ impl std::fmt::Display for Token<'_> {
 
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug)] // Manual PartialEq impl
-pub enum TokenKind<'src> {
+pub enum TokenKind {
     // Literals
     Boolean(bool),
     Char(char),
-    String(&'src str),
+    String(Intern<String>),
     Integer(i128),
     Float(f64),
 
     // Comments
-    Comment(&'src str),
-    DocComment(&'src str),
+    Comment(Intern<String>),
+    DocComment(Intern<String>),
 
     // Symbols
     OpenParen,
@@ -66,7 +67,7 @@ pub enum TokenKind<'src> {
     Not,
 
     /// Identifier
-    Identifier(&'src str),
+    Identifier(Intern<String>),
 
     /// Error token.
     ///
@@ -76,10 +77,10 @@ pub enum TokenKind<'src> {
     /// Error token
     ///
     /// Contains multiple characters.
-    Error(&'src str),
+    Error(Intern<String>),
 }
 
-impl<'src> std::fmt::Display for TokenKind<'src> {
+impl<'src> std::fmt::Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             TokenKind::Boolean(b) => write!(f, "'{b}'"),
@@ -122,7 +123,7 @@ impl<'src> std::fmt::Display for TokenKind<'src> {
             TokenKind::Or => write!(f, "'or'"),
             TokenKind::Not => write!(f, "'not'"),
 
-            TokenKind::Identifier(i) => write!(f, "'{i}"),
+            TokenKind::Identifier(i) => write!(f, "'{i}'"),
             TokenKind::CharError(err) => write!(f, "'{err}'"),
             TokenKind::Error(err) => write!(f, "'{err}'"),
         }
@@ -130,7 +131,7 @@ impl<'src> std::fmt::Display for TokenKind<'src> {
 }
 
 // Manual implementation of PartialEq because of floats
-impl PartialEq for TokenKind<'_> {
+impl PartialEq for TokenKind {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Float(f_self), Self::Float(f_other)) => f_self.to_bits() == f_other.to_bits(),

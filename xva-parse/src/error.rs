@@ -1,8 +1,5 @@
 use ariadne::{Color, Fmt, Label, Report, ReportKind, Span};
-use chumsky::{
-    input::Input,
-    util::{Maybe, MaybeRef},
-};
+use chumsky::util::MaybeRef;
 use std::io::Write;
 
 use xva_span::{CheapRange, SourceId, SourceSpan, TokenSpan};
@@ -10,21 +7,21 @@ use xva_span::{CheapRange, SourceId, SourceSpan, TokenSpan};
 use crate::token::{Token, TokenKind};
 
 #[derive(Debug, PartialEq)]
-pub enum SyntaxErrorKind<'a> {
+pub enum SyntaxErrorKind {
     UnexpectedEnd,
-    UnexpectedPattern(ErrorPattern<'a>),
+    UnexpectedPattern(ErrorPattern),
     // UnclosedDelimiter,
     // NoEndBranch,
 }
 #[derive(Debug)]
-pub struct SyntaxError<'a> {
-    kind: SyntaxErrorKind<'a>,
+pub struct SyntaxError {
+    kind: SyntaxErrorKind,
     span: SourceSpan,
     label: Option<&'static str>,
 }
 
-impl<'a> SyntaxError<'a> {
-    pub const fn new(kind: SyntaxErrorKind<'a>, span: SourceSpan) -> Self {
+impl SyntaxError {
+    pub const fn new(kind: SyntaxErrorKind, span: SourceSpan) -> Self {
         Self {
             kind,
             span,
@@ -70,7 +67,7 @@ impl<'a> SyntaxError<'a> {
 }
 
 // Lexer error implementation: the input type is &'src str
-impl<'src> chumsky::error::Error<'src, &'src str> for SyntaxError<'src> {
+impl<'src> chumsky::error::Error<'src, &'src str> for SyntaxError {
     /// `&'a str`'s implementation of [`chumsky::input::Input`] has the following associated types:
     /// ```no_run
     /// type Offset = usize;
@@ -97,17 +94,17 @@ impl<'src> chumsky::error::Error<'src, &'src str> for SyntaxError<'src> {
     }
 }
 
-// Parser error implementation: the input type is &'src [Token<'src>]
-impl<'src> chumsky::error::Error<'src, &'src [Token<'src>]> for SyntaxError<'src> {
-    /// `&'src [Token<'src>]`'s implementation of [`chumsky::input::Input`] has the following associated types:
+// Parser error implementation: the input type is &'src [Token]
+impl<'src> chumsky::error::Error<'src, &'src [Token]> for SyntaxError {
+    /// `&'src [Token]`'s implementation of [`chumsky::input::Input`] has the following associated types:
     /// ```no_run
     /// type Offset = usize;
-    /// type Token = Token<'src>;
+    /// type Token = Token;
     /// type Span = TokenSpan;
     /// ```
-    fn expected_found<E: IntoIterator<Item = Option<MaybeRef<'src, Token<'src>>>>>(
+    fn expected_found<E: IntoIterator<Item = Option<MaybeRef<'src, Token>>>>(
         expected: E,
-        found: Option<MaybeRef<'src, Token<'src>>>,
+        found: Option<MaybeRef<'src, Token>>,
         span: TokenSpan,
     ) -> Self {
         Self {
@@ -125,9 +122,9 @@ impl<'src> chumsky::error::Error<'src, &'src [Token<'src>]> for SyntaxError<'src
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ErrorPattern<'src> {
+pub enum ErrorPattern {
     Char(char),
-    Token(TokenKind<'src>),
+    Token(TokenKind),
     EndOfInput,
 }
 
@@ -152,7 +149,7 @@ pub enum ErrorPattern<'src> {
 //     }
 // }
 
-impl std::fmt::Display for ErrorPattern<'_> {
+impl std::fmt::Display for ErrorPattern {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrorPattern::Char(c) => write!(f, "{c:?}"),

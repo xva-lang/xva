@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 xva-span = { path = "../xva-span" }
 chumsky = "1.0.0-alpha.6"
+internment = { version = "0.7.4" }

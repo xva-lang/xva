@@ -1,8 +1,8 @@
-use xva_span::SourceSpan;
-
 use crate::has_node_id;
 use crate::node_id::{NodeId, ERROR_NODE_ID};
 use crate::traits::HasNodeId;
+use internment::Intern;
+use xva_span::SourceSpan;
 
 #[derive(Debug)]
 pub struct Brick {
@@ -26,7 +26,7 @@ pub struct Item {
 }
 
 impl Item {
-    pub const fn error(span: SourceSpan, err: String) -> Self {
+    pub const fn error(span: SourceSpan, err: Intern<String>) -> Self {
         Self {
             id: ERROR_NODE_ID,
             kind: ItemKind::Error(err),
@@ -38,7 +38,7 @@ impl Item {
 pub enum ItemKind {
     Expression(Expression),
     Module(Module),
-    Error(String),
+    Error(Intern<String>),
 }
 
 #[derive(Debug)]

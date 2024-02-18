@@ -368,7 +368,7 @@ impl Default for SourceMap {
     }
 }
 
-impl ariadne::Cache<SourceId> for SourceMap {
+impl ariadne::Cache<SourceId> for &SourceMap {
     type Storage = Arc<str>;
 
     fn fetch(

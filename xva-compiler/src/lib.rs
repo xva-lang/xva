@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::{io::Write, sync::Arc};
 
+use xva_parse::SyntaxError;
 use xva_span::{SourceId, SourceMap};
 pub struct Compiler {
-    source_map: SourceMap,
+    pub source_map: SourceMap,
 }
 
 impl Default for Compiler {
@@ -20,6 +21,10 @@ impl Compiler {
 
     pub fn get_file_content(&self, id: SourceId) -> Option<Arc<str>> {
         self.source_map.get_raw(id)
+    }
+
+    pub fn write_syntax_error(&self, error: SyntaxError, writer: impl Write) {
+        error.write(&self.source_map, writer);
     }
 }
 

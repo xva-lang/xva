@@ -1,7 +1,9 @@
-use super::{LexerError, LexerInput, LexerOutput, TokenKind};
+use crate::utils::intern_str;
+
+use super::{LexerError, LexerInput, TokenKind};
 use chumsky::prelude::*;
 
-pub(crate) fn ident_or_keyword<'src>(
-) -> impl Parser<'src, LexerInput<'src>, TokenKind<'src>, LexerError<'src>> {
-    text::ident().map(TokenKind::Identifier) //.and_is(keyword().not()) TODO
+pub(crate) fn ident_or_keyword<'src>() -> impl Parser<'src, LexerInput<'src>, TokenKind, LexerError>
+{
+    text::ident().map(|ident| TokenKind::Identifier(intern_str(ident))) //.and_is(keyword().not()) TODO
 }
