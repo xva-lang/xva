@@ -1,11 +1,11 @@
-use super::{LexerError, TokenKind};
+use super::{LexerExtra, TokenKind};
 use chumsky::prelude::*;
 use internment::Intern;
 
 const LINE_COMMENT_SYMBOL: &str = "//";
 const DOC_COMMENT_SYMBOL: &str = "///";
 
-pub(crate) fn comment<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerError> {
+pub(crate) fn comment<'src>() -> impl Parser<'src, &'src str, TokenKind, LexerExtra> {
     just(DOC_COMMENT_SYMBOL) // `///`, doc comment symbol has higher precedence
         .or(just(LINE_COMMENT_SYMBOL)) // `//`
         .then(any().and_is(just("\n").not()).repeated().to_slice()) // Then repeat until newline, into slice
@@ -34,7 +34,7 @@ mod tests {
 
     #[test]
     fn doc_comment() {
-        const TEST_CASE: &str = " This is a doc comment";
+        const TEST_CASE: &str = "This is a doc comment";
         let interned = Intern::new(TEST_CASE.into());
         assert_single_no_errors(
             format!("///{TEST_CASE}").as_str(),

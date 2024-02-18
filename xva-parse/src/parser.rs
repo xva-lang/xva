@@ -1,15 +1,29 @@
+//! The parser, or syntactical analysis. Compilation stage 2
+//!
+//! The parser is, like the lexer, also a parser combinator. The combinators are again provided by [`chumsky`], but
+//! unlike the lexer, the parser operates on complete tokens (produced by the lexer) rather than slices of the
+//! source text.
+//!
+//! The four magic Chumsky-related types for the parser are:
+//! - Lifetime: `'src`, the lifetime of the input, same as the lexer,
+//! - Input: `&'src [Token]`, a slice of [`Token`]s that muse live at least as long as the parser (hence `'src``),
+//! - Output: [`Item`], a single node of the abstract syntax tree
+//! - Extra: [`SyntaxError`], wrapped in Chumsky's [`extra::Err`](chumsky::extra::Err). To avoid writing out
+//! the whole thing, there is a type alias for the wrapped type: [`ParserExtra`]
+//!
+//! The ultimate output of this module is an [`Item`] - an abstract syntax "tree" of constructs in the language.
+
 use chumsky::prelude::*;
-
 use std::sync::atomic::{AtomicI64, Ordering};
-
 use xva_ast::{ast::Item, node_id::NodeId};
 use xva_span::SourceId;
+
 mod expr;
 
-use crate::token::Token;
 use crate::{
     error::{ErrorPattern, SyntaxErrorKind},
     lexer::lex,
+    token::Token,
 };
 
 use self::expr::literal;
@@ -38,17 +52,10 @@ pub fn parse<'src>(
     )
 }
 
-pub(crate) type ParseInput<'tok, 'src> = &'tok [Token];
-pub(crate) type ParseError<'src> = SyntaxError;
-
 use crate::error::SyntaxError;
-pub(crate) type ParseExtra<'src> = extra::Err<ParseError<'src>>;
 
 pub(crate) fn parser<'src>() -> impl Parser<'src, &'src [Token], Vec<Item>, extra::Err<SyntaxError>>
-// where
-    // 'src: 'tok,
 {
-    // any::<ParseInput<'tok, 'src>, ParseExtra<'tok, 'src>>()
     literal()
         .or(any().validate(|tok: Token, _extra, emitter| {
             emitter.emit(SyntaxError::new(
@@ -58,19 +65,6 @@ pub(crate) fn parser<'src>() -> impl Parser<'src, &'src [Token], Vec<Item>, extr
 
             Item::error(tok.span, tok.original.into())
         }))
-        // .or(any().validate(|x: Token, _, emitter| {
-        //     // emit_rich(emitter, x.span, format!("Unexpected: {x}"));
-        //     emitter.emit(SyntaxError::new(
-        //         SyntaxErrorKind::UnexpectedPattern(
-        //             ErrorPattern::Token(x.kind), x.span
-        //         )
-        //     ))
-        //     Item {
-        //         id: next_node_id(),
-        //         kind: ItemKind::Error(x.original.to_string()),
-        //         span: x.span,
-        //     }
-        // }))
         .repeated()
         .collect()
 }

@@ -10,8 +10,8 @@ use crate::token::{Token, TokenKind};
 pub enum SyntaxErrorKind {
     UnexpectedEnd,
     UnexpectedPattern(ErrorPattern),
-    // UnclosedDelimiter,
-    // NoEndBranch,
+    InvalidUnicode(u32), // UnclosedDelimiter,
+                         // NoEndBranch,
 }
 #[derive(Debug)]
 pub struct SyntaxError {
@@ -33,20 +33,27 @@ impl SyntaxError {
     where
         C: ariadne::Cache<SourceId>,
     {
-        let msg = format!(
-            "{}{}, expected {}",
-            match &self.kind {
-                // SyntaxErrorKind::NoEndBranch => "No end branch",
-                SyntaxErrorKind::UnexpectedEnd => "Unexpected end of input".to_string(),
-                SyntaxErrorKind::UnexpectedPattern(pat) =>
-                    format!("Unexpected pattern: {}", pat.fg(Color::Red)),
-            },
-            self.label.map_or("".into(), |label| format!(
-                " while parsing {}",
-                label.fg(Color::Cyan)
-            )),
-            "something else",
-        );
+        let msg = match &self.kind {
+            SyntaxErrorKind::InvalidUnicode(uc) => {
+                format!("Invalid Unicode: the value {uc:#x} is not a valid Unicode scalar value.")
+            }
+            error_kind => format!(
+                "{}{}, expected {}",
+                match error_kind {
+                    // SyntaxErrorKind::NoEndBranch => "No end branch",
+                    SyntaxErrorKind::UnexpectedEnd => "Unexpected end of input".to_string(),
+                    SyntaxErrorKind::UnexpectedPattern(pat) =>
+                        format!("Unexpected pattern: {}", pat.fg(Color::Red)),
+
+                    _ => unreachable!(),
+                },
+                self.label.map_or("".into(), |label| format!(
+                    " while parsing {}",
+                    label.fg(Color::Cyan)
+                )),
+                "something else",
+            ),
+        };
 
         let report = Report::build(ReportKind::Error, self.span.src(), self.span.start())
             .with_code(3)
@@ -58,6 +65,7 @@ impl SyntaxError {
                         SyntaxErrorKind::UnexpectedPattern(pat) => {
                             format!("Unexpected pattern: {} ", pat.fg(Color::Red))
                         }
+                        SyntaxErrorKind::InvalidUnicode(_) => "Invalid Unicode value here".into(),
                     })
                     .with_color(Color::Red),
             );
@@ -69,7 +77,7 @@ impl SyntaxError {
 // Lexer error implementation: the input type is &'src str
 impl<'src> chumsky::error::Error<'src, &'src str> for SyntaxError {
     /// `&'a str`'s implementation of [`chumsky::input::Input`] has the following associated types:
-    /// ```no_run
+    /// ```ignore
     /// type Offset = usize;
     /// type Token = char;
     /// type Span = SimpleSpan<usize>;
@@ -97,13 +105,13 @@ impl<'src> chumsky::error::Error<'src, &'src str> for SyntaxError {
 // Parser error implementation: the input type is &'src [Token]
 impl<'src> chumsky::error::Error<'src, &'src [Token]> for SyntaxError {
     /// `&'src [Token]`'s implementation of [`chumsky::input::Input`] has the following associated types:
-    /// ```no_run
+    /// ```ignore
     /// type Offset = usize;
     /// type Token = Token;
     /// type Span = TokenSpan;
     /// ```
     fn expected_found<E: IntoIterator<Item = Option<MaybeRef<'src, Token>>>>(
-        expected: E,
+        _expected: E,
         found: Option<MaybeRef<'src, Token>>,
         span: TokenSpan,
     ) -> Self {

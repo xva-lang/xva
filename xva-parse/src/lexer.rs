@@ -1,4 +1,4 @@
-//! The lexer, tokenizer, lexical analyser: whatever you want to call it.
+//! The lexer, tokenizer, lexical analyser: whatever you want to call it. Compilation stage 1.
 //!
 //! The lexer is a parser combinator - it is a type of parser built from successively applying smaller parsers
 //! in order to produce meaningful output.
@@ -7,11 +7,22 @@
 //! trait solving and type inference, but if you do things in the right way it will sort itself out.
 //!
 //! A typical Chumsky parsing function looks like the following:
-//! ```no_run
+//! ```ignore
 //! fn parser<'a>() -> impl Parser<'a, Input, Output, Extra> {
 //!     ...
 //! }
 //! ```
+//!
+//! For example, a lexing component that produces booleans from the words `TRUE` or `FALSE`:
+//! ```
+//! use chumsky::prelude::*;
+//!
+//! fn bools<'a>() -> impl Parser<'a, &'a str, bool, extra::Err<Simple<'a, char>>> {
+//!     just("TRUE") // The exact text TRUE
+//!         .or(just("FALSE")) // or the exact text FALSE
+//!         .map(|w| w == "TRUE") // mapped to a boolean expression
+//! }
+//! ````
 //!
 //! A Chumsky parsing component requires 4 types: a lifetime, and an input, output and "extra" type. Typically, for
 //! each of the lexing components defined in this module, these will be the following:
@@ -19,10 +30,14 @@
 //! - Input: `&'src str`, a string slice that must live at least as long as the lexer (hence `'src``),
 //! - Output: [`TokenKind`], a variant representing what kind of token the lexer has produced,
 //! - Extra: [`SyntaxError`], wrapped in Chumsky's [`extra::Err`](chumsky::extra::Err). To avoid writing out
-//! the whole thing, there is a type alias for the wrapped type: [`LexerError`]
+//! the whole thing, there is a type alias for the wrapped type: [`LexerExtra`]
 //!
 //! The ultimate output of this module are [`Token`]s - a structure containing a token variant, its span in context of
 //! the file currently being processed, and the original text that the token was produced from.
+//!
+//! The lexer is infallible - it will **always** succeed in producing a collection (`Vec`) of tokens, but:
+//! 1. The collection may be empty, and
+//! 2. Errors may have been reported along the way.
 
 use chumsky::prelude::*;
 use internment::Intern;
@@ -41,17 +56,17 @@ use crate::{
 use self::{comment::comment, ident::ident_or_keyword, literals::literal};
 
 /// Convenience type to avoid writing out the wrapping type from Chumsky.
-pub(crate) type LexerError = extra::Err<SyntaxError>;
+pub(crate) type LexerExtra = extra::Err<SyntaxError>;
 
 pub(crate) fn lexer<'src>(
-) -> impl Parser<'src, &'src str, Vec<(TokenKind, TokenSpan, &'src str)>, LexerError> {
+) -> impl Parser<'src, &'src str, Vec<(TokenKind, TokenSpan, &'src str)>, LexerExtra> {
     let control = operators::control();
     let operator = operators::operator();
     let literal = literal();
     let comment = comment();
     let ident_or_keyword = ident_or_keyword();
 
-    let error = any::<'src, &'src str, LexerError>()
+    let error = any::<'src, &'src str, LexerExtra>()
         .to_slice()
         .map(|err| TokenKind::Error(Intern::new(err.into())));
 
