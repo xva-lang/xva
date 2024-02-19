@@ -1,8 +1,11 @@
 [package]
 name = "xva-span"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+tree-sitter = "0.20.10"
+sha2 = "0.10.8"
+codespan-reporting = "0.11.1"
+chumsky = "1.0.0-alpha.6"
+ariadne = "0.4.0"

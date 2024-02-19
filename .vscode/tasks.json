@@ -29,6 +29,13 @@
         "command": ".\\scripts\\tree-sitter-parse.bat"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "cargo build",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build"],
+      "problemMatcher": ["$rustc"]
     }
   ]
 }

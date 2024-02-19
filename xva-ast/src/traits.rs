@@ -1,4 +1,4 @@
-use crate::{Expression, Item, NodeId};
+use crate::node_id::NodeId;
 
 /// Trait for marking AST items that have a [`NodeId`] on them, and providing functionalty to retrieve
 /// the `NodeId`.
@@ -10,6 +10,7 @@ pub trait HasNodeId {
 /// must have a field named `id`.
 ///
 /// The macro also automatically tries to `#[inline]` the implementation.
+#[macro_export]
 macro_rules! has_node_id {
     // Start a repition `$(...)` with `$this`, which is a type `ty`,
     // seperated by commas, repeating zero or more times.
@@ -23,11 +24,9 @@ macro_rules! has_node_id {
     };
 }
 
-has_node_id!(Item, Expression);
-
 #[cfg(test)]
 mod tests {
-    use crate::{traits::HasNodeId, NodeId};
+    use crate::{node_id::NodeId, traits::HasNodeId};
 
     #[test]
     fn has_node_id_macro() {

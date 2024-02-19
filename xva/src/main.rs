@@ -1,53 +1,53 @@
-use std::{fs::File, io::Read};
+use clap::Parser;
+use std::io::{BufRead, Write};
+use xva_compiler::Compiler;
 
-use clap::{Arg, Command};
-use xva_buildinfo::get_build_info;
-use xva_compiler::CompilerOptions;
+mod opts;
 
-const PACKAGE_VERSION: &str = std::env!("CARGO_PKG_VERSION");
+use opts::Options;
 
-// const UNSTABLE_COMPILER_OPTIONS: [&str; 1] = [cli::compiler_options::UNSTABLE_PRINT_CST];
+const BUILD_INFO: &str = include_str!("../.buildinfo");
 
-const ARG_UNSTABLE_COMPILER_OPTION: &str = "unstable_compiler_option";
-const ARG_INPUT_FILE: &str = "input_file";
 fn main() -> Result<(), std::io::Error> {
-    println!("Xva {} {}", PACKAGE_VERSION, get_build_info());
+    println!("{BUILD_INFO}");
 
-    let command = Command::new("Xva")
-        .author("Xva Language Team <info@xva-lang.org>")
-        .arg(
-            Arg::new(ARG_INPUT_FILE)
-                .required(false)
-                .help("Run the specified Xva source file"),
-        )
-        .arg(
-            Arg::new(ARG_UNSTABLE_COMPILER_OPTION)
-                .short('Z')
-                .help("Specify unstable compiler options"),
+    let opts = Options::parse();
+    run_repl(&opts)?;
+
+    Ok(())
+}
+
+const REPL_SOURCE_NAME: &str = "<repl>";
+fn run_repl(opts: &Options) -> std::io::Result<()> {
+    let stdin = std::io::stdin();
+    let mut stdout = std::io::stdout();
+    let pretty_lex = opts.unstable_option_contains("pretty", "lex");
+    let pretty_ast = opts.unstable_option_contains("pretty", "ast");
+
+    loop {
+        let _stdout_lock = stdout.lock();
+        stdout.write_all("> ".as_bytes())?;
+        stdout.flush()?;
+
+        let line = stdin.lock().lines().next().unwrap()?;
+        let mut compiler = Compiler::default();
+        let src_id = compiler.load_virtual_file(REPL_SOURCE_NAME.into(), line);
+
+        let (tree, errors) = xva_parse::parser::parse(
+            compiler.get_file_content(src_id).unwrap().as_ref(),
+            src_id,
+            pretty_lex,
         );
 
-    let matches = command.get_matches();
+        if pretty_ast {
+            println!("{tree:#?}")
+        }
 
-    let input_file = matches.get_one::<String>(ARG_INPUT_FILE);
-
-    let mut compiler_options = CompilerOptions::default();
-
-    if let Some(zflags) = matches.get_many::<String>(ARG_UNSTABLE_COMPILER_OPTION) {
-        for flag in zflags {
-            if flag == "print-cst" {
-                compiler_options.print_cst = true
+        if errors.len() != 0 {
+            for error in errors {
+                let writer = stdout.lock();
+                compiler.write_syntax_error(error, writer);
             }
         }
     }
-
-    if let Some(file_name) = input_file {
-        let mut buffer = String::new();
-        File::open(file_name)?.read_to_string(&mut buffer)?;
-
-        if compiler_options.print_cst {
-            // xva_syntax::print_cst(buffer);
-        }
-    }
-
-    Ok(())
 }

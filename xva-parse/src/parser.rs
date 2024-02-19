@@ -1,74 +1,92 @@
-use std::{error::Error, io::Read, path::PathBuf};
+//! The parser, or syntactical analysis. Compilation stage 2
+//!
+//! The parser is, like the lexer, also a parser combinator. The combinators are again provided by [`chumsky`], but
+//! unlike the lexer, the parser operates on complete tokens (produced by the lexer) rather than slices of the
+//! source text.
+//!
+//! The four magic Chumsky-related types for the parser are:
+//! - Lifetime: `'src`, the lifetime of the input, same as the lexer,
+//! - Input: `&'src [Token]`, a slice of [`Token`]s that muse live at least as long as the parser (hence `'src``),
+//! - Output: [`Item`], a single node of the abstract syntax tree
+//! - Extra: [`SyntaxError`], wrapped in Chumsky's [`extra::Err`](chumsky::extra::Err). To avoid writing out
+//! the whole thing, there is a type alias for the wrapped type: [`ParserExtra`]
+//!
+//! The ultimate output of this module is an [`Item`] - an abstract syntax "tree" of constructs in the language.
 
-use tree_sitter::{Node, Tree};
-use xva_ast::{Brick, Item};
+use chumsky::prelude::*;
+use std::sync::atomic::{AtomicI64, Ordering};
+use xva_ast::{ast::Item, node_id::NodeId};
+use xva_span::SourceId;
 
-#[derive(Debug)]
-pub struct Parser<'parse> {
-    cst: tree_sitter::Tree,
-    current_source: String,
-    current_cst_node: Option<&'parse tree_sitter::Node<'parse>>,
+mod expr;
+
+use crate::{
+    error::{ErrorPattern, SyntaxErrorKind},
+    lexer::lex,
+    token::Token,
+};
+
+use self::expr::literal;
+
+pub(self) static NODE_ID_SEED: AtomicI64 = AtomicI64::new(0);
+pub(self) fn next_node_id() -> NodeId {
+    NODE_ID_SEED.fetch_add(1, Ordering::SeqCst).into()
 }
 
-impl<'parse> Parser<'parse> {
-    // pub fn brick(&self) -> Brick {}
+pub fn parse<'src>(
+    input: &'src str,
+    src_id: SourceId,
+    debug_lexer: bool,
+) -> (Vec<Item>, Vec<SyntaxError>) {
+    let (tokens, lex_errors) = lex(input, src_id, debug_lexer);
 
-    pub fn new_from_file(path: PathBuf) -> Result<Parser<'parse>, Box<dyn Error>> {
-        let mut f = std::fs::File::open(path)?;
-        let mut source = String::new();
-        f.read_to_string(&mut source)?;
+    let (tree, parse_errors) = parser().parse(tokens.as_slice()).into_output_errors();
 
-        let mut parser = tree_sitter::Parser::new();
-        parser.set_language(xva_treesitter::language())?;
-
-        let tree = parser.parse(source.as_str(), None).unwrap();
-        let root = (&tree).root_node().clone();
-        let result = Parser {
-            current_source: source,
-            cst: tree,
-            current_cst_node: None,
-        };
-
-        Ok(result)
-    }
-
-    pub fn new_from_str(input: &str) -> Result<Parser, Box<dyn Error>> {
-        let mut parser = tree_sitter::Parser::new();
-        parser.set_language(xva_treesitter::language())?;
-
-        let tree = parser.parse(input, None).unwrap();
-        let result = Parser {
-            current_source: input.to_string(), // expensive
-            cst: tree,
-            current_cst_node: None,
-        };
-
-        Ok(result)
-    }
-
-    pub fn brick(&self) -> Brick {
-        let items = self.items();
-        Brick::new_from_items(items)
-    }
-
-    pub fn items(&self) -> Vec<Item> {
-        vec![]
-    }
-
-    pub(crate) fn tree(&self) -> &Tree {
-        &self.cst
-    }
-}
-
-pub fn print_node(node: &Node<'_>) -> String {
-    let start = node.start_position();
-    let end = node.end_position();
-    format!(
-        "{}@{}:{}..{}:{}",
-        node.kind(),
-        start.row,
-        start.column,
-        end.row,
-        end.column
+    // SAFETY: the parser is infallible - it will always produce a tree, even if the tree is empty.
+    (
+        tree.unwrap(),
+        lex_errors
+            .into_iter()
+            .chain(parse_errors.into_iter())
+            .collect(),
     )
+}
+
+use crate::error::SyntaxError;
+
+pub(crate) fn parser<'src>() -> impl Parser<'src, &'src [Token], Vec<Item>, extra::Err<SyntaxError>>
+{
+    literal()
+        .or(any().validate(|tok: Token, _extra, emitter| {
+            emitter.emit(SyntaxError::new(
+                SyntaxErrorKind::UnexpectedPattern(ErrorPattern::Token(tok.kind)),
+                tok.span,
+            ));
+
+            Item::error(tok.span, tok.original.into())
+        }))
+        .repeated()
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+
+    // use crate::{lexer::lex, parser::parser};
+
+    // #[test]
+    // fn tree() {
+    //     let input = "keyword";
+
+    //     let len = input.bytes().len();
+    //     let eoi = SourceSpan::new(0, len);
+    //     let (tokens, lex_errors) = lex(input, false);
+
+    //     let (ast, parse_errs) = parser()
+    //         .map_with(|ast, e| (ast, e.span()))
+    //         .parse(tokens.as_slice().spanned((input.len()..input.len()).into()))
+    //         .into_output_errors();
+
+    //     println!("tree: {:#?}", ast);
+    // }
 }
