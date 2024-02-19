@@ -1,8 +1,8 @@
 use crate::has_node_id;
-use crate::node_id::NodeId;
+use crate::node_id::{NodeId, ERROR_NODE_ID};
 use crate::traits::HasNodeId;
-
-use std::ops::Range;
+use internment::Intern;
+use xva_span::SourceSpan;
 
 #[derive(Debug)]
 pub struct Brick {
@@ -22,13 +22,23 @@ pub struct Item {
 
     /// The item's start (inclusive) and end (exclusive) range, in byte offsets
     /// from the source text.
-    pub range: Range<usize>,
+    pub span: SourceSpan,
 }
 
+impl Item {
+    pub const fn error(span: SourceSpan, err: Intern<String>) -> Self {
+        Self {
+            id: ERROR_NODE_ID,
+            kind: ItemKind::Error(err),
+            span,
+        }
+    }
+}
 #[derive(Debug)]
 pub enum ItemKind {
     Expression(Expression),
     Module(Module),
+    Error(Intern<String>),
 }
 
 #[derive(Debug)]
@@ -40,19 +50,20 @@ pub struct Module {
 pub struct Expression {
     pub id: NodeId,
     pub kind: ExpressionKind,
-    pub span: Range<usize>,
+    pub span: SourceSpan,
 }
 
 #[derive(Debug)]
 pub enum ExpressionKind {
     Literal(LiteralKind),
+    Identifier(String),
     Unary(UnaryOperator, Box<Expression>),
     Binary(BinaryOperator, Box<Expression>, Box<Expression>),
 }
 
 #[derive(Debug)]
 pub enum LiteralKind {
-    Integer(u128, LiteralIntegerKind),
+    Integer(i128),
     Boolean(bool),
     Char(char),
     Float(f64),

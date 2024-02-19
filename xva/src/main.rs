@@ -1,9 +1,10 @@
 use clap::Parser;
 use std::io::{BufRead, Write};
+use xva_compiler::Compiler;
 
 mod opts;
 
-use opts::{Options, UnstableOptionKind};
+use opts::Options;
 
 const BUILD_INFO: &str = include_str!("../.buildinfo");
 
@@ -16,23 +17,12 @@ fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
+const REPL_SOURCE_NAME: &str = "<repl>";
 fn run_repl(opts: &Options) -> std::io::Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
-    let pretty_ast =
-        if let Some((_, val)) = opts.unstable_options.iter().find(|(k, _)| k == "pretty") {
-            if let UnstableOptionKind::WithValue(pretty) = val {
-                if pretty == "ast" {
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        } else {
-            false
-        };
+    let pretty_lex = opts.unstable_option_contains("pretty", "lex");
+    let pretty_ast = opts.unstable_option_contains("pretty", "ast");
 
     loop {
         let _stdout_lock = stdout.lock();
@@ -40,14 +30,24 @@ fn run_repl(opts: &Options) -> std::io::Result<()> {
         stdout.flush()?;
 
         let line = stdin.lock().lines().next().unwrap()?;
+        let mut compiler = Compiler::default();
+        let src_id = compiler.load_virtual_file(REPL_SOURCE_NAME.into(), line);
 
-        let items = xva_parse::Parser::new_from_str(line.as_str())
-            .unwrap()
-            .items()
-            .unwrap();
+        let (tree, errors) = xva_parse::parser::parse(
+            compiler.get_file_content(src_id).unwrap().as_ref(),
+            src_id,
+            pretty_lex,
+        );
 
         if pretty_ast {
-            println!("{items:#?}")
+            println!("{tree:#?}")
+        }
+
+        if errors.len() != 0 {
+            for error in errors {
+                let writer = stdout.lock();
+                compiler.write_syntax_error(error, writer);
+            }
         }
     }
 }

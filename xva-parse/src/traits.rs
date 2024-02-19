@@ -9,13 +9,13 @@ pub(crate) trait TSIdentifyable {
 impl TSIdentifyable for tree_sitter::TreeCursor<'_> {
     /// Returns the node ID of the cursor's current node, as a [`NodeId`].
     fn node_id(&self) -> NodeId {
-        (self.node().id() as u32).into()
+        (self.node().id() as i64).into()
     }
 }
 
 impl TSIdentifyable for tree_sitter::Node<'_> {
     /// Returns the node ID of the node, as a [`NodeId`].
     fn node_id(&self) -> NodeId {
-        (self.id() as u32).into()
+        (self.id() as i64).into()
     }
 }
